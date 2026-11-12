@@ -2,6 +2,7 @@
 
 import sys
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from notenverwaltung import APP_NAME, ORG_NAME, __version__
@@ -24,4 +25,5 @@ def main(argv: list[str] | None = None) -> int:
     app = erzeuge_anwendung(argv)
     fenster = Hauptfenster()
     fenster.show()
+    QTimer.singleShot(0, fenster.zeige_startdialog)  # Lastenheft: beim Start Auswahl der Datenbank
     return app.exec()

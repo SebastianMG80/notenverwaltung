@@ -7,7 +7,7 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 
 ## Etappen (Details in PLAN.md)
 - [x] 0 Fundament (12.11.2026)
-- [ ] 1 Verschlüsselte Datenbank
+- [x] 1 Verschlüsselte Datenbank (12.11.2026)
 - [ ] 2 Stammdaten
 - [ ] 3 Klassenarbeiten
 - [ ] 4 Druck / PDF, Teil 1
@@ -21,15 +21,14 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [ ] 12 Darstellung → **Meilenstein C**
 
 ## Nächster Schritt
-Etappe 1 – Kern ist fertig (`speicher/krypto.py`, `tresor.py`, `datenbank.py`, `schema.py`, Tests `tests/test_speicher.py`).
-Jetzt: Dialoge in `ui/`:
-1. `ui/startdialog.py`: zuletzt geöffnete Datenbanken (QSettings `datenbank/zuletzt`), Passwortfeld, „Andere öffnen …“, „Neue Datenbank …“,
-   „Passwort vergessen?“ → Wiederherstellungscode oder Schlüsseldatei, danach neues Passwort erzwingen. GesperrtFehler → Nachfrage.
-2. `ui/neue_datenbank.py`: QWizard – Datenschutzhinweis (Pflicht-Haken), Speicherort (Cloud-Warnung), Passwort ×2 (min. 10 Zeichen),
-   Notfallblatt (Code anzeigen, drucken/PDF, Pflicht-Haken „gesichert“).
-3. `ausgabe/notfallblatt.py`: PDF/Drucker mit QPainter, QR-Code via segno-Matrix.
-4. Hauptfenster: Datei-Menü (Neu, Öffnen, Speichern Strg+S, Schließen), Sicherheit (Passwort ändern, neues Notfallblatt, Schlüsseldatei),
-   Autospeichern alle 2 min, Speichern beim Beenden, Titel mit Datenbankname.
+Etappe 2 – Stammdaten. Plan:
+1. Migration 2 in `speicher/schema.py`: schuljahr, halbjahr (implizit 1/2 mit Datumsgrenzen), schueler (Stammdaten,
+   schuljahrübergreifend), klassenzuordnung (schueler × schuljahr → jahrgang, klasse), lerngruppe (Klasse oder Kurs, Fach,
+   schriftlich/mündlich, E/G-Vermerk, Jahrgang, Notensystem „sek1“ – Sek II vorbereitet), mitglied (lerngruppe × schueler,
+   von/bis-Datum, eigene Position für eigene Sortierung).
+2. `modell/` mit Datenklassen + Funktionen (keine Qt-Abhängigkeit), vollständig getestet.
+3. UI: Navigation links (Schuljahr-Auswahl oben, darunter Lerngruppen), Seiten für Schuljahr, Schüler:innen-Liste der Lerngruppe
+   mit Sortierung (Klasse→Alphabet Standard, Alphabet, eigene), Dialoge für Anlegen/Bearbeiten, Zu-/Abgang mit Datum.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
@@ -43,8 +42,14 @@ Jetzt: Dialoge in `ui/`:
 | Wiederherstellungscode | 24 Zeichen Crockford-Base32 (120 Bit), Gruppen à 4, O→0, I/L→1 beim Eintippen |
 | Sicherungen | Ordner `<Name>-Sicherungen` neben der Datenbank, einmal pro Sitzung vor dem ersten Speichern, max. 20; bei Zugangsänderung werden sie neu verpackt (altes Passwort gilt dort nicht mehr) |
 | Sperre | `<Datei>.sperre` (Rechnername, PID); verwaiste eigene Sperre wird übernommen; unter Windows keine PID-Prüfung → Nachfrage |
+| Anrede in der Oberfläche | „du“ (freundlich, wie in den übrigen Projekten) |
+| Notfallblatt | Drucken direkt oder als PDF (mit Hinweis: PDF enthält den Code, nach dem Drucken löschen); Bestätigung „gesichert“ ist Pflicht, Abbruch nur nach Warnung |
+| Passwort | mindestens 10 Zeichen, Unicode-NFC-normalisiert |
+| Autospeichern | alle 2 Minuten bei Änderungen, außerdem beim Schließen |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke
+- `segno` (QR) lädt über `xml.sax.saxutils` das ungenutzte `urllib.request` – deshalb erst in `notfallblatt._qr` importieren.
+- UI-Tests: `schnelle_kdf`-Fixture benutzen (Argon2id sonst 0,3 s pro Öffnen); Meldungsfenster sind in `conftest.py` stummgeschaltet, `frage` per monkeypatch im jeweiligen Modul setzen.
 - Netzwerk-Laufzeittest muss in eigenem Prozess laufen: pytest selbst lädt `ssl`.
 - Tests setzen `QSettings.setPath` auf einen Wegwerf-Ordner – nie die echten Einstellungen benutzen.

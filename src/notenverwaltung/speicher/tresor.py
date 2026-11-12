@@ -36,6 +36,8 @@ WIEDERHERSTELLUNG = "wiederherstellung"
 SCHLUESSELDATEI = "schluesseldatei"
 ARTEN = (PASSWORT, WIEDERHERSTELLUNG, SCHLUESSELDATEI)
 
+STANDARD_KDF = KdfParameter()  # Tests setzen hier schnellere Werte ein
+
 
 class FormatFehler(Exception):
     """Die Datei ist keine (lesbare) Notenverwaltungs-Datenbank."""
@@ -96,7 +98,7 @@ class Tresor:
     @staticmethod
     def neu(passwort: str, kdf: KdfParameter | None = None) -> tuple["Tresor", str]:
         """Neuer Tresor mit Passwort und Wiederherstellungscode. Gibt den Code zurück (nur einmal sichtbar!)."""
-        t = Tresor(krypto.neuer_hauptschluessel(), kdf or KdfParameter())
+        t = Tresor(krypto.neuer_hauptschluessel(), kdf or STANDARD_KDF)
         t.setze_passwort(passwort)
         code = t.neuer_wiederherstellungscode()
         return t, code

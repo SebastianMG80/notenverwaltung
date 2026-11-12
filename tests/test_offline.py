@@ -88,3 +88,29 @@ def test_start_ohne_netzwerk(tmp_path):
     zeilen = dict(z.split(" ", 1) if " " in z else (z, "") for z in erg.stdout.strip().splitlines())
     assert zeilen.get("VERSUCHE") == "0", erg.stdout
     assert zeilen.get("MODULE", "") == "", f"Netzwerk-Module geladen: {zeilen.get('MODULE')}"
+
+
+NOTFALL_PROGRAMM = r"""
+import socket, sys
+versuche = []
+def blockiert(self, *a, **k):
+    versuche.append(a)
+    raise OSError("Netzwerk verboten")
+for name in ("connect", "connect_ex", "sendto", "sendmsg"):
+    setattr(socket.socket, name, blockiert)
+from PySide6.QtWidgets import QApplication
+app = QApplication([])
+from notenverwaltung.ausgabe import notfallblatt
+notfallblatt.als_pdf(sys.argv[1], "Test", "ABCD-EFGH-JKMN-PQRS-TVWX-YZ23")
+print("VERSUCHE", len(versuche))
+"""
+
+
+def test_notfallblatt_ohne_netzwerk(tmp_path):
+    """segno (QR-Code) lädt urllib mit – es darf aber keinen Verbindungsversuch geben."""
+    umgebung = dict(os.environ, QT_QPA_PLATFORM="offscreen", PYTHONPATH=str(QUELLEN.parent))
+    erg = subprocess.run([sys.executable, "-c", NOTFALL_PROGRAMM, str(tmp_path / "n.pdf")],
+                         capture_output=True, text=True, env=umgebung, timeout=60)
+    assert erg.returncode == 0, erg.stderr
+    assert "VERSUCHE 0" in erg.stdout
+    assert (tmp_path / "n.pdf").read_bytes()[:4] == b"%PDF"

@@ -21,6 +21,8 @@ class Farben:
     akzent: str
     akzent_text: str
     auswahl: str
+    warnung: str
+    fehler: str
 
 
 DESIGNS: dict[str, Farben] = {
@@ -34,6 +36,8 @@ DESIGNS: dict[str, Farben] = {
         akzent="#5fb3a8",
         akzent_text="#10201e",
         auswahl="#35554f",
+        warnung="#e0b25a",
+        fehler="#e57373",
     ),
     "hell": Farben(
         hintergrund="#f3f4f6",
@@ -45,6 +49,8 @@ DESIGNS: dict[str, Farben] = {
         akzent="#2f7f75",
         akzent_text="#ffffff",
         auswahl="#cde6e2",
+        warnung="#9a6700",
+        fehler="#b3261e",
     ),
 }
 
@@ -91,12 +97,36 @@ def _stylesheet(f: Farben) -> str:
     #karte {{ background: {f.flaeche}; border: 1px solid {f.rand}; border-radius: 10px; }}
     #titel {{ font-size: 20pt; font-weight: 600; color: {f.text}; }}
     #leise {{ color: {f.text_leise}; }}
+    #code {{ font-family: monospace; font-size: 18pt; font-weight: 600; color: {f.text};
+             background: {f.flaeche_hoch}; border: 1px solid {f.rand}; border-radius: 8px; padding: 12px; }}
+    QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QPlainTextEdit, QTextEdit {{
+        background: {f.flaeche}; color: {f.text}; border: 1px solid {f.rand}; border-radius: 5px; padding: 4px 6px;
+    }}
+    QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDateEdit:focus {{ border-color: {f.akzent}; }}
+    QListWidget, QTreeWidget, QTableView, QTableWidget {{
+        background: {f.flaeche}; color: {f.text}; border: 1px solid {f.rand}; border-radius: 5px;
+        alternate-background-color: {f.flaeche_hoch}; gridline-color: {f.rand};
+    }}
+    QHeaderView::section {{ background: {f.flaeche_hoch}; color: {f.text}; border: none;
+                            border-right: 1px solid {f.rand}; border-bottom: 1px solid {f.rand}; padding: 4px; }}
+    QListWidget::item {{ padding: 6px; }}
+    QListWidget::item:selected, QTableView::item:selected {{ background: {f.auswahl}; color: {f.text}; }}
+    QCheckBox, QRadioButton, QLabel, QGroupBox {{ color: {f.text}; }}
+    QGroupBox {{ border: 1px solid {f.rand}; border-radius: 6px; margin-top: 10px; padding-top: 8px; }}
+    QGroupBox::title {{ subcontrol-origin: margin; left: 10px; padding: 0 4px; }}
+    QTabWidget::pane {{ border: 1px solid {f.rand}; border-radius: 5px; }}
+    QTabBar::tab {{ background: {f.flaeche_hoch}; color: {f.text_leise}; padding: 6px 14px; border: 1px solid {f.rand};
+                    border-bottom: none; border-top-left-radius: 5px; border-top-right-radius: 5px; }}
+    QTabBar::tab:selected {{ background: {f.flaeche}; color: {f.text}; }}
+    QToolBar {{ background: {f.hintergrund}; border: none; spacing: 4px; }}
     QPushButton {{
         background: {f.flaeche_hoch}; color: {f.text}; border: 1px solid {f.rand};
         border-radius: 6px; padding: 6px 14px;
     }}
     QPushButton:hover {{ border-color: {f.akzent}; }}
     QPushButton#primaer {{ background: {f.akzent}; color: {f.akzent_text}; border-color: {f.akzent}; }}
+    QPushButton#link {{ background: transparent; border: none; color: {f.akzent}; padding: 2px 4px; }}
+    QPushButton#link:hover {{ text-decoration: underline; }}
     QPushButton:disabled, QPushButton#primaer:disabled {{
         background: {f.flaeche_hoch}; color: {f.text_leise}; border-color: {f.rand};
     }}
