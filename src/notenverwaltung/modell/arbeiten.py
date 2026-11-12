@@ -44,6 +44,7 @@ class Arbeit:
     gewicht: float = 1.0
     thema: str = ""
     bemerkung: str = ""
+    musterloesung: str = ""
 
 
 @dataclass(frozen=True)
@@ -116,12 +117,13 @@ class Arbeiten:
                                "(SELECT id FROM notenschluessel ORDER BY name LIMIT 1)")
 
     # ---- Arbeiten ------------------------------------------------------------------------------
-    _SPALTEN = "id, lerngruppe_id, titel, datum, schluessel, rueckgabe, art, zaehlt, gewicht, thema, bemerkung"
+    _SPALTEN = ("id, lerngruppe_id, titel, datum, schluessel, rueckgabe, art, zaehlt, gewicht, thema, bemerkung, "
+                "musterloesung")
 
     @staticmethod
     def _arbeit(z) -> Arbeit:
         return Arbeit(z[0], z[1], z[2], _d(z[3]), Notenschluessel.aus_json(z[4]), _d(z[5]), z[6], bool(z[7]),
-                      z[8], z[9], z[10])
+                      z[8], z[9], z[10], z[11])
 
     def arbeit(self, arbeit_id: int) -> Arbeit:
         z = self.v.execute(f"SELECT {self._SPALTEN} FROM arbeit WHERE id = ?", (arbeit_id,)).fetchone()
@@ -168,9 +170,10 @@ class Arbeiten:
         with self.v:
             self.v.execute(
                 "UPDATE arbeit SET titel = ?, datum = ?, rueckgabe = ?, schluessel = ?, art = ?, zaehlt = ?, "
-                "gewicht = ?, thema = ?, bemerkung = ? WHERE id = ?",
+                "gewicht = ?, thema = ?, bemerkung = ?, musterloesung = ? WHERE id = ?",
                 (a.titel.strip(), a.datum.isoformat(), a.rueckgabe.isoformat() if a.rueckgabe else None,
-                 a.schluessel.als_json(), a.art, int(a.zaehlt), a.gewicht, a.thema, a.bemerkung, a.id))
+                 a.schluessel.als_json(), a.art, int(a.zaehlt), a.gewicht, a.thema, a.bemerkung, a.musterloesung,
+                 a.id))
 
     def loesche_arbeit(self, arbeit_id: int) -> None:
         with self.v:

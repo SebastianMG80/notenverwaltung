@@ -17,7 +17,7 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 8 Notenberechnung → **Meilenstein B** (12.11.2026, Release v0.2.0)
 - [x] 9 Schuljahreswechsel (12.11.2026)
 - [x] 10 Rückmeldebogen (12.11.2026)
-- [ ] 11 KI-Paket
+- [x] 11 KI-Paket (12.11.2026)
 - [ ] 12 Darstellung → **Meilenstein C**
 
 ## Nächster Schritt
@@ -63,6 +63,7 @@ Offen / Rückfragen an Sebastian:
 | ZP10 | Vornote = Ganzjahresnote aus allen Leistungen, Endnote = 50 % Vornote (festgesetzt oder Vorschlag) + 50 % ZP10 |
 | Schuljahreswechsel | Assistent unter Datei → Schuljahr; Klassen hochsetzen (erste Jahrgangszahl +1), je Klasse „endet“, je Person versetzen/wiederholen/Abgang; Klassen-Lerngruppen bekommen alle der neuen Klasse, Kurse nur versetzte bisherige Mitglieder; Gewichtung/Sortierung/eigene Reihenfolge werden übernommen; altes Jahr bleibt unverändert |
 | Rückmeldebogen | dritte Ausgabe im Druckdialog; eine Seite pro Person: Aufgabe/Thema/möglich/erreicht/Anteil, Erwartungshorizont kursiv (abschaltbar), Note ohne Tendenz, Rückmeldung (Rechtsklick im Raster), Unterschriftszeilen (abschaltbar) |
+| KI-Paket | Programm bleibt offline: Prompt-Vorlage (ohne Schülerdaten) zum Kopieren, Antwort als JSON (Format `notenverwaltung-arbeit-1`) wird eingefügt – auch mit Text/Code-Zaun drumherum; neue Arbeit oder Übernahme in vorhandene (Aufgaben der Reihe nach weiterverwendet, Punkte bleiben); Musterlösung als Feld der Arbeit (Migration 6) |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke

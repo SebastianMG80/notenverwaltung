@@ -316,6 +316,9 @@ class ArbeitenTab(QWidget):
         self.auswahl.currentIndexChanged.connect(self._arbeit_gewaehlt)
         self.k_neu = QPushButton("Neue Arbeit …", objectName="primaer")
         self.k_neu.clicked.connect(self.neue_arbeit)
+        self.k_ki = QPushButton("KI-Vorlage …")
+        self.k_ki.setToolTip("Bepunktung, Erwartungshorizont und Musterlösung mit einem KI-Werkzeug deiner Wahl vorbereiten")
+        self.k_ki.clicked.connect(self.ki_vorlage)
         self.k_bearbeiten = QPushButton("Aufgaben und Einstellungen …")
         self.k_bearbeiten.clicked.connect(self.bearbeiten)
         self.k_loeschen = QPushButton("Löschen")
@@ -329,6 +332,7 @@ class ArbeitenTab(QWidget):
         oben.addWidget(self.k_loeschen)
         oben.addWidget(self.k_drucken)
         oben.addStretch(1)
+        oben.addWidget(self.k_ki)
         oben.addWidget(self.k_neu)
 
         self.richtung = QComboBox()
@@ -468,6 +472,14 @@ class ArbeitenTab(QWidget):
         a = self.aktuelle_arbeit()
         if a and ArbeitDialog(self.ar, self.jahr, self.gruppe, a, self).exec():
             self.zeige(self.sd, self.jahr, self.gruppe, a.id)
+            self.geaendert.emit()
+
+    def ki_vorlage(self) -> None:
+        from notenverwaltung.ui.ki_dialog import KiDialog
+
+        d = KiDialog(self.ar, self.jahr, self.gruppe, self.aktuelle_arbeit(), self)
+        if d.exec() and d.ergebnis:
+            self.zeige(self.sd, self.jahr, self.gruppe, d.ergebnis.id)
             self.geaendert.emit()
 
     def drucken(self) -> None:

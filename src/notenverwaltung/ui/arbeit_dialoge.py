@@ -20,7 +20,9 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
     QPushButton,
+    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -356,10 +358,14 @@ class ArbeitDialog(QDialog):
         knoepfe.accepted.connect(self._ok)
         knoepfe.rejected.connect(self.reject)
 
+        self.musterloesung = QPlainTextEdit(arbeit.musterloesung if arbeit else "")
+        self.musterloesung.setPlaceholderText("Musterlösung (optional, z. B. aus dem KI-Paket)")
+        reiter = QTabWidget()
+        reiter.addTab(self.aufgaben, "Aufgaben")
+        reiter.addTab(self.musterloesung, "Musterlösung")
         lay = QVBoxLayout(self)
         lay.addLayout(form)
-        lay.addWidget(QLabel("<b>Aufgaben</b>"))
-        lay.addWidget(self.aufgaben, 1)
+        lay.addWidget(reiter, 1)
         lay.addWidget(self.meldung)
         lay.addWidget(knoepfe)
         self._schluessel_anzeigen()
@@ -392,11 +398,13 @@ class ArbeitDialog(QDialog):
                 a = self.ar.lege_arbeit_an(self.gruppe.id, self.titel.text(), self.datum.wert(),
                                            schluessel=self.schluessel, rueckgabe=self.rueckgabe.wert(),
                                            thema=self.thema.text().strip())
-                if not self.zaehlt.isChecked():
-                    self.ar.aendere_arbeit(replace(a, zaehlt=False))
+                if not self.zaehlt.isChecked() or self.musterloesung.toPlainText().strip():
+                    self.ar.aendere_arbeit(replace(a, zaehlt=self.zaehlt.isChecked(),
+                                                   musterloesung=self.musterloesung.toPlainText().strip()))
             else:
                 a = replace(self.alt, titel=self.titel.text(), datum=self.datum.wert(), rueckgabe=self.rueckgabe.wert(),
-                            thema=self.thema.text().strip(), zaehlt=self.zaehlt.isChecked(), schluessel=self.schluessel)
+                            thema=self.thema.text().strip(), zaehlt=self.zaehlt.isChecked(), schluessel=self.schluessel,
+                            musterloesung=self.musterloesung.toPlainText().strip())
                 self.ar.setze_aufgaben(a.id, zeilen)  # zuerst: prüft auch vorhandene Punkte gegen neue Höchstwerte
                 self.ar.aendere_arbeit(a)
             if self.alt is None:

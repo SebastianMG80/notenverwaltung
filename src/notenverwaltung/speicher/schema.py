@@ -151,6 +151,10 @@ MIGRATIONEN: list[str] = [
         PRIMARY KEY (lerngruppe_id, schueler_id, art)
     );
     """,
+    # 6 – Musterlösung je Arbeit (z. B. aus dem KI-Paket)
+    """
+    ALTER TABLE arbeit ADD COLUMN musterloesung TEXT NOT NULL DEFAULT '';
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)
