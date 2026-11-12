@@ -325,6 +325,9 @@ class Hauptfenster(QMainWindow):
         if self.sd.schuljahre():
             self.m_schuljahr.addSeparator()
         self.m_schuljahr.addAction(self._aktion("Neues Schuljahr …", self.neues_schuljahr))
+        uebernehmen = self._aktion("Neues Schuljahr aus bisherigem übernehmen …", self.schuljahr_uebernehmen)
+        uebernehmen.setEnabled(self.jahr is not None)
+        self.m_schuljahr.addAction(uebernehmen)
         bearbeiten = self._aktion("Schuljahr bearbeiten …", self._schuljahr_bearbeiten)
         bearbeiten.setEnabled(self.jahr is not None)
         self.m_schuljahr.addAction(bearbeiten)
@@ -341,6 +344,15 @@ class Hauptfenster(QMainWindow):
         d = SchuljahrDialog(self.sd, parent=self)
         if d.exec() and d.ergebnis:
             self.wechsle_schuljahr(d.ergebnis)
+
+    def schuljahr_uebernehmen(self) -> None:
+        if self.sd is None or self.jahr is None:
+            return
+        from notenverwaltung.ui.jahreswechsel_assistent import JahreswechselAssistent
+
+        a = JahreswechselAssistent(self.sd, self.jahr, self)
+        if a.exec() and a.neues_jahr:
+            self.wechsle_schuljahr(a.neues_jahr)
 
     def _schuljahr_bearbeiten(self) -> None:
         if self.sd and self.jahr and SchuljahrDialog(self.sd, self.jahr, self).exec():
