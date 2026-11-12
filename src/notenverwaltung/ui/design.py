@@ -99,10 +99,20 @@ def _stylesheet(f: Farben) -> str:
     #leise {{ color: {f.text_leise}; }}
     #code {{ font-family: monospace; font-size: 18pt; font-weight: 600; color: {f.text};
              background: {f.flaeche_hoch}; border: 1px solid {f.rand}; border-radius: 8px; padding: 12px; }}
-    QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QPlainTextEdit, QTextEdit {{
+    QLineEdit, QComboBox, QPlainTextEdit, QTextEdit {{
         background: {f.flaeche}; color: {f.text}; border: 1px solid {f.rand}; border-radius: 5px; padding: 4px 6px;
     }}
-    QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDateEdit:focus {{ border-color: {f.akzent}; }}
+    QLineEdit:focus, QComboBox:focus {{ border-color: {f.akzent}; }}
+    QCheckBox::indicator, QRadioButton::indicator {{
+        width: 14px; height: 14px; border: 1px solid {f.text_leise}; background: {f.flaeche};
+    }}
+    QCheckBox::indicator {{ border-radius: 3px; }}
+    QRadioButton::indicator {{ border-radius: 8px; }}
+    QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
+        background: {f.akzent}; border: 3px solid {f.flaeche}; outline: 1px solid {f.akzent};
+    }}
+    QCheckBox::indicator:checked {{ image: none; }}
+    QCheckBox::indicator:disabled, QRadioButton::indicator:disabled {{ border-color: {f.rand}; }}
     QListWidget, QTreeWidget, QTableView, QTableWidget {{
         background: {f.flaeche}; color: {f.text}; border: 1px solid {f.rand}; border-radius: 5px;
         alternate-background-color: {f.flaeche_hoch}; gridline-color: {f.rand};

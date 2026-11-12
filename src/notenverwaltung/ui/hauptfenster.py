@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -19,18 +19,22 @@ from PySide6.QtWidgets import (
     QSplitter,
     QStackedWidget,
     QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
 from notenverwaltung import APP_NAME, __version__
 from notenverwaltung.einstellungen import design_name, einstellungen, merke_geoeffnet, setze_design_name
+from notenverwaltung.modell.stammdaten import Schuljahr, Stammdaten
 from notenverwaltung.speicher.datenbank import SCHLUESSELDATEI_ENDUNG, Datenbank, sicherungsordner
 from notenverwaltung.ui.bausteine import fehler, frage, info
 from notenverwaltung.ui.design import wende_design_an
 from notenverwaltung.ui.neue_datenbank import NeueDatenbankAssistent
 from notenverwaltung.ui.notfall import NotfallDialog
+from notenverwaltung.ui.seiten.stammdaten_seiten import LerngruppeSeite, SchuelerSeite, SchuljahrSeite
 from notenverwaltung.ui.sicherheit import PasswortAendernDialog
+from notenverwaltung.ui.stammdaten_dialoge import LerngruppeDialog, SchuljahrDialog
 from notenverwaltung.ui.startdialog import StartDialog
 
 OFFLINE_HINWEIS = "Offline – dieses Programm sendet keine Daten."
@@ -85,7 +89,9 @@ class Willkommen(QWidget):
 
 
 class DatenbankUebersicht(QWidget):
-    """Übersicht der geöffneten Datenbank (wird in Etappe 2 um Schuljahre ergänzt)."""
+    """Übersicht der geöffneten Datenbank; erscheint, solange es noch kein Schuljahr gibt."""
+
+    schuljahr_anlegen = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -95,6 +101,15 @@ class DatenbankUebersicht(QWidget):
         self.angaben.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.angaben.setWordWrap(True)
         innen.addWidget(self.angaben)
+        self.hinweis = QLabel("Lege als Erstes ein Schuljahr an.")
+        self.anlegen = QPushButton("Schuljahr anlegen …", objectName="primaer")
+        self.anlegen.clicked.connect(self.schuljahr_anlegen)
+        zeile = QHBoxLayout()
+        zeile.addWidget(self.anlegen)
+        zeile.addStretch(1)
+        innen.addSpacing(8)
+        innen.addWidget(self.hinweis)
+        innen.addLayout(zeile)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(_zentriert(karte))
@@ -129,9 +144,20 @@ class Hauptfenster(QMainWindow):
         self.willkommen.neu.clicked.connect(self.neue_datenbank)
         self.willkommen.oeffnen.clicked.connect(self.zeige_startdialog)
         self.uebersicht = DatenbankUebersicht()
+        self.uebersicht.schuljahr_anlegen.connect(self.neues_schuljahr)
+        self.sd: Stammdaten | None = None
+        self.jahr: Schuljahr | None = None
+        self._letzte_auswahl: tuple = ("jahr", None)
+        self.seite_jahr = SchuljahrSeite()
+        self.seite_schueler = SchuelerSeite()
+        self.seite_gruppe = LerngruppeSeite()
+        for s in (self.seite_jahr, self.seite_schueler, self.seite_gruppe):
+            s.geaendert.connect(self._nach_aenderung)
+        self.seite_gruppe.geloescht.connect(self._gruppe_geloescht)
         self.stapel = QStackedWidget()
-        self.stapel.addWidget(self.willkommen)
-        self.stapel.addWidget(self.uebersicht)
+        for w in (self.willkommen, self.uebersicht, self.seite_jahr, self.seite_schueler, self.seite_gruppe):
+            self.stapel.addWidget(w)
+        self.navigation.currentItemChanged.connect(self._navigation_gewaehlt)
 
         teiler = QSplitter(Qt.Orientation.Horizontal)
         teiler.setHandleWidth(1)
@@ -168,6 +194,11 @@ class Hauptfenster(QMainWindow):
         for a in (self.a_neu, self.a_oeffnen, self.a_speichern, self.a_schliessen):
             datei.addAction(a)
         datei.addSeparator()
+        self.m_schuljahr = datei.addMenu("Sch&uljahr")
+        self.m_schuljahr.aboutToShow.connect(self._schuljahr_menue_fuellen)
+        self.a_neue_lerngruppe = self._aktion("Neue &Lerngruppe …", self.neue_lerngruppe, QKeySequence("Ctrl+L"))
+        datei.addAction(self.a_neue_lerngruppe)
+        datei.addSeparator()
 
         self.m_sicherheit = datei.addMenu("S&icherheit")
         self.a_passwort = self._aktion("&Passwort ändern …", self.passwort_aendern)
@@ -203,12 +234,15 @@ class Hauptfenster(QMainWindow):
         for a in (self.a_speichern, self.a_schliessen, self.a_passwort, self.a_notfall,
                   self.a_schluesseldatei, self.a_sicherungen):
             a.setEnabled(offen)
+        self.m_schuljahr.setEnabled(offen)
+        self.a_neue_lerngruppe.setEnabled(offen and self.jahr is not None)
         self.a_schluesseldatei_weg.setEnabled(offen and self.db.tresor.hat_schluesseldatei)
         self.setWindowTitle(f"{self.db.name} – {APP_NAME}" if offen else APP_NAME)
         if offen:
-            self.uebersicht.zeige(self.db)
-            self.stapel.setCurrentWidget(self.uebersicht)
             self.autospeichern.start()
+            if self.jahr is None:
+                self.uebersicht.zeige(self.db)
+                self.stapel.setCurrentWidget(self.uebersicht)
         else:
             self.stapel.setCurrentWidget(self.willkommen)
             self.autospeichern.stop()
@@ -230,7 +264,10 @@ class Hauptfenster(QMainWindow):
             db.schliessen(speichern=False)
             return
         self.db = db
+        self.sd = Stammdaten(db.verbindung)
+        self.jahr = self.sd.aktuelles_schuljahr()
         self._zustand_aktualisieren()
+        self._navigation_fuellen()
         self.statusBar().showMessage(f"Datenbank „{db.name}“ geöffnet. {OFFLINE_HINWEIS}", 8000)
 
     def schliesse_datenbank(self) -> bool:
@@ -247,6 +284,9 @@ class Hauptfenster(QMainWindow):
                 return False
             self.db.schliessen(speichern=False)
         self.db = None
+        self.sd = None
+        self.jahr = None
+        self._navigation_fuellen()
         self._zustand_aktualisieren()
         return True
 
@@ -269,6 +309,118 @@ class Hauptfenster(QMainWindow):
                     f"Automatisch gespeichert um {datetime.now():%H:%M} Uhr. {OFFLINE_HINWEIS}", 8000)
             except OSError as e:
                 self.statusBar().showMessage(f"Automatisches Speichern fehlgeschlagen: {e}")
+
+    # ---- Schuljahr und Navigation -------------------------------------------------------------
+    def _schuljahr_menue_fuellen(self) -> None:
+        self.m_schuljahr.clear()
+        if self.sd is None:
+            return
+        gruppe = QActionGroup(self.m_schuljahr)
+        for sj in self.sd.schuljahre():
+            a = QAction(sj.bezeichnung, self.m_schuljahr, checkable=True)
+            a.setChecked(self.jahr is not None and sj.id == self.jahr.id)
+            a.triggered.connect(lambda _=False, s=sj: self.wechsle_schuljahr(s))
+            gruppe.addAction(a)
+            self.m_schuljahr.addAction(a)
+        if self.sd.schuljahre():
+            self.m_schuljahr.addSeparator()
+        self.m_schuljahr.addAction(self._aktion("Neues Schuljahr …", self.neues_schuljahr))
+        bearbeiten = self._aktion("Schuljahr bearbeiten …", self._schuljahr_bearbeiten)
+        bearbeiten.setEnabled(self.jahr is not None)
+        self.m_schuljahr.addAction(bearbeiten)
+
+    def wechsle_schuljahr(self, sj: Schuljahr) -> None:
+        self.jahr = sj
+        self._navigation_fuellen()
+        self._zustand_aktualisieren()
+        self.statusBar().showMessage(f"Schuljahr {sj.bezeichnung}. {OFFLINE_HINWEIS}", 6000)
+
+    def neues_schuljahr(self) -> None:
+        if self.sd is None:
+            return
+        d = SchuljahrDialog(self.sd, parent=self)
+        if d.exec() and d.ergebnis:
+            self.wechsle_schuljahr(d.ergebnis)
+
+    def _schuljahr_bearbeiten(self) -> None:
+        if self.sd and self.jahr and SchuljahrDialog(self.sd, self.jahr, self).exec():
+            self._nach_aenderung()
+
+    def neue_lerngruppe(self) -> None:
+        if self.sd is None or self.jahr is None:
+            return
+        d = LerngruppeDialog(self.sd, self.jahr, parent=self)
+        if d.exec() and d.ergebnis:
+            self._navigation_fuellen(("gruppe", d.ergebnis.id))
+        else:
+            self._navigation_fuellen(self._letzte_auswahl)
+
+    def _nach_aenderung(self) -> None:
+        if self.sd and self.jahr:
+            self.jahr = self.sd.schuljahr(self.jahr.id)
+        self._navigation_fuellen()
+
+    def _gruppe_geloescht(self) -> None:
+        self._navigation_fuellen(("jahr", None))
+
+    def _navigation_fuellen(self, auswahl: tuple | None = None) -> None:
+        aktuell = self.navigation.currentItem()
+        ziel = auswahl or (aktuell.data(0, Qt.ItemDataRole.UserRole) if aktuell else ("jahr", None))
+        self.navigation.blockSignals(True)
+        self.navigation.clear()
+        if self.sd is None or self.jahr is None:
+            self.navigation.blockSignals(False)
+            if self.db is not None:
+                self.uebersicht.zeige(self.db)
+                self.stapel.setCurrentWidget(self.uebersicht)
+            return
+
+        def eintrag(eltern, text, daten, fett=False):
+            item = QTreeWidgetItem(eltern, [text])
+            item.setData(0, Qt.ItemDataRole.UserRole, daten)
+            if fett:
+                f = item.font(0)
+                f.setBold(True)
+                item.setFont(0, f)
+            return item
+
+        eintrag(self.navigation, f"Schuljahr {self.jahr.bezeichnung}", ("jahr", None), fett=True)
+        eintrag(self.navigation, "Schüler:innen", ("schueler", None))
+        kopf = eintrag(self.navigation, "Lerngruppen", ("lerngruppen", None), fett=True)
+        kopf.setFlags(kopf.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        for g in self.sd.lerngruppen(self.jahr.id):
+            text = g.bezeichnung + ("" if g.schriftlich else "  (mündlich)")
+            eintrag(kopf, text, ("gruppe", g.id))
+        eintrag(kopf, "＋ Neue Lerngruppe …", ("neue_gruppe", None))
+        kopf.setExpanded(True)
+
+        gefunden = None
+        for i in range(self.navigation.topLevelItemCount()):
+            oben = self.navigation.topLevelItem(i)
+            for item in [oben] + [oben.child(j) for j in range(oben.childCount())]:
+                if item.data(0, Qt.ItemDataRole.UserRole) == ziel:
+                    gefunden = item
+        self.navigation.blockSignals(False)
+        self.navigation.setCurrentItem(gefunden or self.navigation.topLevelItem(0))
+        self._navigation_gewaehlt(self.navigation.currentItem())
+
+    def _navigation_gewaehlt(self, item, *_) -> None:
+        if item is None or self.sd is None or self.jahr is None:
+            return
+        art, wert = item.data(0, Qt.ItemDataRole.UserRole)
+        if art != "neue_gruppe":
+            self._letzte_auswahl = (art, wert)
+        if art == "jahr":
+            self.seite_jahr.zeige(self.sd, self.jahr)
+            self.stapel.setCurrentWidget(self.seite_jahr)
+        elif art == "schueler":
+            self.seite_schueler.zeige(self.sd, self.jahr)
+            self.stapel.setCurrentWidget(self.seite_schueler)
+        elif art == "gruppe":
+            self.seite_gruppe.zeige(self.sd, self.jahr, self.sd.lerngruppe(wert))
+            self.stapel.setCurrentWidget(self.seite_gruppe)
+        elif art == "neue_gruppe":
+            QTimer.singleShot(0, self.neue_lerngruppe)
 
     # ---- Sicherheit ---------------------------------------------------------------------------
     def passwort_aendern(self) -> None:

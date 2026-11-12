@@ -8,7 +8,7 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 ## Etappen (Details in PLAN.md)
 - [x] 0 Fundament (12.11.2026)
 - [x] 1 Verschlüsselte Datenbank (12.11.2026)
-- [ ] 2 Stammdaten
+- [x] 2 Stammdaten (12.11.2026)
 - [ ] 3 Klassenarbeiten
 - [ ] 4 Druck / PDF, Teil 1
 - [ ] 5 Windows-Build → **Meilenstein A**
@@ -21,14 +21,18 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [ ] 12 Darstellung → **Meilenstein C**
 
 ## Nächster Schritt
-Etappe 2 – Stammdaten. Plan:
-1. Migration 2 in `speicher/schema.py`: schuljahr, halbjahr (implizit 1/2 mit Datumsgrenzen), schueler (Stammdaten,
-   schuljahrübergreifend), klassenzuordnung (schueler × schuljahr → jahrgang, klasse), lerngruppe (Klasse oder Kurs, Fach,
-   schriftlich/mündlich, E/G-Vermerk, Jahrgang, Notensystem „sek1“ – Sek II vorbereitet), mitglied (lerngruppe × schueler,
-   von/bis-Datum, eigene Position für eigene Sortierung).
-2. `modell/` mit Datenklassen + Funktionen (keine Qt-Abhängigkeit), vollständig getestet.
-3. UI: Navigation links (Schuljahr-Auswahl oben, darunter Lerngruppen), Seiten für Schuljahr, Schüler:innen-Liste der Lerngruppe
-   mit Sortierung (Klasse→Alphabet Standard, Alphabet, eigene), Dialoge für Anlegen/Bearbeiten, Zu-/Abgang mit Datum.
+Etappe 3 – Klassenarbeiten. Plan:
+1. Migration 3: notenschluessel (Vorlagen; Stufen als JSON: Prozentgrenze → Note mit Tendenz), arbeit (lerngruppe, titel,
+   datum, korrekturdatum, halbjahr ergibt sich aus Datum, schluessel als Kopie im JSON, zaehlt_mit), aufgabe (arbeit, position,
+   bezeichnung „3a“, max_punkte REAL, bewertungstext/erwartung für den späteren Rückmeldebogen), punkte (arbeit×schueler×aufgabe,
+   REAL, NULL = leer), arbeit_teilnahme (fehlt/nachschreiben/attest, bemerkung).
+2. `modell/noten.py`: Notenwerte 1–6 mit Tendenz (+ = −0,3, − = +0,3; 1+ = 0,7; 6 ohne Tendenz), Textformen
+   („gut (+)“ intern, „gut“ für Schüler:innen), Notenschlüssel aus Punkteliste.ods (Standard), Rundung der Punktgrenzen wie in der ODS
+   (`ROUND(max*prozent/100)`), Notenspiegel, Schnitt, Anteil unter 4.
+3. `modell/arbeiten.py`: Arbeiten/Aufgaben/Punkte, Summen, Note je Schüler:in; Aktive am Datum der Arbeit.
+4. UI: Reiter „Klassenarbeiten“ in der Lerngruppe (nur schriftliche Fächer): Liste der Arbeiten, Editor mit Aufgaben-Kopf
+   und Punkte-Raster (Tastatur wie Tabellenkalkulation: Enter/Tab/Pfeile, Komma oder Punkt, halbe Punkte), Notenschlüssel-Dialog,
+   Notenspiegel unten.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
@@ -46,6 +50,9 @@ Etappe 2 – Stammdaten. Plan:
 | Notfallblatt | Drucken direkt oder als PDF (mit Hinweis: PDF enthält den Code, nach dem Drucken löschen); Bestätigung „gesichert“ ist Pflicht, Abbruch nur nach Warnung |
 | Passwort | mindestens 10 Zeichen, Unicode-NFC-normalisiert |
 | Autospeichern | alle 2 Minuten bei Änderungen, außerdem beim Schließen |
+| Navigation | links: Schuljahr, Schüler:innen, Lerngruppen (+ Neue Lerngruppe); Wechsel des Schuljahres unter Datei → Schuljahr |
+| Zu-/Abgang | Schulabgang an der Klassenzuordnung, Kurswechsel per Ein-/Austritt an der Mitgliedschaft; wirksames Ende = früheres Datum |
+| Eigene Reihenfolge | startet mit der aktuell angezeigten; später Hinzugekommene ans Ende |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke
