@@ -338,17 +338,28 @@ class LerngruppeSeite(Seite):
         self.reiter = QTabWidget()
         self.mitglieder = MitgliederTab()
         self.mitglieder.geaendert.connect(self.geaendert)
+        from notenverwaltung.ui.seiten.arbeiten_tab import ArbeitenTab
+
+        self.arbeiten = ArbeitenTab()
+        self.arbeiten.geaendert.connect(self.geaendert)
+        self.reiter.addTab(self.arbeiten, "Klassenarbeiten")
         self.reiter.addTab(self.mitglieder, "Schüler:innen")
         self.lay.addWidget(self.reiter, 1)
 
     def zeige(self, sd: Stammdaten, jahr: Schuljahr, gruppe: Lerngruppe) -> None:
-        self.sd, self.jahr, self.gruppe = sd, jahr, gruppe
+        self.sd, self.jahr = sd, jahr
         self.titel.setText(gruppe.bezeichnung)
         self.unterzeile.setText(f"{gruppe.beschreibung} · Schuljahr {jahr.bezeichnung}")
+        neu = self.gruppe is None or self.gruppe.id != gruppe.id
+        self.gruppe = gruppe
+        self.reiter.setTabVisible(self.reiter.indexOf(self.arbeiten), gruppe.schriftlich)
         for i in range(self.reiter.count()):
             w = self.reiter.widget(i)
-            if hasattr(w, "zeige"):
+            if hasattr(w, "zeige") and self.reiter.isTabVisible(i):
                 w.zeige(sd, jahr, gruppe)
+        if neu:  # beim Wechsel der Lerngruppe den ersten sichtbaren Reiter zeigen
+            erster = next(i for i in range(self.reiter.count()) if self.reiter.isTabVisible(i))
+            self.reiter.setCurrentIndex(erster)
 
     def _bearbeiten(self) -> None:
         if self.gruppe and LerngruppeDialog(self.sd, self.jahr, self.gruppe, self).exec():
