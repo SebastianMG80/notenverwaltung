@@ -2,6 +2,7 @@
 
 import json
 import struct
+import sys
 
 import pytest
 
@@ -257,6 +258,7 @@ def test_fremde_sperre_meldet(neue_db):
     Datenbank.oeffnen(db.pfad, PASSWORT, PW, sperre_ignorieren=True).schliessen()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="unter Windows wird bei eigener Sperre nachgefragt")
 def test_verwaiste_eigene_sperre_wird_uebernommen(neue_db):
     from notenverwaltung.speicher.datenbank import _rechnername
 

@@ -4,10 +4,12 @@
 # ---- Datenbanken, Sicherungen, Schlüsseldateien, Notfallblätter
 *.nvdb
 *.nvdb.*
+# Ausnahme: erfundene Testdatenbank für den Kompatibilitätstest Linux ↔ Windows
+!tests/daten/kompatibilitaet_linux.nvdb
 *.nvkey
 notfallblatt*.pdf
-daten/
-sicherungen/
+/daten/
+/sicherungen/
 
 # ---- Erzeugte Ausgaben
 ausgabe/

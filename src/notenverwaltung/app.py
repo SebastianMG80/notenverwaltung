@@ -22,6 +22,11 @@ def erzeuge_anwendung(argv: list[str] | None = None) -> QApplication:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argumente = sys.argv if argv is None else argv
+    if "--selbsttest" in argumente:
+        from notenverwaltung.selbsttest import selbsttest
+
+        return selbsttest()
     app = erzeuge_anwendung(argv)
     fenster = Hauptfenster()
     fenster.show()
