@@ -313,11 +313,14 @@ class ArbeitenTab(QWidget):
         self.k_bearbeiten.clicked.connect(self.bearbeiten)
         self.k_loeschen = QPushButton("Löschen")
         self.k_loeschen.clicked.connect(self.loeschen)
+        self.k_drucken = QPushButton("Drucken / PDF …")
+        self.k_drucken.clicked.connect(self.drucken)
         oben = QHBoxLayout()
         oben.addWidget(QLabel("Arbeit:"))
         oben.addWidget(self.auswahl)
         oben.addWidget(self.k_bearbeiten)
         oben.addWidget(self.k_loeschen)
+        oben.addWidget(self.k_drucken)
         oben.addStretch(1)
         oben.addWidget(self.k_neu)
 
@@ -402,7 +405,7 @@ class ArbeitenTab(QWidget):
     def _arbeit_gewaehlt(self, *_) -> None:
         a = self.aktuelle_arbeit()
         da = a is not None
-        for w in (self.k_bearbeiten, self.k_loeschen, self.auswahl, self.richtung, self.alle):
+        for w in (self.k_bearbeiten, self.k_loeschen, self.k_drucken, self.auswahl, self.richtung, self.alle):
             w.setEnabled(da)
         self.leer.setVisible(not da)
         self._teiler.setVisible(da)
@@ -459,6 +462,13 @@ class ArbeitenTab(QWidget):
         if a and ArbeitDialog(self.ar, self.jahr, self.gruppe, a, self).exec():
             self.zeige(self.sd, self.jahr, self.gruppe, a.id)
             self.geaendert.emit()
+
+    def drucken(self) -> None:
+        from notenverwaltung.ui.druck import DruckDialog
+
+        a = self.aktuelle_arbeit()
+        if a:
+            DruckDialog(self.ar, a, self).exec()
 
     def loeschen(self) -> None:
         a = self.aktuelle_arbeit()

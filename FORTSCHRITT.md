@@ -10,7 +10,7 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 1 Verschlüsselte Datenbank (12.11.2026)
 - [x] 2 Stammdaten (12.11.2026)
 - [x] 3 Klassenarbeiten (12.11.2026)
-- [ ] 4 Druck / PDF, Teil 1
+- [x] 4 Druck / PDF, Teil 1 (12.11.2026)
 - [ ] 5 Windows-Build → **Meilenstein A**
 - [ ] 6 Import (braucht Beispiel-Exporte SchILD-NRW + Untis von Sebastian)
 - [ ] 7 Mündliche Noten
@@ -21,17 +21,13 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [ ] 12 Darstellung → **Meilenstein C**
 
 ## Nächster Schritt
-Etappe 4 – Druck / PDF. Plan:
-1. `ausgabe/punkteliste.py`: Punkteliste einer Arbeit (A4 quer, wie Punkteliste.ods: Kopf Kurs/Datum, Aufgaben mit Höchstpunkten,
-   Zeilen je Schüler:in, Summe, Note) – Optionen: leere Zeilen ausblenden, Hervorhebung (z. B. Noten 5/6, unvollständig), Notenspiegel
-   und Notenschlüssel unten.
-2. `ausgabe/abschnitte.py`: Notenabschnitte (wie unterer Teil der ODS: Name, Aufgabe/max/erreicht, Summe, Datum, Note **ohne Tendenz**).
-   Formate: frei (Breite/Höhe in mm, Spalten/Zeilen, Ränder) und feste Vorlagen Avery Zweckform 3424 (105×48, 2×6) und 3425 (105×57, 2×5)
-   – Maße vor Umsetzung gegenprüfen! Startposition auf angebrochenem Bogen, Druckversatz X/Y (in Einstellungen gespeichert).
-   Spaltenbreite passt sich der Aufgabenzahl an, Mindestschrift ~6 pt, sonst zweizeilig.
-3. `ausgabe/notenspiegel.py` für eine Arbeit (ggf. in Punkteliste integriert).
-4. UI: Knopf „Drucken / PDF …“ im Reiter Klassenarbeiten → Druckdialog mit Vorschau (QPrintPreviewDialog oder eigene Vorschau
-   über QPdfWriter → Bild), Auswahl Ausgabe + Optionen.
+Etappe 5 – Windows-Build. Plan:
+1. `werkzeuge/kompatibilitaet.py erzeuge|pruefe <pfad>`: Datenbank mit festen, erfundenen Inhalten anlegen bzw. prüfen.
+   Eine unter Linux erzeugte Datei liegt als `tests/daten/kompatibilitaet_linux.nvdb` im Repo (Ausnahme in .gitignore) und wird
+   auf allen Systemen von pytest geöffnet.
+2. `.github/workflows/build.yml`: Tests unter Linux und Windows (QT_QPA_PLATFORM=offscreen), PyInstaller-Build (onedir, zip) für
+   Windows und Linux, Windows erzeugt eine Datenbank → Linux prüft sie (Gegenrichtung). Bei Tag `v*`: Release mit beiden Zips.
+3. Schriften: Stil-Hinweise (SansSerif/TypeWriter) statt fester Familiennamen, damit Windows passende Schriften wählt.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
@@ -55,6 +51,9 @@ Etappe 4 – Druck / PDF. Plan:
 | Punkteraster | Spalten Nr., Name, Kl., Summe, Note vorne (immer sichtbar), dann Aufgaben, Vermerk; Enter springt nach rechts (umschaltbar: nach unten), Tab seitlich, Entf leert; Punkte in Viertelschritten; unvollständige Zeilen gelb |
 | Notenspiegel | wie ODS ohne Tendenz gezählt; Schnitt ganze Noten + Schnitt mit Tendenz; Anteil unter 4 |
 | Festgesetzte Note | per Rechtsklick, Anzeige mit * |
+| Avery-Etiketten | 3424: 105×48, 2×6, oben/unten 4,5 mm; 3425: 105×57, 2×5, oben/unten 6 mm (Grundmaße laut Hersteller/Händlern, Ränder rechnerisch, seitlich randlos) + Druckversatz X/Y in den Einstellungen |
+| Notenabschnitte | Note ohne Tendenz; Schrift 9…6 pt nach Platz, sonst zweizeilig; Datum = Rückgabedatum der Arbeit oder heute; Startplatz für angebrochene Bögen |
+| Punkteliste | A4 quer, Note mit Tendenz (abschaltbar), Hervorhebungen 5/6 und Lücken, Zebra, Durchschnitt je Aufgabe, Notenspiegel + Notenschlüssel |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke
