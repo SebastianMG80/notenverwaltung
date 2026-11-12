@@ -49,6 +49,12 @@ def muendlich(db, g, sid, quartal, note):
     mu.setze_note(mu.zeitraeume(g.id)[quartal].id, sid, N(note))
 
 
+def test_naechste_ganze_note():
+    from notenverwaltung.modell.zeugnis import naechste_ganze_note
+
+    assert [naechste_ganze_note(w).kurz for w in (0.7, 1.49, 2.5, 2.51, 5.9)] == ["1", "1", "2", "3", "6"]
+
+
 def test_naechste_note():
     assert naechste_note(2.15).kurz == "2"
     assert naechste_note(2.16).kurz == "2-"
@@ -149,6 +155,8 @@ def test_vorschlaege_uebernehmen(db):
     zg = Zeugnis(db.verbindung)
     muendlich(db, g, sid, 0, "2-")
     assert zg.uebernimm_vorschlaege(g.id, "hj1") == 1
+    assert zg.festgesetzt(g.id)[(sid, "hj1")].kurz == "2"        # Zeugnis: ganze Note
+    zg.uebernimm_vorschlaege(g.id, "hj1", nur_leere=False, ganze=False)
     assert zg.festgesetzt(g.id)[(sid, "hj1")].kurz == "2-"
     zg.setze(g.id, sid, "hj1", N("2"))
     assert zg.uebernimm_vorschlaege(g.id, "hj1") == 0          # Festgesetztes bleibt

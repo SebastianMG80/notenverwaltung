@@ -33,6 +33,11 @@ def naechste_note(wert: float) -> Note:
     return min(ALLE_NOTEN, key=lambda n: (round(abs(n.wert - wert), 6), n.wert))
 
 
+def naechste_ganze_note(wert: float) -> Note:
+    """Ganze Note für das Zeugnis (ohne Tendenz); genau ,5 → die bessere (2,5 → 2)."""
+    return Note.aus(max(1, min(6, int(wert + 0.5 - 1e-9))))
+
+
 def _z(wert: float | None) -> str:
     return "–" if wert is None else f"{wert:.2f}".replace(".", ",")
 
@@ -207,8 +212,9 @@ class Zeugnis:
             zeilen.append(Zeile(m, s, mu, vorschlag, f))
         return zeilen
 
-    def uebernimm_vorschlaege(self, lerngruppe_id: int, art: str, nur_leere: bool = True) -> int:
-        """Setzt alle (bzw. nur noch leere) Noten einer Art auf den Vorschlag. Gibt die Anzahl zurück."""
+    def uebernimm_vorschlaege(self, lerngruppe_id: int, art: str, nur_leere: bool = True, ganze: bool = True) -> int:
+        """Setzt alle (bzw. nur noch leere) Noten einer Art auf den Vorschlag – standardmäßig als ganze Note,
+        wie sie auf dem Zeugnis steht. Gibt die Anzahl zurück."""
         if art == "zp10":
             raise ZeugnisFehler("ZP10-Noten werden eingetragen, nicht vorgeschlagen.")
         n = 0
@@ -216,6 +222,6 @@ class Zeugnis:
             v = z.vorschlag.get(art)
             if v is None or v.note is None or (nur_leere and art in z.fest):
                 continue
-            self.setze(lerngruppe_id, z.mitglied.schueler.id, art, v.note)
+            self.setze(lerngruppe_id, z.mitglied.schueler.id, art, naechste_ganze_note(v.wert) if ganze else v.note)
             n += 1
         return n
