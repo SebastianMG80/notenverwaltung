@@ -68,6 +68,56 @@ MIGRATIONEN: list[str] = [
     );
     CREATE INDEX mitglied_schueler ON mitglied (schueler_id);
     """,
+    # 3 – Klassenarbeiten: Notenschlüssel-Vorlagen, Arbeiten, Aufgaben, Punkte, Teilnahme
+    """
+    CREATE TABLE notenschluessel (
+        id        INTEGER PRIMARY KEY,
+        name      TEXT NOT NULL UNIQUE,
+        daten     TEXT NOT NULL,                          -- JSON: Stufen (Prozent → Note) und Raster
+        standard  INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT INTO notenschluessel (name, daten, standard) VALUES ('Standard (Punkteliste)',
+        '{"stufen":[[0,"6"],[20,"5-"],[21,"5"],[38,"5+"],[40,"4-"],[42,"4"],[53,"4+"],[55,"3-"],[57,"3"],[68,"3+"],[70,"2-"],[72,"2"],[81,"2+"],[83,"1-"],[85,"1"],[105,"1+"]],"raster":1.0}',
+        1);
+    CREATE TABLE arbeit (
+        id              INTEGER PRIMARY KEY,
+        lerngruppe_id   INTEGER NOT NULL REFERENCES lerngruppe(id) ON DELETE CASCADE,
+        titel           TEXT NOT NULL,                    -- z. B. "1. Klassenarbeit"
+        datum           TEXT NOT NULL,                    -- Tag der Arbeit (bestimmt Halbjahr und Teilnehmende)
+        rueckgabe       TEXT,                             -- Datum auf Notenabschnitten (Korrektur/Rückgabe)
+        schluessel      TEXT NOT NULL,                    -- Kopie des Notenschlüssels als JSON
+        art             TEXT NOT NULL DEFAULT 'klassenarbeit',
+        zaehlt          INTEGER NOT NULL DEFAULT 1,       -- zählt zur schriftlichen Note
+        gewicht         REAL NOT NULL DEFAULT 1,
+        thema           TEXT NOT NULL DEFAULT '',
+        bemerkung       TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX arbeit_lerngruppe ON arbeit (lerngruppe_id, datum);
+    CREATE TABLE aufgabe (
+        id              INTEGER PRIMARY KEY,
+        arbeit_id       INTEGER NOT NULL REFERENCES arbeit(id) ON DELETE CASCADE,
+        position        INTEGER NOT NULL,
+        bezeichnung     TEXT NOT NULL,                    -- "1", "3a", "b"
+        max_punkte      REAL NOT NULL CHECK (max_punkte >= 0),
+        thema           TEXT NOT NULL DEFAULT '',         -- Kurzbeschreibung für den Rückmeldebogen
+        erwartung       TEXT NOT NULL DEFAULT ''          -- Erwartungshorizont / Musterlösung
+    );
+    CREATE INDEX aufgabe_arbeit ON aufgabe (arbeit_id, position);
+    CREATE TABLE punkte (
+        aufgabe_id      INTEGER NOT NULL REFERENCES aufgabe(id) ON DELETE CASCADE,
+        schueler_id     INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+        punkte          REAL NOT NULL CHECK (punkte >= 0),
+        PRIMARY KEY (aufgabe_id, schueler_id)
+    );
+    CREATE TABLE teilnahme (
+        arbeit_id       INTEGER NOT NULL REFERENCES arbeit(id) ON DELETE CASCADE,
+        schueler_id     INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+        status          TEXT NOT NULL DEFAULT '' CHECK (status IN ('', 'fehlt', 'nachschreiben', 'befreit')),
+        note_manuell    TEXT,                             -- festgesetzte Note (z. B. bei Täuschung), sonst NULL
+        kommentar       TEXT NOT NULL DEFAULT '',         -- Rückmeldung an die Person
+        PRIMARY KEY (arbeit_id, schueler_id)
+    );
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)
