@@ -121,7 +121,8 @@ def test_notfallblatt_als_pdf(app, tmp_path, monkeypatch):
     if shutil.which("pdftotext"):
         import subprocess
 
-        text = subprocess.run(["pdftotext", str(tmp_path / "blatt.pdf"), "-"], capture_output=True, text=True).stdout
+        text = subprocess.run(["pdftotext", "-enc", "UTF-8", str(tmp_path / "blatt.pdf"), "-"],
+                              capture_output=True).stdout.decode("utf-8", "replace")
         dicht = "".join(text.split())  # Umbrüche hängen von der installierten Schrift ab
         assert "ABCD-EFGH-JKMN" in dicht and "VO-DVI" in dicht and "Klasse" in dicht
 

@@ -113,6 +113,7 @@ class SchuelerSeite(Seite):
         self.leiste.addWidget(self.filter_klasse)
         self.leiste.addWidget(self.suche, 1)
         self.knopf("Neu …", self.neu, primaer=True)
+        self.knopf("Importieren …", self.importieren)
         self.k_bearbeiten = self.knopf("Bearbeiten …", self.bearbeiten)
         self.k_abgang = self.knopf("Abgang …", self.abgang)
         self.k_loeschen = self.knopf("Löschen", self.loeschen)
@@ -171,6 +172,12 @@ class SchuelerSeite(Seite):
                           parent=self).exec():
             self.geaendert.emit()
 
+    def importieren(self) -> None:
+        from notenverwaltung.ui.import_assistent import ImportAssistent
+
+        if self.sd and ImportAssistent(self.sd, self.jahr, parent=self).exec():
+            self.geaendert.emit()
+
     def bearbeiten(self) -> None:
         e = self._aktuell()
         if e and SchuelerDialog(self.sd, self.jahr, e, parent=self).exec():
@@ -227,6 +234,9 @@ class MitgliederTab(QWidget):
         leiste.addStretch(1)
         self.k_hinzu = QPushButton("Hinzufügen …", objectName="primaer")
         self.k_hinzu.clicked.connect(self._hinzufuegen)
+        self.k_import = QPushButton("Liste importieren …")
+        self.k_import.setToolTip("Kursliste aus einer Datei: legt fehlende Schüler:innen an und nimmt alle auf")
+        self.k_import.clicked.connect(self._importieren)
         self.k_klasse = QPushButton("Klasse vervollständigen")
         self.k_klasse.setToolTip("Fehlende Schüler:innen der Klasse aufnehmen (z. B. nach Zugängen)")
         self.k_klasse.clicked.connect(self._klasse)
@@ -234,7 +244,7 @@ class MitgliederTab(QWidget):
         self.k_zeitraum.clicked.connect(self._zeitraum)
         self.k_entfernen = QPushButton("Entfernen")
         self.k_entfernen.clicked.connect(self._entfernen)
-        for k in (self.k_hinzu, self.k_klasse, self.k_zeitraum, self.k_entfernen):
+        for k in (self.k_hinzu, self.k_import, self.k_klasse, self.k_zeitraum, self.k_entfernen):
             leiste.addWidget(k)
         lay.addLayout(leiste)
         self.tabelle = Tabelle(["Nr.", "Nachname", "Vorname", "Klasse", "Status"])
@@ -292,6 +302,13 @@ class MitgliederTab(QWidget):
     def _hinzufuegen(self) -> None:
         d = MitgliederDialog(self.sd, self.jahr, self.gruppe, self)
         if d.exec():
+            self._fuellen()
+            self.geaendert.emit()
+
+    def _importieren(self) -> None:
+        from notenverwaltung.ui.import_assistent import ImportAssistent
+
+        if ImportAssistent(self.sd, self.jahr, self.gruppe.id, self).exec():
             self._fuellen()
             self.geaendert.emit()
 
