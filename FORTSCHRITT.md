@@ -18,10 +18,10 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 9 Schuljahreswechsel (12.11.2026)
 - [x] 10 Rückmeldebogen (12.11.2026)
 - [x] 11 KI-Paket (12.11.2026)
-- [ ] 12 Darstellung → **Meilenstein C**
+- [x] 12 Darstellung → **Meilenstein C** (12.11.2026, Version 0.3.0)
 
 ## Nächster Schritt
-Warten auf Rückmeldung von Sebastian zum Release v0.2.0 (Windows-Test) und zu den offenen Punkten unten.
+Warten auf Rückmeldung von Sebastian zum Release v0.3.0 (Windows-Test) und zu den offenen Punkten unten.
 Danach weitere offene Etappen: 10 Rückmeldebogen, 11 KI-Paket, 12 Darstellung, außerdem
 Druck der Notenübersichten (Reiter „Noten“) und Ganzjahres-Notenspiegel.
 
@@ -64,6 +64,7 @@ Offen / Rückfragen an Sebastian:
 | Schuljahreswechsel | Assistent unter Datei → Schuljahr; Klassen hochsetzen (erste Jahrgangszahl +1), je Klasse „endet“, je Person versetzen/wiederholen/Abgang; Klassen-Lerngruppen bekommen alle der neuen Klasse, Kurse nur versetzte bisherige Mitglieder; Gewichtung/Sortierung/eigene Reihenfolge werden übernommen; altes Jahr bleibt unverändert |
 | Rückmeldebogen | dritte Ausgabe im Druckdialog; eine Seite pro Person: Aufgabe/Thema/möglich/erreicht/Anteil, Erwartungshorizont kursiv (abschaltbar), Note ohne Tendenz, Rückmeldung (Rechtsklick im Raster), Unterschriftszeilen (abschaltbar) |
 | KI-Paket | Programm bleibt offline: Prompt-Vorlage (ohne Schülerdaten) zum Kopieren, Antwort als JSON (Format `notenverwaltung-arbeit-1`) wird eingefügt – auch mit Text/Code-Zaun drumherum; neue Arbeit oder Übernahme in vorhandene (Aufgaben der Reihe nach weiterverwendet, Punkte bleiben); Musterlösung als Feld der Arbeit (Migration 6) |
+| Darstellung | Ansicht: dunkel/hell, Schrift wählen, größer/kleiner (Strg+Plus/Minus), Standard; Druckschrift im Druckdialog; Kopfzeile „Schule · Lehrkraft“ aus Datei → Angaben für Ausdrucke (in der Datenbank) |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke

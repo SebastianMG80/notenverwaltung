@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 
 from PySide6.QtCore import QStandardPaths, Qt
-from PySide6.QtGui import QPageLayout, QPixmap
+from PySide6.QtGui import QFont, QPageLayout, QPixmap
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QFileDialog,
+    QFontComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -30,8 +31,8 @@ from PySide6.QtWidgets import (
 from notenverwaltung.ausgabe.abschnitte import AVERY_3424, AVERY_3425, Notenabschnitte, freies_format
 from notenverwaltung.ausgabe.punkteliste import ListenOptionen, Punkteliste
 from notenverwaltung.ausgabe.rueckmeldebogen import Rueckmeldebogen
-from notenverwaltung.ausgabe.seite import Ausgabe, als_pdf, drucke, vorschau
-from notenverwaltung.einstellungen import einstellungen
+from notenverwaltung.ausgabe.seite import Ausgabe, als_pdf, drucke, kopfzeile_aus, vorschau
+from notenverwaltung.einstellungen import druck_schrift, einstellungen, setze_druck_schrift
 from notenverwaltung.modell.arbeiten import Arbeit, Arbeiten
 from notenverwaltung.ui.bausteine import Hinweis, OptionalesDatum, fehler
 
@@ -156,6 +157,21 @@ class DruckDialog(QDialog):
         self.art_liste.toggled.connect(self._aktualisieren)
         self.art_bogen.toggled.connect(self._aktualisieren)
 
+        # ---- Schrift
+        self.schrift = QFontComboBox()
+        self.schrift.setFontFilters(QFontComboBox.FontFilter.ScalableFonts)
+        gespeichert = druck_schrift()
+        if gespeichert:
+            self.schrift.setCurrentFont(QFont(gespeichert))
+        else:
+            self.schrift.setCurrentText("")
+        self.schrift.currentFontChanged.connect(self._aktualisieren)
+        self.schrift_standard = QPushButton("Standard")
+        self.schrift_standard.setToolTip("Noto Sans / DejaVu Sans / Segoe UI / Arial – je nachdem, was vorhanden ist")
+        self.schrift_standard.clicked.connect(self._schrift_standard)
+        self._schrift_gesetzt = bool(gespeichert)
+        self.schrift.activated.connect(lambda _: setattr(self, "_schrift_gesetzt", True))
+
         # ---- Vorschau
         self.bild = QLabel()
         self.bild.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -190,6 +206,11 @@ class DruckDialog(QDialog):
         links.addWidget(self.box_liste)
         links.addWidget(self.box_abschnitte)
         links.addWidget(self.box_bogen)
+        sz = QHBoxLayout()
+        sz.addWidget(QLabel("Schrift:"))
+        sz.addWidget(self.schrift, 1)
+        sz.addWidget(self.schrift_standard)
+        links.addLayout(sz)
         links.addStretch(1)
         links.addWidget(self.meldung)
         lw = QWidget()
@@ -228,6 +249,18 @@ class DruckDialog(QDialog):
         a.versatz_x, a.versatz_y = self.versatz_x.value(), self.versatz_y.value()
         return a
 
+    def _schrift_standard(self) -> None:
+        self._schrift_gesetzt = False
+        self.schrift.blockSignals(True)
+        self.schrift.setCurrentText("")
+        self.schrift.blockSignals(False)
+        self._aktualisieren()
+
+    def _mit_einstellungen(self, ausgabe: Ausgabe) -> Ausgabe:
+        ausgabe.schrift = self.schrift.currentFont().family() if self._schrift_gesetzt else None
+        ausgabe.kopfzeile = kopfzeile_aus(self.ar.v)
+        return ausgabe
+
     def _aktualisieren(self, *_) -> None:
         liste = self.art_liste.isChecked()
         self.box_liste.setVisible(liste)
@@ -245,7 +278,7 @@ class DruckDialog(QDialog):
             self.startplatz.blockSignals(True)
             self.startplatz.setMaximum(je_seite)
             self.startplatz.blockSignals(False)
-            self.ausgabe = self.baue_ausgabe()
+            self.ausgabe = self._mit_einstellungen(self.baue_ausgabe())
         except ValueError as e:
             self.meldung.setze(str(e), "fehler")
             return
@@ -269,6 +302,7 @@ class DruckDialog(QDialog):
         s.setValue("druck/frei_h", self.frei_h.value())
         s.setValue("druck/versatz_x", self.versatz_x.value())
         s.setValue("druck/versatz_y", self.versatz_y.value())
+        setze_druck_schrift(self.schrift.currentFont().family() if self._schrift_gesetzt else "")
 
     def _vorschau(self) -> None:
         if self.ausgabe is None:

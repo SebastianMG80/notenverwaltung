@@ -48,3 +48,26 @@ def vergiss_geoeffnet(pfad: str) -> None:
     s = einstellungen()
     s.setValue("datenbank/zuletzt", [p for p in zuletzt_geoeffnet() if p != pfad])
     s.sync()
+
+
+# ---- Schriften ------------------------------------------------------------------------------------
+
+def ui_schrift() -> str:
+    """QFont.toString() der gewählten Oberflächenschrift oder leer (= Systemschrift)."""
+    return str(einstellungen().value("ansicht/schrift", "") or "")
+
+
+def setze_ui_schrift(text: str) -> None:
+    s = einstellungen()
+    s.setValue("ansicht/schrift", text)
+    s.sync()
+
+
+def druck_schrift() -> str:
+    return str(einstellungen().value("druck/schrift", "") or "")
+
+
+def setze_druck_schrift(familie: str) -> None:
+    s = einstellungen()
+    s.setValue("druck/schrift", familie)
+    s.sync()

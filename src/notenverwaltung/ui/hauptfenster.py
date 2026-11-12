@@ -25,7 +25,13 @@ from PySide6.QtWidgets import (
 )
 
 from notenverwaltung import APP_NAME, __version__
-from notenverwaltung.einstellungen import design_name, einstellungen, merke_geoeffnet, setze_design_name
+from notenverwaltung.einstellungen import (
+    design_name,
+    einstellungen,
+    merke_geoeffnet,
+    setze_design_name,
+    setze_ui_schrift,
+)
 from notenverwaltung.modell.stammdaten import Schuljahr, Stammdaten
 from notenverwaltung.speicher.datenbank import SCHLUESSELDATEI_ENDUNG, Datenbank, sicherungsordner
 from notenverwaltung.ui.bausteine import fehler, frage, info
@@ -198,6 +204,8 @@ class Hauptfenster(QMainWindow):
         self.m_schuljahr.aboutToShow.connect(self._schuljahr_menue_fuellen)
         self.a_neue_lerngruppe = self._aktion("Neue &Lerngruppe …", self.neue_lerngruppe, QKeySequence("Ctrl+L"))
         datei.addAction(self.a_neue_lerngruppe)
+        self.a_angaben = self._aktion("&Angaben für Ausdrucke …", self.angaben_fuer_ausdrucke)
+        datei.addAction(self.a_angaben)
         datei.addSeparator()
 
         self.m_sicherheit = datei.addMenu("S&icherheit")
@@ -226,6 +234,13 @@ class Hauptfenster(QMainWindow):
             self.design_gruppe.addAction(a)
             design_menue.addAction(a)
 
+        ansicht.addSeparator()
+        ansicht.addAction(self._aktion("&Schrift …", self.schrift_waehlen))
+        ansicht.addAction(self._aktion("Schrift &größer", lambda: self.schrift_groesse(1), QKeySequence.StandardKey.ZoomIn))
+        ansicht.addAction(self._aktion("Schrift &kleiner", lambda: self.schrift_groesse(-1),
+                                       QKeySequence.StandardKey.ZoomOut))
+        ansicht.addAction(self._aktion("Standardschrift", self.schrift_standard))
+
         hilfe = self.menuBar().addMenu("&Hilfe")
         hilfe.addAction(self._aktion("Ü&ber …", self._ueber))
 
@@ -235,6 +250,7 @@ class Hauptfenster(QMainWindow):
                   self.a_schluesseldatei, self.a_sicherungen):
             a.setEnabled(offen)
         self.m_schuljahr.setEnabled(offen)
+        self.a_angaben.setEnabled(offen)
         self.a_neue_lerngruppe.setEnabled(offen and self.jahr is not None)
         self.a_schluesseldatei_weg.setEnabled(offen and self.db.tresor.hat_schluesseldatei)
         self.setWindowTitle(f"{self.db.name} – {APP_NAME}" if offen else APP_NAME)
@@ -499,7 +515,57 @@ class Hauptfenster(QMainWindow):
             return
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(ordner)))
 
+    def angaben_fuer_ausdrucke(self) -> None:
+        if self.db is None:
+            return
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
+
+        d = QDialog(self)
+        d.setWindowTitle("Angaben für Ausdrucke")
+        schule = QLineEdit(self.db.meta("druck_schule", ""))
+        schule.setPlaceholderText("z. B. Gesamtschule Musterstadt")
+        lehrkraft = QLineEdit(self.db.meta("druck_lehrkraft", ""))
+        lehrkraft.setPlaceholderText("z. B. Herr Muster (MU)")
+        form = QFormLayout(d)
+        form.addRow("Schule:", schule)
+        form.addRow("Lehrkraft:", lehrkraft)
+        form.addRow(QLabel("Erscheint oben auf Punktelisten und Rückmeldebögen.", objectName="leise"))
+        box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        box.accepted.connect(d.accept)
+        box.rejected.connect(d.reject)
+        form.addRow(box)
+        if d.exec():
+            self.db.setze_meta("druck_schule", schule.text().strip())
+            self.db.setze_meta("druck_lehrkraft", lehrkraft.text().strip())
+
     # ---- Ansicht / Hilfe ----------------------------------------------------------------------
+    def schrift_waehlen(self) -> None:
+        from PySide6.QtWidgets import QFontDialog
+
+        ok, schrift = QFontDialog.getFont(QApplication.font(), self, "Schrift der Oberfläche")
+        if ok:
+            self._setze_schrift(schrift)
+
+    def schrift_groesse(self, schritt: int) -> None:
+        f = QApplication.font()
+        f.setPointSizeF(max(7.0, min(20.0, f.pointSizeF() + schritt)))
+        self._setze_schrift(f)
+
+    def schrift_standard(self) -> None:
+        from PySide6.QtGui import QFont
+
+        setze_ui_schrift("")
+        f = QFont()
+        gemerkt = QApplication.instance().property("systemschrift")
+        if not gemerkt or not f.fromString(gemerkt):
+            f = QFont()
+        QApplication.setFont(f)
+        wende_design_an(QApplication.instance(), design_name())
+
+    def _setze_schrift(self, f) -> None:
+        setze_ui_schrift(f.toString())
+        QApplication.setFont(f)
+        wende_design_an(QApplication.instance(), design_name())
     def setze_design(self, name: str) -> None:
         setze_design_name(name)
         wende_design_an(QApplication.instance(), name)

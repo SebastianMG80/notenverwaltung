@@ -29,7 +29,7 @@ class Seite:
         self._px_pro_mm_y = dev.logicalDpiY() / 25.4
         self.versatz_x = versatz_x_mm
         self.versatz_y = versatz_y_mm
-        self.schriftfamilie = "Sans Serif"
+        self.schriftfamilie: str | None = None  # bevorzugte Schrift für Ausdrucke (sonst Standardliste)
 
     # ---- Umrechnung --------------------------------------------------------------------------
     def x(self, mm: float) -> float:
@@ -48,7 +48,8 @@ class Seite:
     def schrift(self, pt: float, fett: bool = False, familie: str | None = None, kursiv: bool = False) -> QFont:
         mono = (familie or "").lower() == "monospace"
         f = QFont()
-        f.setFamilies(SCHRIFTEN_MONO if mono else ([familie] if familie else []) + SCHRIFTEN_SANS)
+        erste = familie or self.schriftfamilie
+        f.setFamilies(SCHRIFTEN_MONO if mono else ([erste] if erste else []) + SCHRIFTEN_SANS)
         # Stil-Hinweis: Windows/Linux wählen eine passende Schrift, auch wenn keine der Familien vorhanden ist
         f.setStyleHint(QFont.StyleHint.TypeWriter if mono else QFont.StyleHint.SansSerif)
         f.setPointSizeF(pt)
@@ -139,9 +140,13 @@ class Ausgabe:
     # Versatz für Drucker, die nicht exakt positionieren (wird von Etiketten benutzt)
     versatz_x = 0.0
     versatz_y = 0.0
+    schrift: str | None = None      # bevorzugte Schriftfamilie
+    kopfzeile: str = ""             # z. B. „Gesamtschule Musterstadt · Herr Muster“
 
     def _seite(self, painter: QPainter) -> Seite:
-        return Seite(painter, self.versatz_x, self.versatz_y)
+        s = Seite(painter, self.versatz_x, self.versatz_y)
+        s.schriftfamilie = self.schrift
+        return s
 
 
 def als_pdf(ausgabe: Ausgabe, pfad: Path) -> Path:
@@ -185,3 +190,10 @@ def vorschau(ausgabe: Ausgabe, nummer: int, dpi: int = 72):
     finally:
         painter.end()
     return bild
+
+
+def kopfzeile_aus(verbindung) -> str:
+    """„Schule · Lehrkraft“ aus den Angaben der Datenbank (Datei → Angaben für Ausdrucke)."""
+    werte = dict(verbindung.execute(
+        "SELECT schluessel, wert FROM meta WHERE schluessel IN ('druck_schule', 'druck_lehrkraft')").fetchall())
+    return " · ".join(w for w in (werte.get("druck_schule", ""), werte.get("druck_lehrkraft", "")) if w)

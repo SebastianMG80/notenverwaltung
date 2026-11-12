@@ -102,6 +102,8 @@ class Punkteliste(Ausgabe):
         s.text(RAND, RAND + 7.5, BREITE * 0.8, 5, " · ".join(teile), LINKS)
         s.text(RAND + BREITE * 0.6, RAND, BREITE * 0.4, 7,
                f"Seite {nummer + 1} von {self.seitenzahl()}", RECHTS)
+        if self.kopfzeile:
+            s.text(RAND + BREITE * 0.5, RAND + 7.5, BREITE * 0.5, 5, self.kopfzeile, RECHTS)
 
     def _spalten(self) -> list[tuple[float, float]]:
         """x-Position und Breite jeder Spalte."""

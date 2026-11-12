@@ -47,6 +47,10 @@ class Rueckmeldebogen(Ausgabe):
             return
         e = self.ergebnisse[nummer]
         y = RAND
+        if self.kopfzeile:
+            s.schrift(8.5)
+            s.stift("#555555")
+            s.text(RAND, RAND - 9, BREITE, 5, self.kopfzeile, RECHTS)
         s.stift("#000000")
         s.schrift(16, fett=True)
         s.text(RAND, y, BREITE, 8, f"Rückmeldung zur {self.arbeit.titel}", LINKS)
