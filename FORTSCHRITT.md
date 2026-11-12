@@ -16,7 +16,7 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 7 Mündliche Noten (12.11.2026)
 - [x] 8 Notenberechnung → **Meilenstein B** (12.11.2026, Release v0.2.0)
 - [x] 9 Schuljahreswechsel (12.11.2026)
-- [ ] 10 Rückmeldebogen
+- [x] 10 Rückmeldebogen (12.11.2026)
 - [ ] 11 KI-Paket
 - [ ] 12 Darstellung → **Meilenstein C**
 
@@ -62,6 +62,7 @@ Offen / Rückfragen an Sebastian:
 | Gewichtung | je Lerngruppe: Anteil schriftlich (automatisch 50 %/0 %), Anteil 1. Hj. an 2. Hj. (Standard 10 %), ZP10 automatisch für D/E/M Jahrgang 10 (abschaltbar) |
 | ZP10 | Vornote = Ganzjahresnote aus allen Leistungen, Endnote = 50 % Vornote (festgesetzt oder Vorschlag) + 50 % ZP10 |
 | Schuljahreswechsel | Assistent unter Datei → Schuljahr; Klassen hochsetzen (erste Jahrgangszahl +1), je Klasse „endet“, je Person versetzen/wiederholen/Abgang; Klassen-Lerngruppen bekommen alle der neuen Klasse, Kurse nur versetzte bisherige Mitglieder; Gewichtung/Sortierung/eigene Reihenfolge werden übernommen; altes Jahr bleibt unverändert |
+| Rückmeldebogen | dritte Ausgabe im Druckdialog; eine Seite pro Person: Aufgabe/Thema/möglich/erreicht/Anteil, Erwartungshorizont kursiv (abschaltbar), Note ohne Tendenz, Rückmeldung (Rechtsklick im Raster), Unterschriftszeilen (abschaltbar) |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke

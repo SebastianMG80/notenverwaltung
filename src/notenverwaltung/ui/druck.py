@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 
 from notenverwaltung.ausgabe.abschnitte import AVERY_3424, AVERY_3425, Notenabschnitte, freies_format
 from notenverwaltung.ausgabe.punkteliste import ListenOptionen, Punkteliste
+from notenverwaltung.ausgabe.rueckmeldebogen import Rueckmeldebogen
 from notenverwaltung.ausgabe.seite import Ausgabe, als_pdf, drucke, vorschau
 from notenverwaltung.einstellungen import einstellungen
 from notenverwaltung.modell.arbeiten import Arbeit, Arbeiten
@@ -59,11 +60,25 @@ class DruckDialog(QDialog):
         # ---- Art der Ausgabe
         self.art_liste = QRadioButton("Punkteliste (für dich)")
         self.art_abschnitte = QRadioButton("Notenabschnitte (für die Schüler:innen)")
+        self.art_bogen = QRadioButton("Rückmeldebögen (eine Seite pro Person)")
         gruppe = QButtonGroup(self)
-        gruppe.addButton(self.art_liste)
-        gruppe.addButton(self.art_abschnitte)
-        (self.art_abschnitte if einstellungen().value("druck/art", "liste") == "abschnitte"
-         else self.art_liste).setChecked(True)
+        for k in (self.art_liste, self.art_abschnitte, self.art_bogen):
+            gruppe.addButton(k)
+        {"abschnitte": self.art_abschnitte, "bogen": self.art_bogen}.get(
+            einstellungen().value("druck/art", "liste"), self.art_liste).setChecked(True)
+
+        # ---- Optionen Rückmeldebogen
+        self.box_bogen = QGroupBox("Rückmeldebögen")
+        fb = QVBoxLayout(self.box_bogen)
+        self.bogen_erwartung = QCheckBox("Erwartungshorizont je Aufgabe (falls eingetragen)")
+        self.bogen_erwartung.setChecked(_bool("druck/bogen/erwartung", True))
+        self.bogen_unterschrift = QCheckBox("Unterschriftszeilen")
+        self.bogen_unterschrift.setChecked(_bool("druck/bogen/unterschrift", True))
+        self.bogen_nur_note = QCheckBox("Nur Schüler:innen mit Note")
+        self.bogen_nur_note.setChecked(True)
+        for c in (self.bogen_erwartung, self.bogen_unterschrift, self.bogen_nur_note):
+            c.toggled.connect(self._aktualisieren)
+            fb.addWidget(c)
 
         # ---- Optionen Punkteliste
         self.box_liste = QGroupBox("Punkteliste")
@@ -139,6 +154,7 @@ class DruckDialog(QDialog):
             w.toggled.connect(self._aktualisieren)
         self.datum.datum.dateChanged.connect(self._aktualisieren)
         self.art_liste.toggled.connect(self._aktualisieren)
+        self.art_bogen.toggled.connect(self._aktualisieren)
 
         # ---- Vorschau
         self.bild = QLabel()
@@ -170,8 +186,10 @@ class DruckDialog(QDialog):
         links = QVBoxLayout()
         links.addWidget(self.art_liste)
         links.addWidget(self.art_abschnitte)
+        links.addWidget(self.art_bogen)
         links.addWidget(self.box_liste)
         links.addWidget(self.box_abschnitte)
+        links.addWidget(self.box_bogen)
         links.addStretch(1)
         links.addWidget(self.meldung)
         lw = QWidget()
@@ -198,6 +216,10 @@ class DruckDialog(QDialog):
         if self.art_liste.isChecked():
             o = ListenOptionen(**{k: c.isChecked() for k, c in self.opt.items()})
             return Punkteliste(self.ar, self.arbeit, o)
+        if self.art_bogen.isChecked():
+            return Rueckmeldebogen(self.ar, self.arbeit, nur_mit_note=self.bogen_nur_note.isChecked(),
+                                   erwartung=self.bogen_erwartung.isChecked(),
+                                   unterschrift=self.bogen_unterschrift.isChecked())
         art = self.format.currentData()
         fmt = {"3424": AVERY_3424, "3425": AVERY_3425}.get(art) or freies_format(self.frei_b.value(), self.frei_h.value())
         a = Notenabschnitte(self.ar, self.arbeit, fmt, startplatz=self.startplatz.value() - 1,
@@ -209,7 +231,8 @@ class DruckDialog(QDialog):
     def _aktualisieren(self, *_) -> None:
         liste = self.art_liste.isChecked()
         self.box_liste.setVisible(liste)
-        self.box_abschnitte.setVisible(not liste)
+        self.box_abschnitte.setVisible(self.art_abschnitte.isChecked())
+        self.box_bogen.setVisible(self.art_bogen.isChecked())
         frei = self.format.currentData() == "frei"
         self.frei_b.setEnabled(frei)
         self.frei_h.setEnabled(frei)
@@ -226,7 +249,8 @@ class DruckDialog(QDialog):
         except ValueError as e:
             self.meldung.setze(str(e), "fehler")
             return
-        self.meldung.setze("" if not isinstance(self.ausgabe, Notenabschnitte) or self.ausgabe.ergebnisse else
+        self.meldung.setze("" if not isinstance(self.ausgabe, (Notenabschnitte, Rueckmeldebogen))
+                           or self.ausgabe.ergebnisse else
                            "Noch keine Noten – es gibt nichts zu drucken.", "info")
         self._seite = min(self._seite, self.ausgabe.seitenzahl() - 1)
         self._merken()
@@ -234,7 +258,10 @@ class DruckDialog(QDialog):
 
     def _merken(self) -> None:
         s = einstellungen()
-        s.setValue("druck/art", "liste" if self.art_liste.isChecked() else "abschnitte")
+        s.setValue("druck/art", "liste" if self.art_liste.isChecked() else
+                   "bogen" if self.art_bogen.isChecked() else "abschnitte")
+        s.setValue("druck/bogen/erwartung", self.bogen_erwartung.isChecked())
+        s.setValue("druck/bogen/unterschrift", self.bogen_unterschrift.isChecked())
         for k, c in self.opt.items():
             s.setValue(f"druck/liste/{k}", c.isChecked())
         s.setValue("druck/format", self.format.currentData())
@@ -260,7 +287,8 @@ class DruckDialog(QDialog):
     # ---- Ausgeben ----------------------------------------------------------------------------
     def _dateiname(self) -> str:
         g = self.ar.sd.lerngruppe(self.arbeit.lerngruppe_id)
-        art = "Punkteliste" if self.art_liste.isChecked() else "Notenabschnitte"
+        art = ("Punkteliste" if self.art_liste.isChecked() else
+               "Rückmeldebögen" if self.art_bogen.isChecked() else "Notenabschnitte")
         roh = f"{art} {g.bezeichnung} {self.arbeit.titel}"
         return "".join(z if z not in '\\/:*?"<>|' else "_" for z in roh) + ".pdf"
 

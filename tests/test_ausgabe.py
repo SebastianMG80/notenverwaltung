@@ -154,3 +154,36 @@ def test_druckdialog(arbeit, tmp_path, monkeypatch):
     # Einstellungen werden gemerkt
     d2 = DruckDialog(ar, a)
     assert d2.art_abschnitte.isChecked() and d2.format.currentData() == "3425" and d2.versatz_x.value() == 1.5
+
+
+@pytest.mark.skipif(not PDFTEXT, reason="pdftotext fehlt")
+def test_rueckmeldebogen(arbeit, tmp_path):
+    from notenverwaltung.ausgabe.rueckmeldebogen import Rueckmeldebogen
+
+    ar, a, ids = arbeit
+    x = ar.aufgaben(a.id)
+    ar.setze_aufgaben(a.id, [(x[0].id, "1", 10, "Bruchrechnung", "Hauptnenner bilden"), (x[1].id, "2a", 5, "", ""),
+                             (x[2].id, "b", 5, "", "")])
+    ar.setze_teilnahme(a.id, ids[0], note_manuell=Note.aus_kurz("2+"), kommentar="Weiter so – besonders Aufgabe 1!")
+    b = Rueckmeldebogen(ar, a)
+    assert b.seitenzahl() == 30
+    t = text(als_pdf(Rueckmeldebogen(ar, a, schueler_ids=[ids[0]]), tmp_path / "b.pdf"))
+    assert "Vor01 Name01" in t and "Bruchrechnung" in t and "Hauptnenner bilden" in t
+    assert "gut" in t and "(+)" not in t and "2+" not in t
+    assert "Weiter so" in t and "Kenntnis genommen" in t
+    ohne = text(als_pdf(Rueckmeldebogen(ar, a, erwartung=False, unterschrift=False, schueler_ids=[ids[0]]),
+                        tmp_path / "c.pdf"))
+    assert "Hauptnenner" not in ohne and "Kenntnis" not in ohne
+
+
+def test_druckdialog_rueckmeldebogen(arbeit):
+    from notenverwaltung.ausgabe.rueckmeldebogen import Rueckmeldebogen
+    from notenverwaltung.ui.druck import DruckDialog
+
+    ar, a, _ = arbeit
+    d = DruckDialog(ar, a)
+    d.art_bogen.setChecked(True)
+    assert isinstance(d.ausgabe, Rueckmeldebogen)
+    assert d.box_bogen.isVisibleTo(d) and not d.box_liste.isVisibleTo(d)
+    d.bogen_nur_note.setChecked(False)
+    assert d.ausgabe.seitenzahl() == 40
