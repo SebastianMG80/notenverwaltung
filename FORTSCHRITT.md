@@ -21,7 +21,7 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 12 Darstellung → **Meilenstein C** (12.11.2026, Version 0.3.0)
 
 ## Nächster Schritt
-Warten auf Rückmeldung von Sebastian zum Release v0.3.0 (Windows-Test) und zu den offenen Punkten unten.
+Warten auf Rückmeldung von Sebastian zum Release v0.3.1 (Windows-Test) und zu den offenen Punkten unten.
 Danach weitere offene Etappen: 10 Rückmeldebogen, 11 KI-Paket, 12 Darstellung, außerdem
 Druck der Notenübersichten (Reiter „Noten“) und Ganzjahres-Notenspiegel.
 
