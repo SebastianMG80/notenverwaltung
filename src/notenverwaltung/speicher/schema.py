@@ -137,6 +137,20 @@ MIGRATIONEN: list[str] = [
         PRIMARY KEY (zeitraum_id, schueler_id)
     );
     """,
+    # 5 – Notenberechnung: Gewichtung je Lerngruppe, festgesetzte Zeugnisnoten, ZP10
+    """
+    ALTER TABLE lerngruppe ADD COLUMN anteil_schriftlich REAL;      -- NULL = automatisch (50 % bzw. 0 %)
+    ALTER TABLE lerngruppe ADD COLUMN anteil_hj1 REAL NOT NULL DEFAULT 10;
+    ALTER TABLE lerngruppe ADD COLUMN zp10 INTEGER;                 -- NULL = automatisch (D/E/M in Jahrgang 10)
+    CREATE TABLE zeugnisnote (
+        lerngruppe_id   INTEGER NOT NULL REFERENCES lerngruppe(id) ON DELETE CASCADE,
+        schueler_id     INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+        art             TEXT NOT NULL CHECK (art IN ('hj1', 'hj2', 'vornote', 'zp10')),
+        note            TEXT NOT NULL,                    -- Kurzform, z. B. "2" oder "2-"
+        bemerkung       TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (lerngruppe_id, schueler_id, art)
+    );
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)
