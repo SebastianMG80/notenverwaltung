@@ -12,7 +12,7 @@ notfallblatt*.pdf
 /sicherungen/
 
 # ---- Erzeugte Ausgaben
-ausgabe/
+/ausgabe/
 *.pdf
 !docs/**/*.pdf
 
@@ -22,8 +22,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
-build/
-dist/
+/build/
+/dist/
 *.spec.bak
 *.egg-info/
 
