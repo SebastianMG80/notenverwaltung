@@ -122,7 +122,8 @@ def test_notfallblatt_als_pdf(app, tmp_path, monkeypatch):
         import subprocess
 
         text = subprocess.run(["pdftotext", str(tmp_path / "blatt.pdf"), "-"], capture_output=True, text=True).stdout
-        assert "ABCD-EFGH-JKMN" in text and "VO-DV I" in text and "Klasse" in text
+        dicht = "".join(text.split())  # Umbrüche hängen von der installierten Schrift ab
+        assert "ABCD-EFGH-JKMN" in dicht and "VO-DVI" in dicht and "Klasse" in dicht
 
 
 # ---- Startdialog ----------------------------------------------------------------------------------

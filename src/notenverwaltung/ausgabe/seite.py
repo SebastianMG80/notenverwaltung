@@ -14,6 +14,10 @@ from PySide6.QtGui import QColor, QFont, QPageLayout, QPageSize, QPainter, QPdfW
 
 A4 = QPageSize(QPageSize.PageSizeId.A4)
 
+# Bevorzugte Schriften mit Ausweichschriften für Linux (KDE) und Windows
+SCHRIFTEN_SANS = ["Noto Sans", "DejaVu Sans", "Segoe UI", "Arial", "Liberation Sans", "Sans Serif"]
+SCHRIFTEN_MONO = ["Noto Sans Mono", "DejaVu Sans Mono", "Consolas", "Courier New", "Liberation Mono", "Monospace"]
+
 
 class Seite:
     """Hilfsobjekt um einen QPainter: Koordinaten in mm, Schriften in pt."""
@@ -42,10 +46,11 @@ class Seite:
 
     # ---- Zeichnen ----------------------------------------------------------------------------
     def schrift(self, pt: float, fett: bool = False, familie: str | None = None, kursiv: bool = False) -> QFont:
-        f = QFont(familie or self.schriftfamilie)
-        # Stil-Hinweis: Windows/Linux wählen eine passende Schrift, auch wenn der Name fehlt
-        f.setStyleHint(QFont.StyleHint.TypeWriter if (familie or "").lower() == "monospace"
-                       else QFont.StyleHint.SansSerif)
+        mono = (familie or "").lower() == "monospace"
+        f = QFont()
+        f.setFamilies(SCHRIFTEN_MONO if mono else ([familie] if familie else []) + SCHRIFTEN_SANS)
+        # Stil-Hinweis: Windows/Linux wählen eine passende Schrift, auch wenn keine der Familien vorhanden ist
+        f.setStyleHint(QFont.StyleHint.TypeWriter if mono else QFont.StyleHint.SansSerif)
         f.setPointSizeF(pt)
         f.setBold(fett)
         f.setItalic(kursiv)

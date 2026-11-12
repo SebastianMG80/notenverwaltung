@@ -19,7 +19,8 @@ PDFTEXT = shutil.which("pdftotext")
 
 
 def text(pfad) -> str:
-    return subprocess.run(["pdftotext", "-layout", str(pfad), "-"], capture_output=True, text=True).stdout
+    roh = subprocess.run(["pdftotext", "-layout", str(pfad), "-"], capture_output=True, text=True).stdout
+    return " ".join(roh.split())  # Leerraum vereinheitlichen: Abstände hängen von der Schrift ab
 
 
 @pytest.fixture
