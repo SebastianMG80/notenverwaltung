@@ -1,0 +1,49 @@
+# Notenverwaltung – Etappenplan
+
+Grundlage: [LASTENHEFT.md](LASTENHEFT.md), Stand 12.11.2026.
+
+**Aufwandsangabe:** in Arbeitssitzungen (AS). Eine AS ist ein zusammenhängender Arbeitsblock von mir (etwa 2–4 Stunden), einschließlich Tests. Dazu kommen deine Testrunden. Die Werte sind grobe Schätzungen mit etwa ±30 %.
+
+Jede Etappe endet mit einem lauffähigen Stand, automatischen Tests und einem Eintrag in `FORTSCHRITT.md`.
+
+## Etappen
+
+| # | Etappe | Inhalt | Aufwand |
+|---|--------|--------|---------|
+| 0 | Fundament | Eigenes privates Repo, Projektgerüst (PySide6, venv mit festen Versionen), Grund-Design dunkel, Test-Rahmen (pytest), automatischer Offline-Test (verbietet Netzwerk-Importe im Code), `.gitignore` für Datenbanken | 1 AS |
+| 1 | Verschlüsselte Datenbank | Dateiformat v1 mit Versionsnummer. Startdialog: letzte, andere oder neue Datenbank. Passwortabfrage, Wiederherstellungscode und Notfallblatt-PDF mit QR-Code und Datenschutzhinweis, Passwort ändern, optionale Schlüsseldatei. Sicheres Speichern (erst Zwischendatei, dann ersetzen), automatisches Speichern, Sicherungskopien mit Rotation, Sperre gegen doppeltes Öffnen, Warnung bei Cloud-Ordner | 3 AS |
+| 2 | Stammdaten | Schuljahre mit Halbjahren. Fächer und Lerngruppen (Klasse oder Kurs, schriftlich/mündlich, E/G-Vermerk, Jahrgang). Schüler:innen mit Jahrgang und Klasse. Zu- und Abgänge mit Datum. Sortierung: Klasse → Alphabet (Standard), Alphabet, eigene Reihenfolge. Notensystem abstrakt angelegt, damit Sek II später passt | 3 AS |
+| 3 | Klassenarbeiten | Aufgaben mit Teilaufgaben (3a, b, c) und Höchstpunkten. Punkteeingabe als Tabelle, schnell per Tastatur wie in der Tabellenkalkulation. Notenschlüssel: Prozenttabelle als Standard, pro Arbeit änderbar, als Vorlage speicherbar. Interne Tendenz (1,7 / 2,3), Ausgabe ohne Tendenz. Notenspiegel, Schnitt, Anteil unter 4 | 3 AS |
+| 4 | Druck / PDF, Teil 1 | Punkteliste, Notenspiegel. Notenabschnitte frei skalierbar und als Avery 3424/3425 – mit Startposition auf angebrochenen Bögen und Druckversatz-Kalibrierung. Optionen: leere Zeilen ausblenden, Hervorhebungen | 3 AS |
+| 5 | Windows-Build | GitHub Actions baut die `.exe`. Automatischer Kompatibilitätstest: Eine unter Linux erzeugte Datenbank wird unter Windows geöffnet und umgekehrt | 1–2 AS |
+| | **Meilenstein A** | **Ersetzt Punkteliste.ods vollständig – Linux und Windows. Erste Testrunde für dich.** | |
+| 6 | Import | Assistent mit Spaltenzuordnung und Vorschau: CSV, XLSX, ODS, SchILD-NRW, Untis. Abgleich mit vorhandenen Schüler:innen, Dubletten-Erkennung | 2–3 AS |
+| 7 | Mündliche Noten | Zeiträume: Quartal als Standard, frei feiner unterteilbar. Eingaberaster. Nach dem Abgangsdatum ist keine Eingabe mehr möglich, die Daten bleiben erhalten | 2 AS |
+| 8 | Notenberechnung und Vorschläge | Gewichtung pro Fach (schriftlich ca. 50 %). 2. Halbjahr mit Anteil des 1. Halbjahres (5–10 %). Sonderfall D/E/M Jahrgang 10: Ganzjahresnote 50 % + ZP10 50 %. Vorschlag mit nachvollziehbarer Herleitung, Festsetzung durch die Lehrkraft. Übersichten pro Klasse/Kurs, halbjährlich und ganzjährig | 3 AS |
+| | **Meilenstein B** | **Komplettes Halbjahr im Programm führbar. Zweite Testrunde.** | |
+| 9 | Schuljahreswechsel | Übernahme-Assistent: Versetzen (8.4 → 9.4), Abgänge und Zugänge, Kurse neu bilden. Altes Jahr bleibt über das Menü Datei erreichbar | 2 AS |
+| 10 | Rückmeldebogen | Eine Seite pro Person: Aufgaben, erreichte Punkte, Kriterien/Erwartungshorizont, Bemerkung, Note ohne Tendenz | 2 AS |
+| 11 | KI-Paket | Prompt-Vorlage aus dem Programm. Festes JSON-Format für Aufgaben, Punkte, Musterlösung und Rückmeldetexte. Einlesen mit Prüfung und Vorschau in eine bestehende Lerngruppe | 2 AS |
+| 12 | Darstellung und Druckanpassung | Hell/dunkel umschaltbar, Schriftarten. Druckvorlagen mit ein- und ausschaltbaren Bausteinen, Live-Vorschau | 2–3 AS |
+| | **Meilenstein C** | **Alles aus dem Lastenheft außer Layout-Editor und Sek II. Dritte Testrunde.** | |
+
+**Summe Etappen 0–12: etwa 29–34 AS**, dazu drei Testrunden.
+
+## Später (nicht im ersten Durchgang)
+
+| Vorhaben | Aufwand |
+|----------|---------|
+| Freier Layout-Editor für alle Ausgaben | 5–8 AS |
+| Sek II (0–15 Punkte, Q-Phase, Kursarten) | 4–6 AS |
+
+## Begründung der Reihenfolge
+
+- **Datenbank zuerst:** Verschlüsselung und Dateiformat sind das Fundament. Ein späterer Umbau würde vorhandene Daten gefährden.
+- **Windows vor dem ersten Test:** Plattformprobleme (Pfade, Schriften, Druck) fallen früh auf, solange der Code noch klein ist. Der automatische Kompatibilitätstest sichert die 100-%-Kompatibilität dauerhaft ab.
+- **Meilenstein A ist schon im Alltag nutzbar:** Arbeiten korrigieren und Abschnitte drucken ist der häufigste Anwendungsfall.
+- **Import nach Meilenstein A:** Für SchILD- und Untis-Exporte brauche ich anonymisierte Beispieldateien von dir. Bis dahin reicht die Eingabe von Hand.
+
+## Was ich von dir brauche
+
+- **Vor Etappe 6:** je eine Beispiel-Exportdatei aus SchILD-NRW und Untis, mit erfundenen Namen
+- **Nach jedem Meilenstein:** eine Testrunde und deine Rückmeldung

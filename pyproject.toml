@@ -1,0 +1,9 @@
+[project]
+name = "notenverwaltung"
+version = "0.0.1"
+description = "Offline-Notenverwaltung für Lehrer:innen"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

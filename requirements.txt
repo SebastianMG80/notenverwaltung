@@ -1,0 +1,7 @@
+# Laufzeit (feste Versionen, damit Linux- und Windows-Build identisch sind)
+PySide6-Essentials==6.12.0
+shiboken6==6.12.0
+cryptography==50.0.2
+cffi==2.1.1
+pycparser==3.12
+segno==1.6.6
