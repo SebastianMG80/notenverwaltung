@@ -2,6 +2,7 @@
 
 ## Auftrag
 Sebastian: Lastenheft in `LASTENHEFT.md` prüfen, Plan vorlegen (`PLAN.md`), am 12.11.2026 mit „Ja, starten“ freigegeben.
+12.11.2026 abends: „mach einfach weiter, bis du wieder von mir hörst“ – Etappen selbstständig abarbeiten, je Etappe committen und pushen.
 Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetzt selbst entscheiden, Entscheidungen hier festhalten.
 
 ## Etappen (Details in PLAN.md)
@@ -20,13 +21,15 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [ ] 12 Darstellung → **Meilenstein C**
 
 ## Nächster Schritt
-Etappe 1 – verschlüsselte Datenbank. Geplanter Aufbau:
-1. `src/notenverwaltung/speicher/datei.py`: Dateiformat v1 = Kopf (Magic `NVDB`, Formatversion, Argon2id-Parameter, Salze,
-   zwei verpackte Hauptschlüssel: Passwort + Wiederherstellungscode, optional Schlüsseldatei) + AES-256-GCM-verschlüsselte
-   SQLite-Datenbank (im Speicher geöffnet, `sqlite3.serialize/deserialize`). Kopf als zusätzliche authentifizierte Daten (AAD).
-2. Sicheres Speichern: Zwischendatei → `os.replace`, Sicherungen mit Rotation, Sperrdatei gegen doppeltes Öffnen.
-3. Tests zuerst (falsches Passwort, manipulierte Datei, Wiederherstellung, Passwortwechsel), dann Dialoge
-   (Startdialog, Neue Datenbank mit Datenschutzhinweis, Notfallblatt-PDF mit QR-Code via `segno`).
+Etappe 1 – Kern ist fertig (`speicher/krypto.py`, `tresor.py`, `datenbank.py`, `schema.py`, Tests `tests/test_speicher.py`).
+Jetzt: Dialoge in `ui/`:
+1. `ui/startdialog.py`: zuletzt geöffnete Datenbanken (QSettings `datenbank/zuletzt`), Passwortfeld, „Andere öffnen …“, „Neue Datenbank …“,
+   „Passwort vergessen?“ → Wiederherstellungscode oder Schlüsseldatei, danach neues Passwort erzwingen. GesperrtFehler → Nachfrage.
+2. `ui/neue_datenbank.py`: QWizard – Datenschutzhinweis (Pflicht-Haken), Speicherort (Cloud-Warnung), Passwort ×2 (min. 10 Zeichen),
+   Notfallblatt (Code anzeigen, drucken/PDF, Pflicht-Haken „gesichert“).
+3. `ausgabe/notfallblatt.py`: PDF/Drucker mit QPainter, QR-Code via segno-Matrix.
+4. Hauptfenster: Datei-Menü (Neu, Öffnen, Speichern Strg+S, Schließen), Sicherheit (Passwort ändern, neues Notfallblatt, Schlüsseldatei),
+   Autospeichern alle 2 min, Speichern beim Beenden, Titel mit Datenbankname.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
@@ -36,6 +39,10 @@ Etappe 1 – verschlüsselte Datenbank. Geplanter Aufbau:
 | Einstellungen | `QSettings` im INI-Format im Benutzerprofil – nur Bedienkomfort, nie Schülerdaten |
 | Dateiendung Datenbank | `.nvdb` (in `.gitignore`) |
 | Offline-Garantie | `tests/test_offline.py`: statische Prüfung aller Importe + echter Programmstart in frischem Prozess mit gesperrtem Netzwerk |
+| Dateiformat | `NVDB` + Version + ASCII-JSON-Kopf + AES-256-GCM(zlib(SQLite)); Kopf ist AAD. Hauptschlüssel verpackt je Zugang (Passwort/Code: Argon2id 64 MiB×3×4; Schlüsseldatei: HKDF) |
+| Wiederherstellungscode | 24 Zeichen Crockford-Base32 (120 Bit), Gruppen à 4, O→0, I/L→1 beim Eintippen |
+| Sicherungen | Ordner `<Name>-Sicherungen` neben der Datenbank, einmal pro Sitzung vor dem ersten Speichern, max. 20; bei Zugangsänderung werden sie neu verpackt (altes Passwort gilt dort nicht mehr) |
+| Sperre | `<Datei>.sperre` (Rechnername, PID); verwaiste eigene Sperre wird übernommen; unter Windows keine PID-Prüfung → Nachfrage |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke
