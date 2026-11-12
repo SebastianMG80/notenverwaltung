@@ -13,7 +13,7 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 4 Druck / PDF, Teil 1 (12.11.2026)
 - [x] 5 Windows-Build → **Meilenstein A** (12.11.2026, Release v0.1.0)
 - [x] 6 Import (12.11.2026) – SchILD/Untis noch mit echten Beispiel-Exporten von Sebastian gegenprüfen
-- [x] 7 Mündliche Noten (12.11.2026)
+- [x] 7 Mündliche Noten (12.11.2026), Druck der mündlichen Noten (12.11.2026, Version 0.3.2)
 - [x] 8 Notenberechnung → **Meilenstein B** (12.11.2026, Release v0.2.0)
 - [x] 9 Schuljahreswechsel (12.11.2026)
 - [x] 10 Rückmeldebogen (12.11.2026)
@@ -21,8 +21,8 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 12 Darstellung → **Meilenstein C** (12.11.2026, Version 0.3.0)
 
 ## Nächster Schritt
-Warten auf Rückmeldung von Sebastian zum Release v0.3.1 (Windows-Test).
-Später: freier Layout-Editor, Sek II, Druck der mündlichen Noten.
+Warten auf Rückmeldung von Sebastian zum Windows-Test (aktuell v0.3.2).
+Später: freier Layout-Editor, Sek II.
 
 Offen / Rückfragen an Sebastian:
 - Beispiel-Exporte aus SchILD-NRW und Untis (erfundene Namen) zum Gegenprüfen des Imports
@@ -56,6 +56,7 @@ Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Ü
 | Punkteliste | A4 quer, Note mit Tendenz (abschaltbar), Hervorhebungen 5/6 und Lücken, Zebra, Durchschnitt je Aufgabe, Notenspiegel + Notenschlüssel |
 | Import | ohne Zusatzbibliotheken (XLSX/ODS per ZIP+XML), Synonyme für Spaltennamen, Abgleich ID → Name+Klasse → früheres Jahr; gleichnamig in anderer Klasse wird nicht geraten; alles oder nichts über Speicher-Schnappschuss |
 | Mündliche Noten | Zeiträume je Lerngruppe, Standard vier Quartale (Halbjahre in der Mitte geteilt), teilbar, nie über den Halbjahreswechsel; Noten mit Tendenz, Zahl wird zur nächsten Stufe (Gleichstand → bessere); gesperrt außerhalb der Mitgliedschaft |
+| Druck mündlich | Hochformat, solange Spalten ≥ 16 mm breit sind, sonst quer; Restbreite ≥ 20 mm wird Spalte „Notizen“; Bemerkungen mit * markiert und unter der Tabelle (Umbruch über Seiten); „Liste zum Eintragen“ ohne Noten mit 8-mm-Zeilen |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |
 | Gewichtung | je Lerngruppe: Anteil schriftlich (automatisch 50 %/0 %), Anteil 1. Hj. an 2. Hj. (Standard 10 %), ZP10 automatisch für D/E/M Jahrgang 10 (abschaltbar) |

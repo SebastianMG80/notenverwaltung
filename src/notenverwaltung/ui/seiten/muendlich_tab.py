@@ -295,11 +295,14 @@ class MuendlichTab(QWidget):
         self.alle.toggled.connect(self._alle)
         zr = QPushButton("Zeiträume …")
         zr.clicked.connect(self._zeitraeume)
+        druck = QPushButton("Drucken / PDF …")
+        druck.clicked.connect(self.drucken)
         oben = QHBoxLayout()
         oben.addWidget(self.richtung)
         oben.addWidget(self.alle)
         oben.addStretch(1)
         oben.addWidget(zr)
+        oben.addWidget(druck)
         self.raster = EingabeRaster()
         self.raster.nach_rechts = False
         self.raster.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -346,6 +349,54 @@ class MuendlichTab(QWidget):
         if ZeitraeumeDialog(self.mu, self.jahr, self.gruppe, self).exec():
             self.zeige(self.sd, self.jahr, self.gruppe)
             self.geaendert.emit()
+
+    def drucken(self) -> None:
+        from PySide6.QtWidgets import QFormLayout
+
+        from notenverwaltung.ausgabe.muendliche_liste import MuendlicheListe, MuendlichOptionen
+        from notenverwaltung.ui.vorschau_dialog import VorschauDialog
+
+        optionen = QWidget()
+        form = QFormLayout(optionen)
+        form.setContentsMargins(0, 0, 0, 0)
+        zeitraum = QComboBox()
+        zeitraum.addItem("ganzes Schuljahr", None)
+        zeitraum.addItem("1. Halbjahr", 1)
+        zeitraum.addItem("2. Halbjahr", 2)
+        form.addRow("Zeitraum:", zeitraum)
+        haken = {}
+        for k, text, an in (("leerliste", "Ohne Noten (Liste zum Eintragen)", False),
+                            ("tendenzen", "Tendenzen zeigen (2+ statt 2)", True),
+                            ("mittel", "Halbjahresmittel", True),
+                            ("bemerkungen", "Bemerkungen", False),
+                            ("leere_ausblenden", "Leere Zeilen ausblenden", False),
+                            ("ausgetretene", "Auch Ausgetretene", self.modell.alle_zeigen),
+                            ("zebra", "Zeilen abwechselnd tönen", True)):
+            c = QCheckBox(text)
+            c.setChecked(an)
+            form.addRow(c)
+            haken[k] = c
+
+        def sperren() -> None:
+            leer = haken["leerliste"].isChecked()
+            for k in ("tendenzen", "mittel", "bemerkungen", "leere_ausblenden"):
+                haken[k].setEnabled(not leer)
+
+        def baue():
+            return MuendlicheListe(self.mu, self.gruppe.id, MuendlichOptionen(
+                halbjahr=zeitraum.currentData(), **{k: c.isChecked() for k, c in haken.items()}))
+
+        d = VorschauDialog(f"Mündliche Noten – {self.gruppe.bezeichnung}", baue, optionen, self.sd.v,
+                           f"Mündliche Noten {self.gruppe.bezeichnung} {self.jahr.bezeichnung.replace('/', '-')}.pdf",
+                           self)
+        zeitraum.currentIndexChanged.connect(d.aktualisieren)
+        haken["leerliste"].toggled.connect(sperren)
+        for c in haken.values():
+            c.toggled.connect(d.aktualisieren)
+        sperren()
+        d.aktualisieren()
+        self._druckdialog = d  # für Tests erreichbar
+        d.exec()
 
     def _kontextmenue(self, pos) -> None:
         index = self.raster.indexAt(pos)

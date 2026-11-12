@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.3.1)
+# Notenverwaltung – Kurzanleitung (Stand 0.3.2)
 
 ## Starten
 
@@ -27,6 +27,8 @@ Beide Fassungen öffnen dieselben `.nvdb`-Dateien.
      „Drucken / PDF …“: Punkteliste, Notenabschnitte (Avery 3424/3425 oder frei), Rückmeldebögen.
      „KI-Vorlage …“: Prompt kopieren, Antwort der KI einfügen → Aufgaben, Punkte, Erwartungshorizont, Musterlösung.
    - **Mündlich:** Noten je Quartal (feiner unterteilbar unter „Zeiträume …“), Eingabe 2, 2+, 2- oder 1,7.
+     „Drucken / PDF …“: Liste der mündlichen Noten (mit/ohne Tendenz, Halbjahresmittel, Bemerkungen)
+     oder leere Liste zum Eintragen von Hand. Bei vielen Zeiträumen automatisch im Querformat.
    - **Noten:** Vorschläge mit Herleitung (Maus über den Vorschlag), Zeugnisnoten festsetzen, Gewichtung einstellen.
      Bei Deutsch/Englisch/Mathematik in Jahrgang 10: Vornote, ZP10 und Endnote.
    - **Schüler:innen:** Mitglieder, Sortierung (Klasse → Alphabet, Alphabet, eigene Reihenfolge), Ein-/Austritt.
