@@ -53,3 +53,24 @@ def schnelle_kdf(monkeypatch):
     from notenverwaltung.speicher.krypto import KdfParameter
 
     monkeypatch.setattr(tresor, "STANDARD_KDF", KdfParameter(iterationen=1, spuren=1, speicher_kib=1024))
+
+
+@pytest.fixture(autouse=True)
+def fenster_aufraeumen():
+    """Nach jedem Test alle Fenster schließen und löschen.
+
+    Sonst leben Qt-Fenster bis zum Ende des Python-Prozesses weiter und werden beim Herunterfahren in
+    ungünstiger Reihenfolge abgebaut – das führte gelegentlich zu einem Absturz nach erfolgreichem Testlauf.
+    """
+    yield
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        return
+    for w in QApplication.topLevelWidgets():
+        w.close()
+        w.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()

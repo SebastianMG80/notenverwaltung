@@ -180,4 +180,4 @@ def test_reiter_nur_bei_schriftlichen(umgebung):
     assert s.reiter.isTabVisible(s.reiter.indexOf(s.arbeiten))
     s.zeige(sd, jahr, ek)
     assert not s.reiter.isTabVisible(s.reiter.indexOf(s.arbeiten))
-    assert s.reiter.currentWidget() is s.mitglieder
+    assert s.reiter.currentWidget() is s.muendlich  # erster sichtbarer Reiter eines mündlichen Fachs
