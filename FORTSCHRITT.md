@@ -65,6 +65,7 @@ Offen / Rückfragen an Sebastian:
 | Rückmeldebogen | dritte Ausgabe im Druckdialog; eine Seite pro Person: Aufgabe/Thema/möglich/erreicht/Anteil, Erwartungshorizont kursiv (abschaltbar), Note ohne Tendenz, Rückmeldung (Rechtsklick im Raster), Unterschriftszeilen (abschaltbar) |
 | KI-Paket | Programm bleibt offline: Prompt-Vorlage (ohne Schülerdaten) zum Kopieren, Antwort als JSON (Format `notenverwaltung-arbeit-1`) wird eingefügt – auch mit Text/Code-Zaun drumherum; neue Arbeit oder Übernahme in vorhandene (Aufgaben der Reihe nach weiterverwendet, Punkte bleiben); Musterlösung als Feld der Arbeit (Migration 6) |
 | Darstellung | Ansicht: dunkel/hell, Schrift wählen, größer/kleiner (Strg+Plus/Minus), Standard; Druckschrift im Druckdialog; Kopfzeile „Schule · Lehrkraft“ aus Datei → Angaben für Ausdrucke (in der Datenbank) |
+| Notenübersicht | Reiter „Noten“ → Drucken / PDF: A4 quer, Zeitraum 1./2. Halbjahr oder ganzes Jahr, Vorschläge abschaltbar, Notenspiegel der festgesetzten Noten je Halbjahr (2. Hj. = Jahresnote); allgemeiner `VorschauDialog` für weitere Listen |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke

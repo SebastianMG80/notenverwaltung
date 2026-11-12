@@ -114,6 +114,9 @@ class NotenTab(QWidget):
         oben.addWidget(self.gewichtung_text, 1)
         oben.addWidget(gewichtung)
         oben.addWidget(self.uebernehmen)
+        drucken = QPushButton("Drucken / PDF …")
+        drucken.clicked.connect(self.drucken)
+        oben.addWidget(drucken)
 
         self.tabelle = QTableWidget()
         self.tabelle.verticalHeader().setVisible(False)
@@ -279,6 +282,41 @@ class NotenTab(QWidget):
         self._fuellen()
         self.geaendert.emit()
         info(self, "Vorschläge übernommen", f"{n} Note(n) als ganze Noten festgesetzt. Du kannst jede einzeln ändern.")
+
+    def drucken(self) -> None:
+        from notenverwaltung.ausgabe.notenuebersicht import Notenuebersicht, UebersichtOptionen
+        from notenverwaltung.ui.vorschau_dialog import VorschauDialog
+
+        optionen = QWidget()
+        form = QFormLayout(optionen)
+        form.setContentsMargins(0, 0, 0, 0)
+        zeitraum = QComboBox()
+        zeitraum.addItem("ganzes Schuljahr", None)
+        zeitraum.addItem("1. Halbjahr", 1)
+        zeitraum.addItem("2. Halbjahr", 2)
+        form.addRow("Zeitraum:", zeitraum)
+        haken = {}
+        for k, text, an in (("vorschlaege", "Vorschläge zeigen", True), ("leere_ausblenden", "Leere Zeilen ausblenden",
+                                                                          False),
+                            ("zebra", "Zeilen abwechselnd tönen", True), ("notenspiegel", "Notenspiegel", True)):
+            c = QCheckBox(text)
+            c.setChecked(an)
+            form.addRow(c)
+            haken[k] = c
+
+        def baue():
+            return Notenuebersicht(self.zg, self.gruppe.id, UebersichtOptionen(
+                halbjahr=zeitraum.currentData(), **{k: c.isChecked() for k, c in haken.items()}))
+
+        d = VorschauDialog(f"Notenübersicht – {self.gruppe.bezeichnung}", baue, optionen, self.sd.v,
+                           f"Notenübersicht {self.gruppe.bezeichnung} {self.jahr.bezeichnung.replace('/', '-')}.pdf",
+                           self)
+        zeitraum.currentIndexChanged.connect(d.aktualisieren)
+        for c in haken.values():
+            c.toggled.connect(d.aktualisieren)
+        d.aktualisieren()
+        self._druckdialog = d  # für Tests erreichbar
+        d.exec()
 
     def _gewichtung(self) -> None:
         if GewichtungDialog(self.zg, self.gruppe, self).exec():

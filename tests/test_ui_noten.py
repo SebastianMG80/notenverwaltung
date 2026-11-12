@@ -86,3 +86,36 @@ def test_gewichtung_dialog(umgebung):
     d._ok()
     gw = zg.gewichtung(sd.lerngruppe(g.id))
     assert (gw.anteil_schriftlich, gw.anteil_hj1, gw.schriftlich_automatisch) == (30, 5, False)
+
+
+def test_notenuebersicht_druck(umgebung, tmp_path, monkeypatch):
+    import shutil
+    import subprocess
+
+    from notenverwaltung.ausgabe.notenuebersicht import Notenuebersicht, UebersichtOptionen
+    from notenverwaltung.ausgabe.seite import als_pdf
+    from notenverwaltung.ui.seiten import noten_tab
+
+    sd, jahr = umgebung
+    g, sid = _gruppe(sd, jahr, "Mathematik", 10)
+    zg = Zeugnis(sd.v)
+    zg.setze(g.id, sid, "hj1", Note.aus_kurz("2"))
+    zg.setze(g.id, sid, "zp10", Note.aus_kurz("3"))
+    for hj in (None, 1, 2):
+        u = Notenuebersicht(zg, g.id, UebersichtOptionen(halbjahr=hj))
+        assert u.seitenzahl() == 1
+        koepfe = [k for k, _, _ in u.spalten]
+        assert ("ZP10" in koepfe) == (hj != 1)
+    if shutil.which("pdftotext"):
+        pdf = als_pdf(Notenuebersicht(zg, g.id), tmp_path / "u.pdf")
+        t = " ".join(subprocess.run(["pdftotext", "-enc", "UTF-8", str(pdf), "-"], capture_output=True)
+                     .stdout.decode().split())
+        assert "Notenübersicht" in t and "Muster, Hans" in t and "Notenspiegel 1. Halbjahr" in t
+    # Dialog öffnet ohne Fehler (exec abgefangen)
+    from notenverwaltung.ui import vorschau_dialog
+
+    monkeypatch.setattr(vorschau_dialog.VorschauDialog, "exec", lambda self: 0)
+    t = noten_tab.NotenTab()
+    t.zeige(sd, jahr, g)
+    t.drucken()
+    assert t._druckdialog.ausgabe.seitenzahl() == 1
