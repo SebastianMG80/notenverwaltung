@@ -21,14 +21,13 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 12 Darstellung → **Meilenstein C** (12.11.2026, Version 0.3.0)
 
 ## Nächster Schritt
-Warten auf Rückmeldung von Sebastian zum Release v0.3.1 (Windows-Test) und zu den offenen Punkten unten.
-Danach weitere offene Etappen: 10 Rückmeldebogen, 11 KI-Paket, 12 Darstellung, außerdem
-Druck der Notenübersichten (Reiter „Noten“) und Ganzjahres-Notenspiegel.
+Warten auf Rückmeldung von Sebastian zum Release v0.3.1 (Windows-Test).
+Später: freier Layout-Editor, Sek II, Druck der mündlichen Noten.
 
 Offen / Rückfragen an Sebastian:
 - Beispiel-Exporte aus SchILD-NRW und Untis (erfundene Namen) zum Gegenprüfen des Imports
-- Rundung beim Übernehmen: genau ,5 → bessere Note (2,5 → 2) – so gewollt?
-- Standard Anteil 1. Halbjahr: 10 % (Lastenheft „5–10 %“) – passt das?
+
+Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Übernehmen genau ,5 → bessere Note (2,5 → 2).
 
 ## Entscheidungen
 | Punkt | Entscheidung |
