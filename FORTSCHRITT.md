@@ -11,9 +11,9 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 2 Stammdaten (12.11.2026)
 - [x] 3 Klassenarbeiten (12.11.2026)
 - [x] 4 Druck / PDF, Teil 1 (12.11.2026)
-- [ ] 5 Windows-Build → **Meilenstein A**
-- [ ] 6 Import (braucht Beispiel-Exporte SchILD-NRW + Untis von Sebastian)
-- [ ] 7 Mündliche Noten
+- [x] 5 Windows-Build → **Meilenstein A** (12.11.2026, Release v0.1.0)
+- [x] 6 Import (12.11.2026) – SchILD/Untis noch mit echten Beispiel-Exporten von Sebastian gegenprüfen
+- [x] 7 Mündliche Noten (12.11.2026)
 - [ ] 8 Notenberechnung → **Meilenstein B**
 - [ ] 9 Schuljahreswechsel
 - [ ] 10 Rückmeldebogen
@@ -21,13 +21,16 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [ ] 12 Darstellung → **Meilenstein C**
 
 ## Nächster Schritt
-Etappe 5 – Windows-Build. Plan:
-1. `werkzeuge/kompatibilitaet.py erzeuge|pruefe <pfad>`: Datenbank mit festen, erfundenen Inhalten anlegen bzw. prüfen.
-   Eine unter Linux erzeugte Datei liegt als `tests/daten/kompatibilitaet_linux.nvdb` im Repo (Ausnahme in .gitignore) und wird
-   auf allen Systemen von pytest geöffnet.
-2. `.github/workflows/build.yml`: Tests unter Linux und Windows (QT_QPA_PLATFORM=offscreen), PyInstaller-Build (onedir, zip) für
-   Windows und Linux, Windows erzeugt eine Datenbank → Linux prüft sie (Gegenrichtung). Bei Tag `v*`: Release mit beiden Zips.
-3. Schriften: Stil-Hinweise (SansSerif/TypeWriter) statt fester Familiennamen, damit Windows passende Schriften wählt.
+Etappe 8 – Notenberechnung und Vorschläge (→ Meilenstein B). Plan:
+1. Migration 5: Gewichtung je Lerngruppe (Anteil schriftlich, Standard 50 % bei schriftlichen Fächern, 0 % bei mündlichen;
+   Anteil 1. Halbjahr an der Note des 2. Halbjahres, Standard 5–10 % → 10 % einstellbar), Sonderfall D/E/M Jahrgang 10
+   (Ganzjahresnote 50 % + ZP10 50 %, ZP10 als feste Note), Tabelle zeugnisnote (lerngruppe × schueler × halbjahr, festgesetzt).
+2. `modell/zeugnis.py`: schriftlicher Schnitt (Arbeiten mit `zaehlt`, Gewicht), mündlicher Schnitt (Muendlich.halbjahresschnitt),
+   Vorschlag = gewichtetes Mittel → Note mit Tendenz (Rundung: nächste Stufe, z. B. 2,15 → 2), Herleitung als Text.
+3. UI: Reiter „Noten“ je Lerngruppe: Tabelle mit schriftlich/mündlich/Vorschlag/festgesetzt je Halbjahr, Festsetzen per Klick,
+   Einstellungen der Gewichtung; Übersicht/Notenspiegel halbjährlich und ganzjährig, Druck.
+
+Offene Rückfragen an Sebastian (nicht blockierend): Beispiel-Exporte SchILD/Untis; Rückmeldung zum Windows-Build v0.1.0.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
@@ -54,9 +57,15 @@ Etappe 5 – Windows-Build. Plan:
 | Avery-Etiketten | 3424: 105×48, 2×6, oben/unten 4,5 mm; 3425: 105×57, 2×5, oben/unten 6 mm (Grundmaße laut Hersteller/Händlern, Ränder rechnerisch, seitlich randlos) + Druckversatz X/Y in den Einstellungen |
 | Notenabschnitte | Note ohne Tendenz; Schrift 9…6 pt nach Platz, sonst zweizeilig; Datum = Rückgabedatum der Arbeit oder heute; Startplatz für angebrochene Bögen |
 | Punkteliste | A4 quer, Note mit Tendenz (abschaltbar), Hervorhebungen 5/6 und Lücken, Zebra, Durchschnitt je Aufgabe, Notenspiegel + Notenschlüssel |
+| Import | ohne Zusatzbibliotheken (XLSX/ODS per ZIP+XML), Synonyme für Spaltennamen, Abgleich ID → Name+Klasse → früheres Jahr; gleichnamig in anderer Klasse wird nicht geraten; alles oder nichts über Speicher-Schnappschuss |
+| Mündliche Noten | Zeiträume je Lerngruppe, Standard vier Quartale (Halbjahre in der Mitte geteilt), teilbar, nie über den Halbjahreswechsel; Noten mit Tendenz, Zahl wird zur nächsten Stufe (Gleichstand → bessere); gesperrt außerhalb der Mitgliedschaft |
+| Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Repo | eigenes privates Repo `SebastianMG80/notenverwaltung`; im Repo `lernspiele-it` per `.gitignore` ausgeschlossen |
 
 ## Fallstricke
+- `.gitignore`-Regeln für erzeugte Ordner immer mit `/` verankern – `ausgabe/` hatte `src/notenverwaltung/ausgabe/` ausgeschlossen (jetzt durch `tests/test_repo.py` abgesichert).
+- Excel speichert Klassen wie „9.10“ gern als Zahl → „9.1“. Beim Import ggf. Klassenspalte prüfen.
+- Windows-`pdftotext` gibt Latin-1 aus → in Tests `-enc UTF-8`.
 - Qt übernimmt Enter im Zelleneditor verzögert (QueuedConnection): in Tests `QApplication.processEvents()` nach Enter; geschlossene Editoren existieren bis zum nächsten Event-Durchlauf weiter (sichtbaren nehmen).
 - `segno` (QR) lädt über `xml.sax.saxutils` das ungenutzte `urllib.request` – deshalb erst in `notfallblatt._qr` importieren.
 - UI-Tests: `schnelle_kdf`-Fixture benutzen (Argon2id sonst 0,3 s pro Öffnen); Meldungsfenster sind in `conftest.py` stummgeschaltet, `frage` per monkeypatch im jeweiligen Modul setzen.

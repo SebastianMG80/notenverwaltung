@@ -359,7 +359,12 @@ class LerngruppeSeite(Seite):
 
         self.arbeiten = ArbeitenTab()
         self.arbeiten.geaendert.connect(self.geaendert)
+        from notenverwaltung.ui.seiten.muendlich_tab import MuendlichTab
+
+        self.muendlich = MuendlichTab()
+        self.muendlich.geaendert.connect(self.geaendert)
         self.reiter.addTab(self.arbeiten, "Klassenarbeiten")
+        self.reiter.addTab(self.muendlich, "Mündlich")
         self.reiter.addTab(self.mitglieder, "Schüler:innen")
         self.lay.addWidget(self.reiter, 1)
 

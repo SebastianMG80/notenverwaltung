@@ -81,6 +81,10 @@ class PunkteModell(QAbstractTableModel):
     def ist_schuelerzeile(self, zeile: int) -> bool:
         return 0 <= zeile < len(self.ergebnisse)
 
+    def eingabe_bereich(self) -> tuple[int, int, int]:
+        """(erste Spalte, letzte Spalte, Anzahl Zeilen) der Eingabefelder – für die Tastatursteuerung."""
+        return FESTE_SPALTEN, self.spalte_vermerk - 1, len(self.ergebnisse)
+
     def rowCount(self, parent=QModelIndex()) -> int:  # noqa: N802
         return 0 if parent.isValid() or self.arbeit is None else len(self.ergebnisse) + 1
 
@@ -211,7 +215,7 @@ class PunkteModell(QAbstractTableModel):
         self.aktualisiere()
 
 
-class PunkteRaster(QTableView):
+class EingabeRaster(QTableView):
     """Tabelle mit Eingabe wie in einer Tabellenkalkulation.
 
     Zahl tippen startet die Eingabe; Enter übernimmt und springt weiter (nach rechts oder nach unten),
@@ -231,30 +235,15 @@ class PunkteRaster(QTableView):
         self.setWordWrap(False)
         self.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    def setModel(self, modell: PunkteModell) -> None:  # noqa: N802
+    def setModel(self, modell) -> None:  # noqa: N802
         super().setModel(modell)
         modell.fehler.connect(lambda t: setattr(self, "_fehler", bool(t)))
-        modell.modelReset.connect(self._spaltenbreiten)
-
-    def _spaltenbreiten(self) -> None:
-        m: PunkteModell = self.model()
-        k = self.horizontalHeader()
-        k.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        self.setColumnWidth(0, 34)
-        k.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-        self.resizeColumnToContents(1)
-        self.setColumnWidth(1, max(130, min(220, self.columnWidth(1) + 8)))
-        self.setColumnWidth(2, 42)
-        self.setColumnWidth(SP_SUMME, 58)
-        self.setColumnWidth(SP_NOTE, 48)
-        for s in range(FESTE_SPALTEN, m.spalte_vermerk):
-            self.setColumnWidth(s, 42)
-        k.setSectionResizeMode(m.spalte_vermerk, QHeaderView.ResizeMode.Stretch)
-        k.setMinimumHeight(44)
+        if hasattr(self, "_spaltenbreiten"):
+            modell.modelReset.connect(self._spaltenbreiten)
 
     def naechste_zelle(self, index: QModelIndex, schritt: int, seitlich: bool) -> QModelIndex:
-        m: PunkteModell = self.model()
-        erste, letzte = FESTE_SPALTEN, m.spalte_vermerk - 1
+        m = self.model()
+        erste, letzte, anzahl = m.eingabe_bereich()
         z, s = index.row(), index.column()
         if seitlich:
             s += schritt
@@ -264,7 +253,7 @@ class PunkteRaster(QTableView):
                 s, z = letzte, z - 1
         else:
             z += schritt
-        z = max(0, min(len(m.ergebnisse) - 1, z))
+        z = max(0, min(anzahl - 1, z))
         s = max(erste, min(letzte, s))
         return m.index(z, s)
 
@@ -292,6 +281,24 @@ class PunkteRaster(QTableView):
             self.setCurrentIndex(self.naechste_zelle(self.currentIndex(), 1, seitlich=self.nach_rechts))
             return
         super().keyPressEvent(ereignis)
+
+
+class PunkteRaster(EingabeRaster):
+    def _spaltenbreiten(self) -> None:
+        m: PunkteModell = self.model()
+        k = self.horizontalHeader()
+        k.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        self.setColumnWidth(0, 34)
+        k.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+        self.resizeColumnToContents(1)
+        self.setColumnWidth(1, max(130, min(220, self.columnWidth(1) + 8)))
+        self.setColumnWidth(2, 42)
+        self.setColumnWidth(SP_SUMME, 58)
+        self.setColumnWidth(SP_NOTE, 48)
+        for s in range(FESTE_SPALTEN, m.spalte_vermerk):
+            self.setColumnWidth(s, 42)
+        k.setSectionResizeMode(m.spalte_vermerk, QHeaderView.ResizeMode.Stretch)
+        k.setMinimumHeight(44)
 
 
 class ArbeitenTab(QWidget):

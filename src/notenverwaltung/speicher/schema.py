@@ -118,6 +118,25 @@ MIGRATIONEN: list[str] = [
         PRIMARY KEY (arbeit_id, schueler_id)
     );
     """,
+    # 4 – Mündliche Noten (Sonstige Mitarbeit) je Zeitraum
+    """
+    CREATE TABLE zeitraum (
+        id              INTEGER PRIMARY KEY,
+        lerngruppe_id   INTEGER NOT NULL REFERENCES lerngruppe(id) ON DELETE CASCADE,
+        bezeichnung     TEXT NOT NULL,                    -- z. B. "1. Quartal"
+        beginn          TEXT NOT NULL,
+        ende            TEXT NOT NULL,
+        CHECK (beginn <= ende)
+    );
+    CREATE INDEX zeitraum_lerngruppe ON zeitraum (lerngruppe_id, beginn);
+    CREATE TABLE muendlich (
+        zeitraum_id     INTEGER NOT NULL REFERENCES zeitraum(id) ON DELETE CASCADE,
+        schueler_id     INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+        note            TEXT NOT NULL,                    -- Kurzform mit Tendenz, z. B. "2-"
+        bemerkung       TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (zeitraum_id, schueler_id)
+    );
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)
