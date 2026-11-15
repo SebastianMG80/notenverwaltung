@@ -44,11 +44,13 @@ Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte 
 ## Prüfung auf Bugs und Sicherheit (15.11.2026)
 Bericht: `pruefung/BERICHT.md`, Stand der Prüfung: `pruefung/FORTSCHRITT.md`. Zwei schwere Lücken (Sperre per
 Dateitausch umgehbar, Klartext im Temp-Ordner) und weitere Funde sind behoben, Tests in `tests/test_pruefung.py`.
-Die Korrekturen sind committet und gepusht (`2fa74f3`), CI unter Linux und Windows grün; noch kein neues Release. Offene Entscheidungen stehen in
+Die Korrekturen sind committet und gepusht (`2fa74f3`), CI unter Linux und Windows grün; freigegeben als
+**Version 1.1.0** (15.11.2026, auf Sebastians Wunsch; Dateiformat unverändert, deshalb keine neue Versionsdatei). Offene Entscheidungen stehen in
 Abschnitt 6 des Berichts (u. a. Hauptschlüssel beim Passwortwechsel erneuern, Notenschlüssel unter 10 Punkten).
 
 ## Nächster Schritt
-Runde 3 ist abgeschlossen (Etappen 19–26, Version 1.0.0). Warten auf Sebastians Testrunde.
+Runde 3 ist abgeschlossen (Etappen 19–26, Version 1.0.0), danach Sicherheitsprüfung → Version 1.1.0.
+Warten auf Sebastians Testrunde und seine Entscheidungen zu Abschnitt 6 des Prüfberichts.
 Später: freier Layout-Editor.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
@@ -118,6 +120,7 @@ Bestätigt (15.11.2026, Runde 3): Schnellerfassung ++ = 1 … –– = 5 als Vor
 | Sitzplan | Mehrere Pläne je Lerngruppe (Format 11), Raster bis 12 × 12 (Standard 8 × 6: drei 2er-Tische je Reihe), Koordinaten aus Sicht der Klasse, „Sicht vom Pult“ dreht; Modi Tische (Klick/Ziehen, Vorlagen; Besetzte bleiben), Personen (Ziehen aus der Liste, Platz→Platz tauscht, Klick-Name-dann-Platz, Doppelklick macht frei, alphabetisch/zufällig verteilen), Bewerten (Platz antippen → Schnellerfassung am gewählten Tag); Ausdruck quer, nur Namen; gelöschte Person → Platz frei (ON DELETE SET NULL) |
 | Schüler:innen-Bogen | Je Person über alle Schuljahre (neueste zuerst) und alle eigenen Lerngruppen: Zeugnisnoten, Arbeiten (Punkte/Note/Vermerk/Rückmeldung), mündliche Noten mit Bemerkung, Schnellerfassung mit Notizen; Ausdruck fließend über Seiten, Überschriften bleiben beim Inhalt; Häkchen: Tendenzen, Punkte, Rückmeldungen, Bemerkungen, Schnellerfassung, frühere Jahre; „Für Eltern“ = ohne Tendenzen, Bemerkungen, Schnellerfassung; Strg+B nimmt die gewählte Person (jeder Reiter kennt `aktuelle_person`), sonst Suche |
 | Version 1.0.0 | Sebastian: letzte Version der Runde 3 heißt 1.0 (produktiv einsetzbar); keine neue Versionsdatei, Format seit 0.9.0 (11) unverändert |
+| Version 1.1.0 | Sebastian (15.11.2026): Korrekturen der Sicherheitsprüfung als 1.1.0 freigeben; keine neue Versionsdatei, Format (11) unverändert; Dateien bekommen unter Linux die Rechte 600, Sperre prüft das Passwort im Arbeitsspeicher |
 | Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |

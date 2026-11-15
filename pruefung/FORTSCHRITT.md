@@ -40,8 +40,8 @@ und vor allem auf Sicherheitslücken prüfen. Ergebnis: `pruefung/BERICHT.md`. �
 **Die Prüfung ist abgeschlossen.** Auf Sebastians Wunsch (15.11.2026) committet und gepusht: `2fa74f3` auf `main`,
 kein Tag. CI dazu grün (Linux 319 bestanden; Windows 315 bestanden, 4 übersprungen). Bei „weiter“: Sebastians Entscheidungen zu
 Abschnitt 6 des Berichts abwarten bzw. umsetzen (O1 Hauptschlüssel erneuern, O2 Notenschlüssel, O4–O12), danach
-auf seinen Wunsch committen und pushen. Ein neues Release (Tag) gibt es erst auf seinen Wunsch – bis dahin
-enthalten die Zips von v1.0.0 die Korrekturen nicht.
+auf seinen Wunsch committen und pushen. Die Korrekturen sind auf seinen Wunsch als **Version 1.1.0** freigegeben
+(Tag `v1.1.0`); die Zips von v1.0.0 enthalten sie nicht.
 
 ## Wegwerf-Ordner (kann fehlen, dann neu anlegen)
 Wegwerf-Ordner der Claude-Sitzung (außerhalb des Projekts, wird beim Neustart geleert):

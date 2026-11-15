@@ -26,6 +26,9 @@ eigentlichen Schlüssel nicht aus, und der Notenschlüssel verhält sich bei Arb
 
 Die Windows-Fassung konnte ich nicht selbst ausführen; dafür gelten die CI-Ergebnisse (Abschnitt 7).
 
+**Freigabe:** Die Korrekturen sind auf deinen Wunsch als **Version 1.1.0** freigegeben (Tag `v1.1.0`). Die Zips von
+v1.0.0 enthalten sie nicht – bitte nur noch 1.1.0 benutzen.
+
 **Nachtrag nach dem Push (15.11.2026):** Der CI-Lauf zu `2fa74f3` ist vollständig grün. Linux: 319 Tests
 bestanden. Windows: 315 bestanden, 4 übersprungen (der Sperrdatei-Test wie bisher und drei neue Tests, die es nur
 unter Linux geben kann: Temp-Dateien auflisten, Dateirechte, `CLOCK_BOOTTIME`). Selbsttest in beiden gebauten
