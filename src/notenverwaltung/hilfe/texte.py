@@ -160,6 +160,9 @@ Gewicht.</p>
 <ul>
 <li>Einfach lostippen: <b>Enter</b> übernimmt und springt weiter – je nach Einstellung nach rechts (Person für
 Person) oder nach unten (Aufgabe für Aufgabe). <b>Tab</b> geht seitlich, <b>Entf</b> leert markierte Felder.</li>
+<li><b>Aufgabe für Aufgabe korrigieren:</b> „Enter springt nach unten“ wählen. Nach der letzten Person geht es mit
+der ersten Person der nächsten Aufgabe weiter; die Wahl bleibt gespeichert. Neben der Auswahl steht, wie viele
+schon eingetragen sind („Aufgabe 3a: 17 von 28 eingetragen“) – ohne „fehlt“, „schreibt nach“ und „befreit“.</li>
 <li>Halbe und Viertelpunkte gehen (2,5 oder 2,25). Zu viele Punkte werden abgelehnt.</li>
 <li>Summe und Note erscheinen sofort, rechts der Notenspiegel. Farbig hinterlegt: noch nicht alle Aufgaben eingetragen.</li>
 </ul>
@@ -170,6 +173,10 @@ Nachschreiber:innen. Ein <b>*</b> markiert eine festgesetzte Note; <b>Entf</b> h
 <li><b>Rechtsklick</b> auf eine Zeile: fehlt, schreibt nach, befreit, Note festsetzen, Rückmeldung an die Person
 (erscheint auf dem Rückmeldebogen).</li>
 </ul>
+<h3>Nachschreibliste</h3>
+<p>Menü <b>Übersichten → Nachschreibliste</b>: alle mit „fehlt“ oder „schreibt nach“ aus allen Lerngruppen des
+Schuljahrs. Doppelklick öffnet die Arbeit. Gedruckt ohne Noten, mit Spalten für Termin, Raum und „erledigt“ –
+zum Mitgeben an die Aufsicht. Erledigt ist, wer Punkte oder eine Note hat.</p>
 <p>Schüler:innen sehen bei Klassenarbeiten die Note <b>ohne Tendenz</b> („gut“). Intern wird mit Tendenz gerechnet
 (2+ = 1,7; 2- = 2,3).</p>
 <p>→ <a href="#schluessel">Notenschlüssel</a> · <a href="#drucken">Drucken</a> · <a href="#ki">KI-Vorlage</a></p>
@@ -392,7 +399,7 @@ JE_KLASSE: dict[str, str] = {
     "SchuelerSeite": "schueler", "SchuelerDialog": "schueler", "AbgangDialog": "schueler",
     "LerngruppeDialog": "lerngruppen", "MitgliederDialog": "lerngruppen", "ZeitraumDialog": "lerngruppen",
     "MitgliederTab": "lerngruppen",
-    "ArbeitenTab": "arbeiten", "ArbeitDialog": "arbeiten", "SchluesselDialog": "schluessel",
+    "ArbeitenTab": "arbeiten", "ArbeitDialog": "arbeiten", "NachschreibDialog": "arbeiten", "SchluesselDialog": "schluessel",
     "DruckDialog": "drucken",
     "MuendlichTab": "muendlich", "ZeitraeumeDialog": "muendlich",
     "NotenTab": "noten", "GewichtungDialog": "noten",

@@ -94,3 +94,29 @@ def test_reiter_in_lerngruppe(umgebung):
     s = LerngruppeSeite()
     s.zeige(sd, jahr, g)
     assert s.reiter.currentWidget() is s.muendlich  # mündliches Fach: erster sichtbarer Reiter
+
+
+def test_nach_unten_ueberspringt_gesperrte(umgebung):
+    from notenverwaltung.einstellungen import einstellungen
+    from notenverwaltung.ui.seiten.muendlich_tab import FEST, MuendlichTab
+
+    sd, jahr, g, ids = umgebung
+    sd.abgang(ids[-1], jahr.id, date(2026, 9, 30))           # Letzte:r nur im 1. Quartal
+    t = MuendlichTab()
+    t.show()
+    t.zeige(sd, jahr, g)
+    m, r = t.modell, t.raster
+    letzte = m.rowCount() - 1
+    while letzte >= 0 and m.mitglieder[letzte].schueler.id != ids[-1]:
+        letzte -= 1
+    vor = letzte - 1
+    r.setCurrentIndex(m.index(vor, FEST + 1))
+    ziel = r.naechste_zelle(m.index(vor, FEST + 1), 1, seitlich=False)
+    if letzte == len(m.mitglieder) - 1:                       # gesperrtes Feld übersprungen → nächste Spalte
+        assert ziel == m.index(0, FEST + 2)
+    else:
+        assert ziel.row() != letzte
+    t.richtung.setCurrentIndex(1)
+    assert einstellungen().value("eingabe/muendlich_nach_rechts") in (True, "true")
+    t2 = MuendlichTab()
+    assert t2.raster.nach_rechts is True

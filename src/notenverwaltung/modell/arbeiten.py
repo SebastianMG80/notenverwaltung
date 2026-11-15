@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from notenverwaltung.modell.noten import Note, Notenschluessel, Notenspiegel, Punkte, zahl_text
-from notenverwaltung.modell.stammdaten import Mitglied, Stammdaten
+from notenverwaltung.modell.stammdaten import Lerngruppe, Mitglied, Stammdaten
 
 STATUS = {"": "", "fehlt": "fehlt", "nachschreiben": "schreibt nach", "befreit": "befreit"}
 
@@ -69,6 +69,18 @@ class AufgabenStatistik:
     aufgabe: Aufgabe
     mittel: float | None
     anteil: float | None     # Prozent der Höchstpunkte im Mittel
+
+
+@dataclass(frozen=True)
+class Nachschreiber:
+    """Eine Person, die eine Arbeit nachschreiben muss (Vermerk „fehlt“ oder „schreibt nach“)."""
+    gruppe: Lerngruppe
+    arbeit: Arbeit
+    ergebnis: Ergebnis
+
+    @property
+    def erledigt(self) -> bool:
+        return self.ergebnis.note is not None or self.ergebnis.summe is not None
 
 
 @dataclass(frozen=True)
@@ -309,3 +321,23 @@ class Arbeiten:
             anteil = mittel / x.max_punkte * 100 if mittel is not None and x.max_punkte else None
             statistik.append(AufgabenStatistik(x, mittel, anteil))
         return statistik
+
+    def nachschreibliste(self, schuljahr_id: int, auch_erledigte: bool = False) -> list[Nachschreiber]:
+        """Alle mit „fehlt“ oder „schreibt nach“ aus allen Lerngruppen des Schuljahrs, nach Datum der Arbeit.
+        Erledigt ist, wer inzwischen Punkte oder eine Note hat."""
+        arbeit_ids = [z[0] for z in self.v.execute(
+            "SELECT DISTINCT t.arbeit_id FROM teilnahme t JOIN arbeit a ON a.id = t.arbeit_id "
+            "JOIN lerngruppe g ON g.id = a.lerngruppe_id "
+            "WHERE g.schuljahr_id = ? AND t.status IN ('fehlt', 'nachschreiben')", (schuljahr_id,))]
+        liste = []
+        for aid in arbeit_ids:
+            a = self.arbeit(aid)
+            g = self.sd.lerngruppe(a.lerngruppe_id)
+            for e in self.ergebnisse(aid):
+                if e.status in ("fehlt", "nachschreiben"):
+                    n = Nachschreiber(g, a, e)
+                    if auch_erledigte or not n.erledigt:
+                        liste.append(n)
+        liste.sort(key=lambda n: (n.arbeit.datum, n.gruppe.bezeichnung, n.arbeit.id,
+                                  n.ergebnis.mitglied.schueler.nachname, n.ergebnis.mitglied.schueler.vorname))
+        return liste

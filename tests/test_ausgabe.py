@@ -348,3 +348,63 @@ def test_druckdialog_hinweis_folgeseite(arbeit):
     assert d.ausgabe.seitenzahl() == 60 and "Folgeseite" not in d.meldung.text()   # je Bogen eine leere Rückseite
     d.bogen_beidseitig.setChecked(False)
     assert d.ausgabe.seitenzahl() == 30
+
+
+@pytest.mark.skipif(not PDFTEXT, reason="pdftotext fehlt")
+def test_nachschreibliste(arbeit, tmp_path):
+    """Alle mit „fehlt“/„schreibt nach“ über alle Gruppen; erledigt, sobald Punkte oder Note da sind; ohne Noten."""
+    from notenverwaltung.ausgabe.nachschreibliste import Nachschreibliste
+
+    ar, a, ids = arbeit
+    sd = ar.sd
+    g2 = sd.lege_lerngruppe_an(Lerngruppe(0, a.lerngruppe_id and sd.lerngruppe(a.lerngruppe_id).schuljahr_id,
+                                          "D9", "Deutsch", "kurs", 9, ""))
+    sd.fuege_hinzu(g2.id, ids[:3])
+    b = ar.lege_arbeit_an(g2.id, "Deutscharbeit", date(2026, 10, 1), [("1", 10)])
+    ar.setze_teilnahme(a.id, ids[35], status="fehlt")
+    ar.setze_teilnahme(a.id, ids[36], status="nachschreiben")
+    ar.setze_teilnahme(a.id, ids[37], status="befreit")
+    ar.setze_teilnahme(b.id, ids[1], status="fehlt")
+    jahr_id = sd.lerngruppe(a.lerngruppe_id).schuljahr_id
+    liste = ar.nachschreibliste(jahr_id)
+    assert [(n.arbeit.titel, n.ergebnis.mitglied.schueler.nachname) for n in liste] == [
+        ("Deutscharbeit", "Name02"), ("1. Klassenarbeit", "Name36"), ("1. Klassenarbeit", "Name37")]
+    ar.setze_teilnahme(a.id, ids[36], note_manuell=Note.aus_kurz("3"))     # nachgeschrieben
+    assert len(ar.nachschreibliste(jahr_id)) == 2
+    alle = ar.nachschreibliste(jahr_id, auch_erledigte=True)
+    assert [n.erledigt for n in alle] == [False, False, True]
+    t = text(als_pdf(Nachschreibliste(alle, "2026/27"), tmp_path / "n.pdf"))
+    assert "Nachschreibliste" in t and "D9 · Deutscharbeit · geschrieben am 01.10.2026" in t
+    assert "Name36, Vor36" in t and "schreibt nach" in t and "Termin" in t and "befriedigend" not in t
+    leer = text(als_pdf(Nachschreibliste([], "2026/27"), tmp_path / "l.pdf"))
+    assert "Niemand muss etwas nachschreiben." in leer
+    # viele Einträge: Seitenumbruch mit „(Fortsetzung)“
+    viele = Nachschreibliste(alle * 20, "2026/27")
+    assert viele.seitenzahl() >= 2 and "(Fortsetzung)" in text(als_pdf(viele, tmp_path / "v.pdf"))
+
+
+def test_nachschreibdialog_oeffnet_arbeit(app, tmp_path, schnelle_kdf, monkeypatch):
+    from notenverwaltung.ui.hauptfenster import Hauptfenster
+    from notenverwaltung.ui.nachschreib_dialog import NachschreibDialog
+
+    db, _ = Datenbank.neu(tmp_path / "n", "Testpasswort1")
+    f = Hauptfenster()
+    f.setze_datenbank(db)
+    jahr = f.sd.lege_schuljahr_an("2026/27", date(2026, 8, 1), date(2027, 2, 1), date(2027, 7, 31))
+    f.wechsle_schuljahr(jahr)
+    g = f.sd.lege_lerngruppe_an(Lerngruppe(0, jahr.id, "M9", "Mathematik", "kurs", 9, "M"))
+    ids = [f.sd.lege_schueler_an(jahr.id, f"N{i}", "V", "9a").id for i in range(3)]
+    f.sd.fuege_hinzu(g.id, ids)
+    ar = Arbeiten(db.verbindung)
+    ar.lege_arbeit_an(g.id, "Erste", date(2026, 9, 1), [("1", 10)])
+    zweite = ar.lege_arbeit_an(g.id, "Zweite", date(2026, 10, 1), [("1", 10)])
+    ar.setze_teilnahme(zweite.id, ids[1], status="fehlt")
+    d = NachschreibDialog(ar, jahr)
+    assert d.tabelle.rowCount() == 1 and d.tabelle.item(0, 3).text() == "N1, V"
+    d.drucken = lambda: None
+    monkeypatch.setattr(NachschreibDialog, "exec", lambda self: (self._oeffnen(0), True)[1])
+    f.nachschreibliste()
+    assert f.stapel.currentWidget() is f.seite_gruppe
+    assert f.seite_gruppe.reiter.currentWidget() is f.seite_gruppe.arbeiten
+    assert f.seite_gruppe.arbeiten.auswahl.currentData() == zweite.id
+    f.schliesse_datenbank()

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from notenverwaltung.einstellungen import einstellungen
 from notenverwaltung.modell.arbeiten import STATUS, Arbeit, ArbeitFehler, Arbeiten, Ergebnis
 from notenverwaltung.modell.noten import Notensystem, zahl, zahl_text
 from notenverwaltung.modell.stammdaten import Lerngruppe, Schuljahr, Stammdaten
@@ -275,22 +276,33 @@ class EingabeRaster(QTableView):
             modell.modelReset.connect(self._spaltenbreiten)
 
     def naechste_zelle(self, index: QModelIndex, schritt: int, seitlich: bool) -> QModelIndex:
+        """Nächstes Eingabefeld. Seitlich: am Zeilenende in die nächste Zeile. Nach unten (aufgabenweise):
+        nach der letzten Person zur ersten Person der nächsten Spalte. Gesperrte Felder werden übersprungen;
+        am Ende des Rasters bleibt der Zeiger stehen."""
         m = self.model()
         erste, letzte, anzahl = m.eingabe_bereich()
         z, s = index.row(), index.column()
         if not erste <= s <= letzte:   # Sonderspalte (z. B. Note): Enter/Tab geht in derselben Spalte nach unten
             return m.index(max(0, min(anzahl - 1, z + schritt)), s)
-        if seitlich:
-            s += schritt
-            if s > letzte:
-                s, z = erste, z + 1
-            elif s < erste:
-                s, z = letzte, z - 1
-        else:
-            z += schritt
-        z = max(0, min(anzahl - 1, z))
-        s = max(erste, min(letzte, s))
-        return m.index(z, s)
+        for _ in range(anzahl * (letzte - erste + 1) + 1):
+            if seitlich:
+                s += schritt
+                if s > letzte:
+                    s, z = erste, z + 1
+                elif s < erste:
+                    s, z = letzte, z - 1
+            else:
+                z += schritt
+                if z >= anzahl:
+                    z, s = 0, s + 1
+                elif z < 0:
+                    z, s = anzahl - 1, s - 1
+            if not (0 <= z < anzahl and erste <= s <= letzte):
+                return index
+            kandidat = m.index(z, s)
+            if m.flags(kandidat) & Qt.ItemFlag.ItemIsEditable:
+                return kandidat
+        return index
 
     def closeEditor(self, editor, hinweis):  # noqa: N802
         index = self.currentIndex()
@@ -373,19 +385,26 @@ class ArbeitenTab(QWidget):
         self.richtung = QComboBox()
         self.richtung.addItem("Enter springt nach rechts (Arbeit für Arbeit)", True)
         self.richtung.addItem("Enter springt nach unten (Aufgabe für Aufgabe)", False)
-        self.richtung.currentIndexChanged.connect(lambda: setattr(self.raster, "nach_rechts",
-                                                                  self.richtung.currentData()))
+        self.richtung.setToolTip("Aufgabe für Aufgabe: Nach der letzten Person geht es mit der ersten Person der "
+                                 "nächsten Aufgabe weiter. Die Wahl wird gemerkt.")
+        self.fortschritt = QLabel(objectName="leise")
         self.alle = QCheckBox("Auch Ausgetretene zeigen")
         self.alle.toggled.connect(self._alle_zeigen)
         zeile2 = QHBoxLayout()
         zeile2.addWidget(self.richtung)
         zeile2.addWidget(self.alle)
+        zeile2.addSpacing(12)
+        zeile2.addWidget(self.fortschritt)
         zeile2.addStretch(1)
         self.info = QLabel(objectName="leise")
         zeile2.addWidget(self.info)
 
         self.modell: PunkteModell | None = None
         self.raster = PunkteRaster()
+        rechts_merken = einstellungen().value("eingabe/arbeiten_nach_rechts", True) not in (False, "false")
+        self.richtung.setCurrentIndex(0 if rechts_merken else 1)
+        self.raster.nach_rechts = rechts_merken
+        self.richtung.currentIndexChanged.connect(self._richtung)
         self.raster.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.raster.customContextMenuRequested.connect(self._kontextmenue)
         self.meldung = Hinweis()
@@ -433,7 +452,9 @@ class ArbeitenTab(QWidget):
             self.modell = PunkteModell(self.ar)
             self.modell.fehler.connect(lambda t: self.meldung.setze(t, "fehler"))
             self.modell.neu_berechnet.connect(self._spiegel)
+            self.modell.neu_berechnet.connect(self._fortschritt)
             self.raster.setModel(self.modell)
+            self.raster.selectionModel().currentChanged.connect(self._fortschritt)
         bisher = arbeit_id if arbeit_id is not None else self.auswahl.currentData()
         self.auswahl.blockSignals(True)
         self.auswahl.clear()
@@ -462,6 +483,23 @@ class ArbeitenTab(QWidget):
             self.info.setText(f"{halbjahr}. Halbjahr" + (f" · {a.thema}" if a.thema else ""))
             erste = self.modell.index(0, FESTE_SPALTEN)
             self.raster.setCurrentIndex(erste)
+
+    def _richtung(self, *_) -> None:
+        self.raster.nach_rechts = self.richtung.currentData()
+        einstellungen().setValue("eingabe/arbeiten_nach_rechts", self.raster.nach_rechts)
+
+    def _fortschritt(self, *_) -> None:
+        """„Aufgabe 3a: 17 von 28 eingetragen“ – hilft beim aufgabenweisen Korrigieren."""
+        m = self.modell
+        s = self.raster.currentIndex().column()
+        if m is None or m.arbeit is None or not m.ist_punktespalte(s):
+            self.fortschritt.setText("")
+            return
+        a = m.aufgaben[s - FESTE_SPALTEN]
+        dabei = [e for e in m.ergebnisse if e.erwartet and not e.status]
+        fertig = sum(1 for e in dabei if e.punkte.get(a.id) is not None)
+        self.fortschritt.setText(f"Aufgabe {a.bezeichnung}: " + (
+            f"alle {fertig} eingetragen ✓" if dabei and fertig == len(dabei) else f"{fertig} von {len(dabei)} eingetragen"))
 
     def _alle_zeigen(self, an: bool) -> None:
         self.modell.alle_zeigen = an

@@ -33,7 +33,7 @@ Nach Runde 2:
 
 Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte Version 1.0.0):
 - [x] 19 Rückgängig / Wiederholen (15.11.2026)
-- [ ] 20 Aufgabenweise korrigieren, Nachschreibliste
+- [x] 20 Aufgabenweise korrigieren, Nachschreibliste (15.11.2026)
 - [ ] 21 Textbausteine, Rückmeldungs-Vorschlag, Aufgabenanalyse → Version 0.7.0
 - [ ] 22 Automatisch sperren, zweiter Sicherungsort
 - [ ] 23 Schnellsuche, Übersicht „Offene Punkte“ → Version 0.8.0
@@ -42,7 +42,7 @@ Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte 
 - [ ] 26 Schüler:innen-Bogen → Version 1.0.0
 
 ## Nächster Schritt
-Etappe 20: Aufgabenweise korrigieren (gibt es schon als Umschalter „Enter springt nach unten“ – verbessern: Wahl merken, am Spaltenende zur nächsten Aufgabe), Nachschreibliste.
+Etappe 21: Textbausteine (Format 9), Rückmeldungs-Vorschlag (opt-in), Aufgabenanalyse (opt-in) → Version 0.7.0.
 Später: freier Layout-Editor.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
@@ -99,6 +99,8 @@ Bestätigt (15.11.2026, Runde 3): Schnellerfassung ++ = 1 … –– = 5 als Vor
 | Hilfe | Texte als HTML im Python-Modul `hilfe/texte.py` (kein Datei-Nachladen, PyInstaller-sicher, offline); Fenster mit Themenliste, Volltextsuche, internen Verweisen (externe werden ignoriert); F1 anwendungsweit per Ereignisfilter, Thema vom Fokus-Widget aufwärts (`JE_KLASSE`, `hilfe_thema()`); bei modalem Dialog gehört das Hilfefenster zum Dialog; Test: jede Dialog-/Assistentenklasse hat ein Thema, alle Verweise gültig, alle Seiten erreichbar |
 | Rückmeldebogen-Umbruch | Bogen wird vorher ausgemessen (600 dpi, Schrift ohne Hinting → Vorschau und Druck brechen gleich um). Erwartungshorizont über die ganze Tabellenbreite, Teilaufgaben „a) … b) …“ als eigene Absätze. Stufen 8,5 → 8 → 7,5 → 7 pt, eine Größe für alle Bögen eines Ausdrucks; reicht 7 pt nicht, Folgeseite mit 8,5 pt, Tabellenkopf wiederholt, Note + Rückmeldung + Unterschriften zusammen am Ende. Unterschriften kompakt in einer Zeile, unterer Rand 14 mm. Option „beidseitig“ fügt leere Rückseiten ein. Titel wird verkleinert statt abgeschnitten |
 | Rückgängig | TEMP-Trigger protokollieren je Änderung den Umkehrbefehl (Verfahren von sqlite.org), `speicher/verlauf.py`; kein neues Dateiformat, Verlauf endet beim Schließen; ein Schritt = alles zwischen zwei Eingaben (Ereignisfilter auf Taste/Mausklick), max. 200; Umkehren mit `defer_foreign_keys`; vom Programm selbst angelegte Standard-Zeiträume ohne Verlauf; nach Rückgängig bleiben Ansicht, Arbeit und Zelle erhalten; Strg+Z, Strg+Y und Strg+Umschalt+Z |
+| Aufgabenweise | Umschalter „Enter springt nach unten“ gab es schon; neu: am Spaltenende zur ersten Person der nächsten Aufgabe, gesperrte Felder übersprungen, am Rasterende stehen bleiben, Wahl je Reiter gemerkt (QSettings), Fortschritt „Aufgabe 3a: 17 von 28 eingetragen“ (ohne fehlt/schreibt nach/befreit) |
+| Nachschreibliste | Menü „Übersichten“; Status fehlt/schreibt nach aus allen Gruppen des Schuljahrs; erledigt = Punkte oder Note; Ausdruck ohne Noten mit Spalten Termin/Raum/erledigt (für die Aufsicht); Doppelklick öffnet die Arbeit |
 | Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |

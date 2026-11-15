@@ -256,6 +256,10 @@ class Hauptfenster(QMainWindow):
         self.m_bearbeiten.addAction(self.a_wiederholen)
         self.m_bearbeiten.aboutToShow.connect(self._bearbeiten_menue)
 
+        self.m_uebersichten = self.menuBar().addMenu("Ü&bersichten")
+        self.a_nachschreiben = self._aktion("&Nachschreibliste …", self.nachschreibliste)
+        self.m_uebersichten.addAction(self.a_nachschreiben)
+
         ansicht = self.menuBar().addMenu("&Ansicht")
         design_menue = ansicht.addMenu("&Design")
         self.design_gruppe = QActionGroup(self)
@@ -299,6 +303,7 @@ class Hauptfenster(QMainWindow):
         self.m_schuljahr.setEnabled(offen)
         self.a_angaben.setEnabled(offen)
         self.a_neue_lerngruppe.setEnabled(offen and self.jahr is not None)
+        self.m_uebersichten.setEnabled(offen and self.jahr is not None)
         self.a_schluesseldatei_weg.setEnabled(offen and self.db.tresor.hat_schluesseldatei)
         self.setWindowTitle(f"{self.db.name} – {APP_NAME}" if offen else APP_NAME)
         if offen:
@@ -372,6 +377,24 @@ class Hauptfenster(QMainWindow):
                     f"Automatisch gespeichert um {datetime.now():%H:%M} Uhr. {OFFLINE_HINWEIS}", 8000)
             except OSError as e:
                 self.statusBar().showMessage(f"Automatisches Speichern fehlgeschlagen: {e}")
+
+    # ---- Übersichten ---------------------------------------------------------------------------
+    def nachschreibliste(self) -> None:
+        if self.db is None or self.jahr is None:
+            return
+        from notenverwaltung.modell.arbeiten import Arbeiten
+        from notenverwaltung.ui.nachschreib_dialog import NachschreibDialog
+
+        d = NachschreibDialog(Arbeiten(self.db.verbindung), self.jahr, self)
+        if d.exec() and d.ziel:
+            self.oeffne_arbeit(*d.ziel)
+
+    def oeffne_arbeit(self, gruppe_id: int, arbeit_id: int) -> None:
+        """Springt zur Lerngruppe, Reiter Klassenarbeiten, und wählt die Arbeit."""
+        self._navigation_fuellen(("gruppe", gruppe_id))
+        seite = self.seite_gruppe
+        seite.reiter.setCurrentWidget(seite.arbeiten)
+        seite.arbeiten.zeige(self.sd, self.jahr, seite.gruppe, arbeit_id)
 
     # ---- Rückgängig / Wiederholen --------------------------------------------------------------
     def _bearbeiten_menue(self) -> None:

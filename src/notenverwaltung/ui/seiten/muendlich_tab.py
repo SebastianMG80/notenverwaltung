@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from notenverwaltung.einstellungen import einstellungen
 from notenverwaltung.modell.muendlich import Muendlich, MuendlichFehler, Zeitraum, note_aus_eingabe
 from notenverwaltung.modell.stammdaten import Lerngruppe, Mitglied, Schuljahr, Stammdaten
 from notenverwaltung.ui.bausteine import Datumsfeld, Hinweis, aktuelle_farben, frage
@@ -290,7 +291,7 @@ class MuendlichTab(QWidget):
         self.richtung = QComboBox()
         self.richtung.addItem("Enter springt nach unten (Zeitraum für Zeitraum)", False)
         self.richtung.addItem("Enter springt nach rechts (Person für Person)", True)
-        self.richtung.currentIndexChanged.connect(lambda: setattr(self.raster, "nach_rechts", self.richtung.currentData()))
+        self.richtung.currentIndexChanged.connect(self._richtung)
         self.alle = QCheckBox("Auch Ausgetretene zeigen")
         self.alle.toggled.connect(self._alle)
         zr = QPushButton("Zeiträume …")
@@ -304,7 +305,11 @@ class MuendlichTab(QWidget):
         oben.addWidget(zr)
         oben.addWidget(druck)
         self.raster = EingabeRaster()
-        self.raster.nach_rechts = False
+        rechts = einstellungen().value("eingabe/muendlich_nach_rechts", False) in (True, "true")
+        self.raster.nach_rechts = rechts
+        self.richtung.blockSignals(True)
+        self.richtung.setCurrentIndex(1 if rechts else 0)
+        self.richtung.blockSignals(False)
         self.raster.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.raster.customContextMenuRequested.connect(self._kontextmenue)
         self.meldung = Hinweis()
@@ -400,6 +405,10 @@ class MuendlichTab(QWidget):
         d.aktualisieren()
         self._druckdialog = d  # für Tests erreichbar
         d.exec()
+
+    def _richtung(self, *_) -> None:
+        self.raster.nach_rechts = self.richtung.currentData()
+        einstellungen().setValue("eingabe/muendlich_nach_rechts", self.raster.nach_rechts)
 
     def _kontextmenue(self, pos) -> None:
         index = self.raster.indexAt(pos)

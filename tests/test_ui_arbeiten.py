@@ -217,3 +217,34 @@ def test_reiter_nur_bei_schriftlichen(umgebung):
     s.zeige(sd, jahr, ek)
     assert not s.reiter.isTabVisible(s.reiter.indexOf(s.arbeiten))
     assert s.reiter.currentWidget() is s.muendlich  # erster sichtbarer Reiter eines mündlichen Fachs
+
+
+def test_aufgabenweise_korrigieren(umgebung):
+    """Enter nach unten: nach der letzten Person zur ersten der nächsten Aufgabe; Wahl gemerkt; Fortschritt."""
+    from notenverwaltung.einstellungen import einstellungen
+    from notenverwaltung.ui.seiten.arbeiten_tab import FESTE_SPALTEN
+
+    db, sd, jahr, g, ids = umgebung
+    ar = Arbeiten(db.verbindung)
+    a = ar.lege_arbeit_an(g.id, "KA", date(2026, 11, 10), [("1", 4), ("2", 6)])
+    ar.setze_teilnahme(a.id, ids[1], status="fehlt")
+    t = _tab(umgebung)
+    t.richtung.setCurrentIndex(1)
+    assert einstellungen().value("eingabe/arbeiten_nach_rechts") in (False, "false")
+    r, m = t.raster, t.modell
+    assert t.fortschritt.text() == "Aufgabe 1: 0 von 2 eingetragen"     # Becker fehlt
+    tippe(r, "1")
+    tippe(r, "2")
+    tippe(r, "3")
+    assert (r.currentIndex().row(), r.currentIndex().column()) == (0, FESTE_SPALTEN + 1)   # nächste Aufgabe
+    r.setCurrentIndex(m.index(0, FESTE_SPALTEN))
+    assert t.fortschritt.text() == "Aufgabe 1: alle 2 eingetragen ✓"
+    r.setCurrentIndex(m.index(2, FESTE_SPALTEN + 1))
+    tippe(r, "5")
+    assert (r.currentIndex().row(), r.currentIndex().column()) == (2, FESTE_SPALTEN + 1)   # Ende: stehen bleiben
+    # Umschalt+Tab am Anfang einer Zeile geht ans Ende der vorigen
+    assert r.naechste_zelle(m.index(1, FESTE_SPALTEN), -1, seitlich=True) == m.index(0, FESTE_SPALTEN + 1)
+    assert r.naechste_zelle(m.index(0, FESTE_SPALTEN + 1), -1, seitlich=False) == m.index(2, FESTE_SPALTEN)
+    # ein neuer Reiter übernimmt die gemerkte Richtung
+    t2 = _tab(umgebung)
+    assert t2.richtung.currentIndex() == 1 and t2.raster.nach_rechts is False
