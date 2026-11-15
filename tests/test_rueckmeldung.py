@@ -243,8 +243,8 @@ def test_analyse_im_reiter_und_druck(app, welt, tmp_path):
         from notenverwaltung.ausgabe.seite import als_pdf
 
         pfad = als_pdf(d.ausgabe, tmp_path / "a.pdf")
-        text = " ".join(subprocess.run(["pdftotext", "-layout", str(pfad), "-"], capture_output=True)
-                        .stdout.decode().split())
+        text = " ".join(subprocess.run(["pdftotext", "-enc", "UTF-8", "-layout", str(pfad), "-"], capture_output=True)
+                        .stdout.decode("utf-8", "replace").split())
         assert "Klassenraum-Lüftung" in text and "44 %" in text and "Mara" not in text
         assert "3 Arbeiten ausgewertet" in text
 
