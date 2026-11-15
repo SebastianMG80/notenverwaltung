@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
     QWizardPage,
 )
 
-from notenverwaltung.modell.jahreswechsel import AKTIONEN, Wechselplan, fuehre_aus, klasse_hoch, plane
+from notenverwaltung.modell.jahreswechsel import AKTIONEN, Wechselplan, fuehre_aus, klasse_endet, klasse_hoch, plane
 from notenverwaltung.modell.stammdaten import Schuljahr, Stammdaten, StammdatenFehler, natuerlich, schuljahr_vorschlag
 from notenverwaltung.ui.bausteine import Datumsfeld, Hinweis, fehler, info
 
@@ -131,6 +131,7 @@ class SeiteKlassen(QWizardPage):
             self.tabelle.setItem(r, 1, _fest(str(aktiv.get(k, 0))))
             self.tabelle.setItem(r, 2, QTableWidgetItem(klasse_hoch(k)))
             endet = QCheckBox()
+            endet.setChecked(klasse_endet(k))      # Q2: Abitur
             self.tabelle.setCellWidget(r, 3, endet)
 
     def zuordnung(self) -> dict[str, str | None]:

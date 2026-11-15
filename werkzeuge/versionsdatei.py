@@ -32,7 +32,7 @@ from notenverwaltung import __version__  # noqa: E402
 from notenverwaltung.modell import jahreswechsel  # noqa: E402
 from notenverwaltung.modell.arbeiten import Arbeiten  # noqa: E402
 from notenverwaltung.modell.muendlich import Muendlich  # noqa: E402
-from notenverwaltung.modell.noten import Note, Notenschluessel  # noqa: E402
+from notenverwaltung.modell.noten import Note, Notenschluessel, Punkte  # noqa: E402
 from notenverwaltung.modell.stammdaten import Lerngruppe, Stammdaten  # noqa: E402
 from notenverwaltung.modell.zeugnis import Zeugnis  # noqa: E402
 from notenverwaltung.speicher.datenbank import Datenbank  # noqa: E402
@@ -159,6 +159,25 @@ def erzeuge(ziel: Path) -> None:
             if z.erfasst(m):
                 mu.setze_note(z.id, m.schueler.id, n("2" if m.schueler.nachname < "M" else "3+"))
     zg.setze_gewichtung(ek.id, None, 10, False)
+
+    # --- ab 0.5: Oberstufe – Deutsch-LK in der Q1 mit Klausur, Sonstiger Mitarbeit und Punkten
+    q1 = [sd.lege_schueler_an(jahr.id, nn, vn, "Q1").id for nn, vn in
+          [("Achterberg", "Jule"), ("Bayraktar", "Deniz"), ("Ó Briain", "Seán")]]
+    lk = sd.lege_lerngruppe_an(Lerngruppe(0, jahr.id, "Q1 D-LK", "Deutsch", "kurs", 12, "D", kursart="LK",
+                                          notensystem="sek2"))
+    sd.fuege_hinzu(lk.id, q1)
+    k1 = ar.lege_arbeit_an(lk.id, "1. Klausur", date(2026, 10, 7), [("1", 40), ("2", 60)])
+    for sid, (p1, p2) in zip(q1[:2], [(39, 57.5), (20, 25.25)]):
+        x = ar.aufgaben(k1.id)
+        ar.setze_punkte(x[0].id, sid, p1)
+        ar.setze_punkte(x[1].id, sid, p2)
+    ar.setze_teilnahme(k1.id, q1[2], note_manuell=Punkte.aus_punkte(9), kommentar="Nachschreibklausur")
+    for z in mu.zeitraeume(lk.id)[:2]:
+        for i, sid in enumerate(q1):
+            mu.setze_note(z.id, sid, Punkte.aus_punkte([13, 5, 0][i] + (z.beginn.month % 2)))
+    zg.uebernimm_vorschlaege(lk.id, "q1")
+    zg.uebernimm_vorschlaege(lk.id, "hj1")
+    ar.speichere_vorlage("Sek II streng", Notenschluessel.aus_liste([(0, "0P"), (50, "5P"), (96, "15P")]))
 
     db.setze_meta("versionsdatei", __version__)
     db.schliessen()

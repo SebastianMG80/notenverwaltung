@@ -173,6 +173,13 @@ MIGRATIONEN: list[str] = [
     DROP TABLE zeugnisnote;
     ALTER TABLE zeugnisnote_neu RENAME TO zeugnisnote;
     """,
+    # 8 – Sekundarstufe II (Version 0.5): Kursart GK/LK, Klausurschlüssel in Punkten (NRW).
+    #     Punkte werden als „11P“ gespeichert (Sek-I-Noten unverändert als „2-“).
+    """
+    ALTER TABLE lerngruppe ADD COLUMN kursart TEXT NOT NULL DEFAULT '' CHECK (kursart IN ('', 'GK', 'LK'));
+    INSERT OR IGNORE INTO notenschluessel (name, daten, standard) VALUES ('Standard Sek II (NRW)',
+        '{"stufen":[[0.0,"0P"],[20.0,"1P"],[27.0,"2P"],[33.0,"3P"],[39.0,"4P"],[45.0,"5P"],[50.0,"6P"],[55.0,"7P"],[60.0,"8P"],[65.0,"9P"],[70.0,"10P"],[75.0,"11P"],[80.0,"12P"],[85.0,"13P"],[90.0,"14P"],[95.0,"15P"]],"raster":1.0}', 1);
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)

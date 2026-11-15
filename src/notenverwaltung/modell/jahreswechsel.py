@@ -1,6 +1,8 @@
 """Schuljahreswechsel: Schüler:innen und Lerngruppen ins neue Schuljahr übernehmen.
 
 - Klassen werden hochgesetzt (8.4 → 9.4); je Klasse anpassbar oder abwählbar (z. B. Abschlussklassen).
+- Oberstufe (Gesamtschule, G9): 10.x → EF → Q1 → Q2; die Q2 endet (Abitur). Lerngruppen, die in die
+  Oberstufe wechseln, bekommen Punkte (0–15) statt Noten.
 - Je Person: versetzen, wiederholen oder Abgang. Wer im alten Jahr bereits abgegangen ist, wird nicht übernommen.
 - Lerngruppen können mit angepasster Bezeichnung, Mitgliedern, Gewichtung und Sortierung übernommen werden.
 - Das alte Schuljahr bleibt unverändert erhalten.
@@ -27,9 +29,34 @@ def hochsetzen(text: str, alt: int, neu: int) -> str:
     return re.sub(rf"(?<!\d){alt}(?!\d)", str(neu), text, count=1)
 
 
+STUFENFOLGE = {"EF": "Q1", "Q1": "Q2"}
+_STUFE = re.compile(r"(?<![A-Za-z0-9])(EF|Q1|Q2)(?![0-9])", re.IGNORECASE)
+
+
 def klasse_hoch(klasse: str) -> str:
+    """„8.4“ → „9.4“; aus allen 10. Klassen wird die EF; „EF“ → „Q1“ → „Q2“ (die Q2 bleibt, sie endet)."""
+    m = _STUFE.search(klasse)
+    if m and jahrgang_aus_klasse(klasse):
+        neu = STUFENFOLGE.get(m.group(1).upper())
+        return klasse if neu is None else klasse[:m.start(1)] + neu + klasse[m.end(1):]
     j = jahrgang_aus_klasse(klasse)
+    if j == 10:
+        return "EF"
     return hochsetzen(klasse, j, j + 1) if j else klasse
+
+
+def klasse_endet(klasse: str) -> bool:
+    """Q2: Nach dem Abitur verlassen alle die Schule."""
+    return jahrgang_aus_klasse(klasse) == 13
+
+
+def gruppe_hoch(g: Lerngruppe) -> str:
+    """Bezeichnung einer Lerngruppe im nächsten Jahr: „8.4 D“ → „9.4 D“, „Q1 D-LK“ → „Q2 D-LK“, „10.2 D“ → „EF D“."""
+    if g.jahrgang >= 11:
+        return _STUFE.sub(lambda m: STUFENFOLGE.get(m.group(1).upper(), m.group(1)), g.bezeichnung, count=1)
+    if g.jahrgang == 10 and g.art == "klasse":
+        return re.sub(r"(?<!\d)10(?:\.\d+|[a-zA-Z](?![a-zA-Z]))?(?!\d)", "EF", g.bezeichnung, count=1)
+    return hochsetzen(g.bezeichnung, g.jahrgang, g.jahrgang + 1)
 
 
 @dataclass
@@ -71,18 +98,18 @@ class WechselErgebnis:
 def plane(sd: Stammdaten, alt_id: int, klassen: dict[str, str | None] | None = None) -> Wechselplan:
     """Erster Plan. `klassen` ordnet alte Klassen neuen zu (None = Klasse endet, alle gehen ab)."""
     alt = sd.schuljahr(alt_id)
-    klassen = klassen or {k: klasse_hoch(k) for k in sd.klassen(alt_id)}
+    klassen = klassen or {k: None if klasse_endet(k) else klasse_hoch(k) for k in sd.klassen(alt_id)}
     plan = Wechselplan(alt)
     for e in sd.schueler_im_jahr(alt_id):
         if e.abgang is not None:
             continue  # schon im alten Jahr abgegangen
-        ziel = klassen.get(e.klasse, klasse_hoch(e.klasse))
+        ziel = klassen.get(e.klasse, None if klasse_endet(e.klasse) else klasse_hoch(e.klasse))
         if ziel is None:
             plan.personen.append(PersonPlan(e, "abgang", ""))
         else:
             plan.personen.append(PersonPlan(e, "versetzen", ziel))
     for g in sd.lerngruppen(alt_id):
-        plan.gruppen.append(GruppenPlan(g, False, hochsetzen(g.bezeichnung, g.jahrgang, g.jahrgang + 1),
+        plan.gruppen.append(GruppenPlan(g, False, gruppe_hoch(g),
                                         min(13, g.jahrgang + 1)))
     return plan
 
@@ -126,11 +153,15 @@ def fuehre_aus(sd: Stammdaten, plan: Wechselplan, neu: Schuljahr) -> WechselErge
             if not gp.uebernehmen:
                 continue
             g = gp.gruppe
+            in_die_oberstufe = gp.neuer_jahrgang >= 11 and not g.sek2
             neu_g = sd.lege_lerngruppe_an(Lerngruppe(
-                0, neu.id, gp.neue_bezeichnung, g.fach, g.art, gp.neuer_jahrgang, g.fach_kuerzel, g.niveau,
-                g.schriftlich, g.notensystem, g.sortierung))
+                0, neu.id, gp.neue_bezeichnung, g.fach, g.art, gp.neuer_jahrgang, g.fach_kuerzel,
+                "" if in_die_oberstufe else g.niveau, g.schriftlich, "sek2" if in_die_oberstufe else g.notensystem,
+                g.sortierung, g.kursart))
             gewicht = v.execute("SELECT anteil_schriftlich, anteil_hj1, zp10 FROM lerngruppe WHERE id = ?",
                                 (g.id,)).fetchone()
+            if in_die_oberstufe:   # Oberstufe: Halbjahre getrennt, keine ZP10
+                gewicht = (gewicht[0], 0, None)
             with v:
                 v.execute("UPDATE lerngruppe SET anteil_schriftlich = ?, anteil_hj1 = ?, zp10 = ? WHERE id = ?",
                           (*gewicht, neu_g.id))

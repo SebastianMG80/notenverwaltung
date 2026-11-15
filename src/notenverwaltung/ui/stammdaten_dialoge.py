@@ -33,7 +33,7 @@ from notenverwaltung.modell.stammdaten import (
     natuerlich,
     schuljahr_vorschlag,
 )
-from notenverwaltung.ui.bausteine import Datumsfeld, Hinweis, OptionalesDatum, Tabelle
+from notenverwaltung.ui.bausteine import Datumsfeld, Hinweis, JahrgangFeld, OptionalesDatum, Tabelle
 
 
 class _Dialog(QDialog):
@@ -165,9 +165,7 @@ class SchuelerDialog(_Dialog):
         self.klasse.setEditable(True)
         self.klasse.addItems(sd.klassen(schuljahr.id))
         self.klasse.setCurrentText(eintrag.klasse if eintrag else klasse_vorschlag)
-        self.jahrgang = QSpinBox()
-        self.jahrgang.setRange(1, 13)
-        self.jahrgang.setValue(eintrag.jahrgang if eintrag else (jahrgang_aus_klasse(klasse_vorschlag) or 5))
+        self.jahrgang = JahrgangFeld(eintrag.jahrgang if eintrag else (jahrgang_aus_klasse(klasse_vorschlag) or 5))
         self.klasse.currentTextChanged.connect(self._jahrgang_vorschlagen)
         self.zugang = OptionalesDatum("Zugang im laufenden Schuljahr am", eintrag.zugang if eintrag else None,
                                       vorgabe=date.today() if schuljahr.enthaelt(date.today()) else schuljahr.beginn)
@@ -268,9 +266,7 @@ class LerngruppeDialog(_Dialog):
         self.bezeichnung.setPlaceholderText("wird vorgeschlagen")
         self._bezeichnung_von_hand = gruppe is not None
         self.bezeichnung.textEdited.connect(lambda _: setattr(self, "_bezeichnung_von_hand", True))
-        self.jahrgang = QSpinBox()
-        self.jahrgang.setRange(1, 13)
-        self.jahrgang.setValue(gruppe.jahrgang if gruppe else 5)
+        self.jahrgang = JahrgangFeld(gruppe.jahrgang if gruppe else 5)
         self.niveau = QComboBox()
         self.niveau.addItem("—", "")
         self.niveau.addItem("E-Kurs (Erweiterung)", "E")
@@ -286,10 +282,12 @@ class LerngruppeDialog(_Dialog):
         schr.addWidget(self.schriftlich)
         schr.addWidget(self.muendlich)
         schr.addStretch(1)
-        self.notensystem = QComboBox()
-        self.notensystem.addItem("Sekundarstufe I (Noten 1–6)", "sek1")
-        self.notensystem.addItem("Sekundarstufe II (0–15 Punkte) – folgt später", "sek2")
-        self.notensystem.model().item(1).setEnabled(False)
+        self.kursart = QComboBox()
+        self.kursart.addItem("—", "")
+        self.kursart.addItem("Grundkurs (GK)", "GK")
+        self.kursart.addItem("Leistungskurs (LK)", "LK")
+        self.kursart.setCurrentIndex(max(0, self.kursart.findData(gruppe.kursart if gruppe else "")))
+        self.notensystem = QLabel(objectName="leise")   # ergibt sich aus dem Jahrgang
 
         fach_zeile = QHBoxLayout()
         fach_zeile.addWidget(self.fach, 1)
@@ -299,6 +297,7 @@ class LerngruppeDialog(_Dialog):
         self.form.addRow("Fach:", fach_zeile)
         self.form.addRow("Jahrgang:", self.jahrgang)
         self.form.addRow("Kursniveau:", self.niveau)
+        self.form.addRow("Kursart:", self.kursart)
         self.form.addRow("Bezeichnung:", self.bezeichnung)
         self.form.addRow("Fachart:", schr)
         self.form.addRow("Notensystem:", self.notensystem)
@@ -310,13 +309,22 @@ class LerngruppeDialog(_Dialog):
         if gruppe and gruppe.art == "klasse":
             self.klasse.setCurrentText(gruppe.bezeichnung.split(" ")[0])
         for sig in (self.ist_klasse.toggled, self.klasse.currentTextChanged, self.fach.currentTextChanged,
-                    self.niveau.currentIndexChanged, self.jahrgang.valueChanged):
+                    self.niveau.currentIndexChanged, self.jahrgang.valueChanged, self.kursart.currentIndexChanged):
             sig.connect(self._aktualisieren)
         self._aktualisieren()
 
+    @property
+    def ist_sek2(self) -> bool:
+        return self.jahrgang.value() >= 11
+
     def _aktualisieren(self, *_) -> None:
         klasse = self.ist_klasse.isChecked()
+        sek2 = self.ist_sek2
         self.form.setRowVisible(self.klasse, klasse)
+        self.form.setRowVisible(self.niveau, not sek2)
+        self.form.setRowVisible(self.kursart, sek2)
+        self.notensystem.setText("Oberstufe: Punkte 0–15 (Klausuren nach NRW-Schlüssel)" if sek2
+                                 else "Sekundarstufe I: Noten 1–6 mit Tendenz")
         self.uebernehmen.setVisible(klasse and self.alt is None)
         fach = self.fach.currentText().strip()
         kuerzel = dict(FAECHER).get(fach)
@@ -329,6 +337,8 @@ class LerngruppeDialog(_Dialog):
         if not self._bezeichnung_von_hand:
             if klasse:
                 vorschlag = f"{self.klasse.currentText().strip()} {fach}".strip()
+            elif sek2:
+                vorschlag = f"{self.kuerzel.text() or fach}-{self.kursart.currentData() or 'GK'}"
             else:
                 vorschlag = f"{self.kuerzel.text() or fach}{self.jahrgang.value()}{self.niveau.currentData()}"
             self.bezeichnung.setText(vorschlag)
@@ -339,8 +349,10 @@ class LerngruppeDialog(_Dialog):
             raise StammdatenFehler("Bitte die Klasse angeben.")
         werte = dict(bezeichnung=self.bezeichnung.text(), fach=self.fach.currentText(), art=art,
                      jahrgang=self.jahrgang.value(), fach_kuerzel=self.kuerzel.text(),
-                     niveau=self.niveau.currentData(), schriftlich=self.schriftlich.isChecked(),
-                     notensystem=self.notensystem.currentData())
+                     niveau="" if self.ist_sek2 else self.niveau.currentData(),
+                     schriftlich=self.schriftlich.isChecked(),
+                     notensystem="sek2" if self.ist_sek2 else "sek1",
+                     kursart=self.kursart.currentData() if self.ist_sek2 else "")
         if self.alt:
             self.sd.aendere_lerngruppe(replace(self.alt, **werte))
             self.ergebnis = self.sd.lerngruppe(self.alt.id)

@@ -46,7 +46,7 @@ Jede Etappe endet mit einem lauffähigen Stand, automatischen Tests und einem Ei
 | 15 | Quartalsnoten | Quartalsgrenze je Halbjahr im Schuljahr. Vorschlag aus den Arbeiten und mündlichen Noten des Quartals. Festsetzen in der Reihenfolge Q1 – 1. Hj. – Q3 – 2. Hj., auch im Druck der Notenübersicht. Dafür ändert sich das Dateiformat (Umstellung 7) | 2 AS |
 | 16 | Einzelnoten im Reiter „Noten“ | Umschalter: zusammengefasst (wie bisher) oder einzeln (jede Arbeit, jeder mündliche Zeitraum) | 1–1,5 AS |
 | | **Version 0.4.0** | **Testrunde: Notenabgabe** | |
-| 17 | Sek II | Notensystem 0–15 Punkte. EF/Q1/Q2 (Jg. 11–13), GK/LK, schriftlich/mündlich belegt. Klausuren mit Punkteschlüssel, Sonstige Mitarbeit, Quartals- und Halbjahresnoten in Punkten, Abschnitte/Bogen/Übersichten in Punkten. Schuljahreswechsel EF → Q1 → Q2 | 4–6 AS |
+| 17 ✔ | Sek II | Notensystem 0–15 Punkte. EF/Q1/Q2 (Jg. 11–13), GK/LK, schriftlich/mündlich belegt. Klausuren mit Punkteschlüssel, Sonstige Mitarbeit, Quartals- und Halbjahresnoten in Punkten, Abschnitte/Bogen/Übersichten in Punkten. Schuljahreswechsel EF → Q1 → Q2 | 4–6 AS |
 | | **Version 0.5.0** | **Testrunde: Oberstufe** | |
 | 18 | Hilfe im Programm | Menü Hilfe und F1: Hilfefenster mit Inhaltsverzeichnis und Suche, F1 öffnet die Seite zur aktuellen Ansicht, offline mitgeliefert | 1,5–2 AS |
 | | **Version 0.6.0** | | |

@@ -1,4 +1,4 @@
-"""Noten der Sekundarstufe I: Notenstufen mit Tendenz, Notenschlüssel, Notenspiegel.
+"""Noten: Sekundarstufe I (1–6 mit Tendenz) und Sekundarstufe II (0–15 Punkte), Notenschlüssel, Notenspiegel.
 
 Festlegungen (Lastenheft, Klärungen):
 - Intern wird mit Tendenz gerechnet: „+“ = −0,3, „−“ = +0,3 (gut+ = 1,7; gut− = 2,3; sehr gut+ = 0,7).
@@ -6,6 +6,10 @@ Festlegungen (Lastenheft, Klärungen):
 - Bei schriftlichen Arbeiten erhalten Schüler:innen die Note ohne Tendenz („gut“, nicht „gut (+)“).
 - Standard-Notenschlüssel ist die Prozenttabelle aus Punkteliste.ods; die Punktgrenzen entstehen wie dort
   mit ROUND(Höchstpunktzahl × Prozent / 100) (kaufmännisch gerundet).
+- Sek II: 0–15 Punkte (Klasse `Punkte`, eine Unterart von `Note`). Gespeichert als „11P“, damit Punkte nie mit
+  Sek-I-Noten verwechselt werden. Rechenwert = Punktzahl (höher = besser); Schnitte werden auf ganze Punkte
+  gerundet, ,5 zur besseren Punktzahl. Klausurschlüssel: NRW-Tabelle (ab 95 % 15 Punkte … ab 20 % 1 Punkt).
+- Welche Art gilt, bestimmt die Lerngruppe (`notensystem` „sek1“/„sek2“) – siehe `Notensystem`.
 """
 
 from __future__ import annotations
@@ -67,11 +71,68 @@ class Note:
         """Für die Lehrkraft: „gut (+)“."""
         return WORTE[self.stufe] + (" (+)" if self.tendenz > 0 else " (–)" if self.tendenz < 0 else "")
 
+    @property
+    def speicher(self) -> str:
+        """So steht die Note in der Datenbank."""
+        return self.kurz
+
+    @property
+    def rang(self) -> float:
+        """Größer = besser (für beide Notensysteme gleich zu benutzen)."""
+        return -self.wert_sortierung
+
     def __str__(self) -> str:
         return self.kurz
 
+    @staticmethod
+    def lies(text: str) -> "Note":
+        """Gespeicherte Note lesen: „2-“ (Sek I) oder „11P“ (Sek II)."""
+        t = text.strip()
+        if t.endswith("P"):
+            return Punkte.aus_punkte(int(t[:-1]))
+        return Note.aus_kurz(t)
+
+
+@dataclass(frozen=True, order=True)
+class Punkte(Note):
+    """Sek II: 0–15 Punkte. `stufe`/`tendenz` geben die entsprechende Sek-I-Note an (11 Punkte = 2)."""
+
+    punkte: int = 0
+
+    @staticmethod
+    def aus_punkte(p: int) -> "Punkte":
+        if not isinstance(p, int) or not 0 <= p <= 15:
+            raise ValueError(f"Punkte liegen zwischen 0 und 15, nicht {p!r}.")
+        if p == 0:
+            stufe, tendenz = 6, 0
+        else:
+            stufe = 6 - (p + 2) // 3
+            tendenz = {0: 1, 2: 0, 1: -1}[p % 3]
+        return Punkte(-float(p), stufe, tendenz, p)
+
+    @property
+    def wert(self) -> float:
+        return float(self.punkte)
+
+    @property
+    def kurz(self) -> str:
+        return str(self.punkte)
+
+    @property
+    def wort(self) -> str:
+        return f"{self.punkte} Punkt" + ("" if self.punkte == 1 else "e")
+
+    @property
+    def wort_mit_tendenz(self) -> str:
+        return f"{self.wort} ({Note.aus(self.stufe, self.tendenz).wort_mit_tendenz})"
+
+    @property
+    def speicher(self) -> str:
+        return f"{self.punkte}P"
+
 
 ALLE_NOTEN = [Note.aus(s, t) for s in range(1, 7) for t in ((1, 0, -1) if s < 6 else (0,))]
+ALLE_PUNKTE = [Punkte.aus_punkte(p) for p in range(15, -1, -1)]
 
 
 def runde(wert: float, schritt: float = 1.0) -> float:
@@ -92,6 +153,9 @@ STANDARD_STUFEN = [  # Punkteliste.ods, Tabelle „% / Pkt. / Note“
     (0, "6"), (20, "5-"), (21, "5"), (38, "5+"), (40, "4-"), (42, "4"), (53, "4+"), (55, "3-"), (57, "3"),
     (68, "3+"), (70, "2-"), (72, "2"), (81, "2+"), (83, "1-"), (85, "1"), (105, "1+"),
 ]
+# Sek II, NRW: ab 95 % 15 Punkte, je 5 % ein Punkt weniger bis 50 % = 6 Punkte; 45/39/33/27/20 % = 5/4/3/2/1
+STANDARD_STUFEN_SEK2 = [(0, "0P"), (20, "1P"), (27, "2P"), (33, "3P"), (39, "4P"), (45, "5P")] + [
+    (50 + 5 * i, f"{6 + i}P") for i in range(10)]
 
 
 @dataclass(frozen=True)
@@ -100,12 +164,16 @@ class Notenschluessel:
     raster: float = 1.0   # Punktgrenzen werden auf Vielfache davon gerundet (1 = ganze Punkte wie in der ODS)
 
     @staticmethod
-    def standard() -> "Notenschluessel":
-        return Notenschluessel.aus_liste(STANDARD_STUFEN)
+    def standard(system: str = "sek1") -> "Notenschluessel":
+        return Notenschluessel.aus_liste(STANDARD_STUFEN_SEK2 if system == "sek2" else STANDARD_STUFEN)
+
+    @property
+    def system(self) -> str:
+        return "sek2" if isinstance(self.stufen[0].note, Punkte) else "sek1"
 
     @staticmethod
     def aus_liste(paare, raster: float = 1.0) -> "Notenschluessel":
-        stufen = tuple(sorted((Stufe(float(p), n if isinstance(n, Note) else Note.aus_kurz(n)) for p, n in paare),
+        stufen = tuple(sorted((Stufe(float(p), n if isinstance(n, Note) else Note.lies(n)) for p, n in paare),
                               key=lambda s: s.prozent))
         k = Notenschluessel(stufen, raster)
         k.pruefe()
@@ -117,6 +185,8 @@ class Notenschluessel:
         if self.stufen[0].prozent != 0:
             raise ValueError("Die erste Stufe muss bei 0 % beginnen.")
         prozente = [s.prozent for s in self.stufen]
+        if len({type(s.note) for s in self.stufen}) != 1:
+            raise ValueError("Ein Notenschlüssel enthält entweder Noten (1–6) oder Punkte (0–15).")
         if len(set(prozente)) != len(prozente):
             raise ValueError("Zwei Stufen haben denselben Prozentwert.")
         for a, b in zip(self.stufen, self.stufen[1:]):
@@ -127,7 +197,7 @@ class Notenschluessel:
 
     # ---- Speichern als JSON (in der Arbeit als Kopie, damit spätere Änderungen alte Noten nicht verändern)
     def als_json(self) -> str:
-        return json.dumps({"stufen": [[s.prozent, s.note.kurz] for s in self.stufen], "raster": self.raster},
+        return json.dumps({"stufen": [[s.prozent, s.note.speicher] for s in self.stufen], "raster": self.raster},
                           separators=(",", ":"))
 
     @staticmethod
@@ -164,28 +234,43 @@ class Notenschluessel:
 
 @dataclass(frozen=True)
 class Notenspiegel:
-    anzahl: dict[int, int]          # Stufe 1–6 → Anzahl (ohne Tendenz, wie in der ODS)
-    schnitt: float | None           # Durchschnitt der ganzen Noten
+    """Sek I: Anzahl je Stufe 1–6 (ohne Tendenz, wie in der ODS). Sek II: Anzahl je Punktzahl 15–0."""
+    anzahl: dict[int, int]          # Stufe bzw. Punktzahl → Anzahl, in Anzeigereihenfolge (beste zuerst)
+    schnitt: float | None           # Sek I: Durchschnitt der ganzen Noten; Sek II: Punkteschnitt
     schnitt_mit_tendenz: float | None
-    anteil_unter_4: float | None    # Prozent mit 5 oder 6
+    anteil_unter_4: float | None    # Prozent mangelhaft oder schlechter (Sek II: unter 5 Punkten)
+    sek2: bool = False
 
     @property
     def gesamt(self) -> int:
         return sum(self.anzahl.values())
 
+    @property
+    def text_unter(self) -> str:
+        return "unter 5 P." if self.sek2 else "unter 4"
+
     @staticmethod
-    def aus(noten: list[Note]) -> "Notenspiegel":
-        anzahl = {s: 0 for s in range(1, 7)}
-        for n in noten:
-            anzahl[n.stufe] += 1
+    def aus(noten: list[Note], sek2: bool | None = None) -> "Notenspiegel":
+        if sek2 is None:
+            sek2 = any(isinstance(n, Punkte) for n in noten)
+        if sek2:
+            anzahl = {p: 0 for p in range(15, -1, -1)}
+            for n in noten:
+                anzahl[n.punkte] += 1
+        else:
+            anzahl = {s: 0 for s in range(1, 7)}
+            for n in noten:
+                anzahl[n.stufe] += 1
         gesamt = len(noten)
         if not gesamt:
-            return Notenspiegel(anzahl, None, None, None)
+            return Notenspiegel(anzahl, None, None, None, sek2)
+        schnitt = sum(n.wert for n in noten) / gesamt
         return Notenspiegel(
             anzahl,
-            sum(s * a for s, a in anzahl.items()) / gesamt,
-            sum(n.wert for n in noten) / gesamt,
-            (anzahl[5] + anzahl[6]) / gesamt * 100,
+            schnitt if sek2 else sum(s * a for s, a in anzahl.items()) / gesamt,
+            schnitt,
+            sum(1 for n in noten if (n.punkte < 5 if sek2 else n.stufe >= 5)) / gesamt * 100,   # Sek II: Defizite
+            sek2,
         )
 
 
@@ -207,3 +292,88 @@ def zahl_text(wert: float | None) -> str:
     if abs(wert - round(wert)) < 1e-9:
         return str(int(round(wert)))
     return f"{wert:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+
+
+# ---- Notensystem der Lerngruppe ------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Notensystem:
+    """Alles, was sich zwischen Sek I und Sek II unterscheidet, an einer Stelle."""
+
+    name: str                       # "sek1" oder "sek2"
+
+    @staticmethod
+    def von(name: str | None) -> "Notensystem":
+        return SEK2 if name == "sek2" else SEK1
+
+    @property
+    def sek2(self) -> bool:
+        return self.name == "sek2"
+
+    @property
+    def alle(self) -> list[Note]:
+        return ALLE_PUNKTE if self.sek2 else ALLE_NOTEN
+
+    @property
+    def einheit(self) -> str:
+        return "Punkte" if self.sek2 else "Note"
+
+    @property
+    def beispiele(self) -> str:
+        return "11, 7 oder 0" if self.sek2 else "2, 2+, 2- oder 1,7"
+
+    @property
+    def warnabstand(self) -> float:
+        """Ab dieser Abweichung vom Vorschlag wird eine festgesetzte Note hervorgehoben."""
+        return 3.0 if self.sek2 else 1.0
+
+    def standard_schluessel(self) -> Notenschluessel:
+        return Notenschluessel.standard(self.name)
+
+    def eingabe(self, text: str) -> Note | None:
+        """Benutzereingabe → Note. Sek I: „2-“, „2+“, „2“ oder Zahl („1,7“ → nächste Stufe).
+        Sek II: 0–15, Kommazahlen werden gerundet (,5 nach oben). Leer → None. ValueError bei Unsinn."""
+        t = text.strip().replace("–", "-").replace("−", "-").replace("*", "").strip()
+        if not t:
+            return None
+        if self.sek2:
+            try:
+                wert = float(t.replace(",", "."))
+            except ValueError:
+                raise ValueError(f"„{text}“ sind keine Punkte. Beispiele: {self.beispiele}") from None
+            if not 0 <= wert <= 15:
+                raise ValueError("Punkte liegen zwischen 0 und 15.")
+            return self.naechste(wert)
+        try:
+            return Note.aus_kurz(t)
+        except ValueError:
+            pass
+        try:
+            wert = float(t.replace(",", "."))
+        except ValueError:
+            raise ValueError(f"„{text}“ ist keine Note. Beispiele: {self.beispiele}") from None
+        if not 0.7 <= wert <= 6.0:
+            raise ValueError("Noten liegen zwischen 0,7 (1+) und 6.")
+        return self.naechste(wert)
+
+    def naechste(self, wert: float) -> Note:
+        """Rechenwert → nächstgelegene Note (Sek I mit Tendenz) bzw. Punktzahl; Gleichstand → die bessere."""
+        if self.sek2:
+            return Punkte.aus_punkte(max(0, min(15, int(runde(wert)))))
+        return min(ALLE_NOTEN, key=lambda n: (round(abs(n.wert - wert), 6), n.wert))
+
+    def ganz(self, wert: float) -> Note:
+        """Zeugnisnote: Sek I ohne Tendenz (,5 → besser), Sek II ganze Punkte (,5 → besser)."""
+        if self.sek2:
+            return self.naechste(wert)
+        return Note.aus(max(1, min(6, int(wert + 0.5 - 1e-9))))
+
+    def zahl(self, wert: float | None) -> str:
+        """Schnitt als Text: Sek I „2,35“, Sek II „10,5“."""
+        if wert is None:
+            return ""
+        return (f"{wert:.1f}" if self.sek2 else f"{wert:.2f}").replace(".", ",")
+
+
+SEK1 = Notensystem("sek1")
+SEK2 = Notensystem("sek2")

@@ -150,6 +150,41 @@ def test_ablauf_jahr_schueler_lerngruppe(fenster):
     assert "  8.4 Deutsch" in nav and "  M8.3E" in nav
 
 
+def test_lerngruppe_oberstufe(fenster):
+    from notenverwaltung.ui.stammdaten_dialoge import LerngruppeDialog, SchuelerDialog
+
+    jahr = _jahr_anlegen(fenster)
+    d = SchuelerDialog(fenster.sd, jahr)
+    d.klasse.setCurrentText("Q1")
+    assert d.jahrgang.value() == 12 and d.jahrgang.text() == "12 (Q1)"
+    d = LerngruppeDialog(fenster.sd, jahr)
+    d.show()
+    d.ist_kurs.setChecked(True)
+    d.fach.setCurrentText("Deutsch")
+    assert d.niveau.isVisible() and not d.kursart.isVisible()
+    d.jahrgang.setValue(12)
+    assert not d.niveau.isVisible() and d.kursart.isVisible() and "Punkte" in d.notensystem.text()
+    d.kursart.setCurrentIndex(d.kursart.findData("LK"))
+    assert d.bezeichnung.text() == "D-LK"
+    d._ok()
+    assert d.result() == d.DialogCode.Accepted, d.meldung.text()
+    g = d.ergebnis
+    assert (g.notensystem, g.kursart, g.jahrgang, g.niveau) == ("sek2", "LK", 12, "")
+    # Mit Noten kein Wechsel mehr zwischen Sek I und Oberstufe
+    from notenverwaltung.modell.muendlich import Muendlich
+    from notenverwaltung.modell.noten import Punkte
+
+    sid = fenster.sd.lege_schueler_an(jahr.id, "Kaya", "Ela", "Q1").id
+    fenster.sd.fuege_hinzu(g.id, [sid])
+    mu = Muendlich(fenster.sd.v)
+    mu.setze_note(mu.zeitraeume(g.id)[0].id, sid, Punkte.aus_punkte(11))
+    d = LerngruppeDialog(fenster.sd, jahr, g)
+    assert d.jahrgang.value() == 12 and d.kursart.currentData() == "LK"
+    d.jahrgang.setValue(10)
+    d._ok()
+    assert "nicht mehr gewechselt" in d.meldung.text() and d.result() != d.DialogCode.Accepted
+
+
 def test_lerngruppenseite_sortierung_und_verschieben(fenster):
     jahr = _jahr_anlegen(fenster)
     from notenverwaltung.modell.stammdaten import Lerngruppe

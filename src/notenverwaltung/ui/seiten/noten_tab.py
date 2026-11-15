@@ -223,8 +223,12 @@ class NotenTab(QWidget):
         teile = [f"schriftlich {gw.anteil_schriftlich:g} % / mündlich {100 - gw.anteil_schriftlich:g} %"]
         if gw.zp10:
             teile.append("ZP10-Fach: Vornote aus dem ganzen Jahr, Endnote = 50 % Vornote + 50 % ZP10")
-        else:
+        elif gw.anteil_hj1 > 0:
             teile.append(f"1. Halbjahr zählt {gw.anteil_hj1:g} % zur Note des 2. Halbjahres")
+        else:
+            teile.append("die Halbjahre werden getrennt bewertet")
+        if self.gruppe.sek2:
+            teile.insert(0, f"{self.gruppe.kursart or 'Kurs'}, Punkte 0–15")
         self.gewichtung_text.setText(" · ".join(teile))
         self._menue(gw.zp10)
         self._einzel, self._einzelwerte = (self.zg.einzelnoten(self.gruppe.id) if self.ansicht.currentData()
@@ -282,7 +286,7 @@ class NotenTab(QWidget):
                     item.setData(ROLLE_ART, art)
                     item.setData(ROLLE_SID, m.schueler.id)
                     v = z.vorschlag.get(art)
-                    if n and v and v.wert is not None and abs(n.wert - v.wert) >= 1.0:
+                    if n and v and v.wert is not None and abs(n.wert - v.wert) >= v.system.warnabstand:
                         item.setForeground(QBrush(QColor(farben.warnung)))
                         item.setToolTip(f"Weicht deutlich vom Vorschlag ({v.note.kurz}) ab.")
                 if not inhalt.startswith("f:"):
@@ -313,10 +317,10 @@ class NotenTab(QWidget):
         for art, text in arten:
             noten = [z.fest[art] for z in self.zeilen if art in z.fest]
             if noten:
-                s = Notenspiegel.aus(noten)
-                stufen = "  ".join(f"{k}: {v}" for k, v in s.anzahl.items())
+                s = Notenspiegel.aus(noten, sek2=self.gruppe.sek2)
+                stufen = "  ".join(f"{k}: {v}" for k, v in s.anzahl.items() if v or not s.sek2)
                 teile.append(f"<b>{text}</b> ({s.gesamt} festgesetzt): {stufen} · Schnitt {_z(s.schnitt)}"
-                             f" · unter 4: {s.anteil_unter_4:.0f} %")
+                             f" · {s.text_unter}: {s.anteil_unter_4:.0f} %")
         self.spiegel.setText("<br>".join(teile) if teile else "Noch keine Zeugnisnoten festgesetzt.")
 
     def _menue(self, zp10: bool) -> None:
@@ -335,7 +339,7 @@ class NotenTab(QWidget):
         if self._fuellt or item.data(ROLLE_ART) is None:
             return
         try:
-            note = note_aus_eingabe(item.text())
+            note = note_aus_eingabe(item.text(), self.gruppe.notensystem)
         except MuendlichFehler as e:
             self.meldung.setze(str(e), "fehler")
             self._fuellen()

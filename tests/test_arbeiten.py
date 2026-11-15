@@ -135,18 +135,26 @@ def test_arbeit_pruefungen_und_aendern(umgebung):
 
 def test_vorlagen(umgebung):
     _, _, ar, g, _ = umgebung
-    assert [v.name for v in ar.vorlagen()] == ["Standard (Punkteliste)"]
+    assert [v.name for v in ar.vorlagen_fuer("sek1")] == ["Standard (Punkteliste)"]
+    assert [v.name for v in ar.vorlagen_fuer("sek2")] == ["Standard Sek II (NRW)"]
     eigen = Notenschluessel.aus_liste([(0, "6"), (45, "4"), (95, "1")])
     ar.speichere_vorlage("Streng", eigen, standard=True)
-    assert ar.vorlagen()[0].name == "Streng" and ar.standard_schluessel() == eigen
+    assert ar.vorlagen_fuer("sek1")[0].name == "Streng" and ar.standard_schluessel() == eigen
     a = ar.lege_arbeit_an(g.id, "KA", date(2026, 11, 10))
     assert a.schluessel == eigen
     ar.speichere_vorlage("Streng", Notenschluessel.standard())  # Vorlage ändern …
     assert ar.arbeit(a.id).schluessel == eigen                    # … ändert die Arbeit nicht
-    for v in ar.vorlagen()[:-1]:
+    for v in ar.vorlagen_fuer("sek1")[:-1]:
         ar.loesche_vorlage(v.id)
     with pytest.raises(ArbeitFehler, match="letzte"):
-        ar.loesche_vorlage(ar.vorlagen()[0].id)
+        ar.loesche_vorlage(ar.vorlagen_fuer("sek1")[0].id)
+    # Sek-II-Standard bleibt unberührt: je Notensystem ein eigener Standard
+    assert ar.standard_schluessel("sek2") == Notenschluessel.standard("sek2")
+    streng2 = Notenschluessel.aus_liste([(0, "0P"), (50, "5P"), (96, "15P")])
+    ar.speichere_vorlage("Streng Sek II", streng2, standard=True)
+    assert ar.standard_schluessel("sek2") == streng2 and ar.standard_schluessel("sek1") != streng2
+    with pytest.raises(ArbeitFehler, match="letzte"):
+        ar.loesche_vorlage(ar.vorlagen_fuer("sek1")[0].id)
 
 
 def test_loeschen_kaskadiert(umgebung):

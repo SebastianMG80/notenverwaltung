@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from notenverwaltung.modell.arbeiten import STATUS, Arbeit, ArbeitFehler, Arbeiten, Ergebnis
-from notenverwaltung.modell.noten import ALLE_NOTEN, Note, zahl, zahl_text
+from notenverwaltung.modell.noten import Notensystem, zahl, zahl_text
 from notenverwaltung.modell.stammdaten import Lerngruppe, Schuljahr, Stammdaten
 from notenverwaltung.ui.arbeit_dialoge import ArbeitDialog
 from notenverwaltung.ui.bausteine import Hinweis, aktuelle_farben, frage
@@ -98,7 +98,8 @@ class PunkteModell(QAbstractTableModel):
             if abschnitt == SP_SUMME:
                 return f"Summe\n({zahl_text(sum(a.max_punkte for a in self.aufgaben))})"
             if abschnitt < FESTE_SPALTEN:
-                return ["Nr.", "Name", "Kl.", "", "Note"][abschnitt]
+                sek2 = self.arbeit is not None and self.arbeit.schluessel.system == "sek2"
+                return ["Nr.", "Name", "Kl.", "", "Noten-\npunkte" if sek2 else "Note"][abschnitt]
             if self.ist_punktespalte(abschnitt):
                 a = self.aufgaben[abschnitt - FESTE_SPALTEN]
                 return f"{a.bezeichnung}\n({zahl_text(a.max_punkte)})"
@@ -217,11 +218,13 @@ class PunkteModell(QAbstractTableModel):
     def _setze_note(self, e: Ergebnis, text: str) -> bool:
         """Note direkt eintragen: setzt sie fest (auch ohne Punkte). Leer hebt die Festsetzung auf.
         Eine eingetragene Note ersetzt den Vermerk „fehlt“/„schreibt nach“/„befreit“."""
-        t = text.strip().replace("*", "")
+        system = Notensystem.von(self.arbeit.schluessel.system)
         try:
-            note = Note.aus_kurz(t) if t else None
-        except ValueError:
-            self.fehler.emit(f"„{text}“ ist keine Note. Beispiele: 2, 3+, 4-")
+            note = system.eingabe(text)
+            if note is not None and system.sek2 and abs(float(text.replace(",", ".").replace("*", "")) % 1) > 0:
+                raise ValueError("Bitte ganze Punkte (0–15) eingeben.")
+        except ValueError as e:
+            self.fehler.emit(str(e) if system.sek2 else f"„{text}“ ist keine Note. Beispiele: 2, 3+, 4-")
             return False
         werte: dict = {"note_manuell": note}
         if note is not None and e.note_berechnet == note:
@@ -484,7 +487,11 @@ class ArbeitenTab(QWidget):
                 item.setToolTip(note.wort_mit_tendenz)
                 self.spiegel.setItem(r, c, item)
         s = self.ar.notenspiegel(a.id, self.modell.ergebnisse)
-        if s.gesamt:
+        if s.gesamt and s.sek2:
+            self.zusammenfassung.setText(
+                f"Schnitt <b>{s.schnitt:.1f} Punkte</b>".replace(".", ",")
+                + f"<br>Unter 5 Punkten: <b>{s.anteil_unter_4:.0f} %</b> · {s.gesamt} Klausuren")
+        elif s.gesamt:
             stufen = "  ".join(f"{k}: {v}" for k, v in s.anzahl.items())
             self.zusammenfassung.setText(
                 f"{stufen}<br>Schnitt <b>{s.schnitt:.2f}</b>".replace(".", ",")
@@ -547,7 +554,7 @@ class ArbeitenTab(QWidget):
             a.triggered.connect(lambda _=False, s=schluessel: self._teilnahme(sid, aid, status=s))
         menue.addSeparator()
         noten = menue.addMenu("Note festsetzen")
-        for n in ALLE_NOTEN:
+        for n in Notensystem.von(self.modell.arbeit.schluessel.system).alle:
             a = noten.addAction(f"{n.kurz}  ({n.wort_mit_tendenz})")
             a.triggered.connect(lambda _=False, n=n: self._teilnahme(sid, aid, note_manuell=n))
         aufheben = menue.addAction("Festsetzung aufheben")

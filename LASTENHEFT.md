@@ -58,3 +58,6 @@ Gegendert wird mit : (Lehrer:innen).
 - Dateien: Neue Versionen müssen alle bisherigen Dateien lesen. Eine umgestellte Datei darf mit älteren
   Versionen inkompatibel sein.
 - Hilfe im Programm; Sek II jetzt umsetzen.
+- Sek II: Klausurschlüssel nach NRW-Standardtabelle (pro Klausur änderbar). Nur Kursführung (Klausuren, Sonstige
+  Mitarbeit, Quartals- und Halbjahresnoten in Punkten), keine Abiturzulassung/-prüfungen. Schriftliche Kurse
+  standardmäßig 50 % Klausuren / 50 % Sonstige Mitarbeit, pro Kurs änderbar.

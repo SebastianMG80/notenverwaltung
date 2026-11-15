@@ -16,13 +16,13 @@ Regeln (Lastenheft):
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 
 from notenverwaltung.modell.arbeiten import STATUS as STATUS_LANG
 from notenverwaltung.modell.arbeiten import Arbeiten
 from notenverwaltung.modell.muendlich import Muendlich
-from notenverwaltung.modell.noten import ALLE_NOTEN, Note, zahl_text
+from notenverwaltung.modell.noten import ALLE_NOTEN, SEK1, Note, Notensystem, Punkte, zahl_text
 from notenverwaltung.modell.stammdaten import Lerngruppe, Mitglied, Stammdaten
 
 ZP10_FAECHER = {"deutsch", "englisch", "mathematik", "d", "e", "m"}
@@ -68,10 +68,11 @@ class Teilnote:
 class Vorschlag:
     wert: float | None
     herleitung: list[str] = field(default_factory=list)
+    system: Notensystem = SEK1
 
     @property
     def note(self) -> Note | None:
-        return naechste_note(self.wert) if self.wert is not None else None
+        return self.system.naechste(self.wert) if self.wert is not None else None
 
 
 @dataclass(frozen=True)
@@ -120,7 +121,7 @@ class Zeugnis:
     def gewichtung(self, g: Lerngruppe) -> Gewichtung:
         z = self.v.execute("SELECT anteil_schriftlich, anteil_hj1, zp10 FROM lerngruppe WHERE id = ?", (g.id,)).fetchone()
         anteil, hj1, zp10 = z
-        zp10_auto = g.jahrgang == 10 and (g.fach.strip().lower() in ZP10_FAECHER
+        zp10_auto = not g.sek2 and g.jahrgang == 10 and (g.fach.strip().lower() in ZP10_FAECHER
                                           or g.fach_kuerzel.strip().lower() in ZP10_FAECHER) and g.schriftlich
         return Gewichtung(
             anteil_schriftlich=(50.0 if g.schriftlich else 0.0) if anteil is None else float(anteil),
@@ -140,6 +141,8 @@ class Zeugnis:
     def setze(self, lerngruppe_id: int, schueler_id: int, art: str, note: Note | None, bemerkung: str = "") -> None:
         if art not in ARTEN:
             raise ZeugnisFehler("Unbekannte Notenart.")
+        if note is not None and isinstance(note, Punkte) != self.sd.lerngruppe(lerngruppe_id).sek2:
+            raise ZeugnisFehler("In der Oberstufe werden Punkte (0–15) vergeben, sonst Noten (1–6).")
         with self.v:
             if note is None:
                 self.v.execute("DELETE FROM zeugnisnote WHERE lerngruppe_id = ? AND schueler_id = ? AND art = ?",
@@ -148,16 +151,17 @@ class Zeugnis:
                 self.v.execute("INSERT INTO zeugnisnote (lerngruppe_id, schueler_id, art, note, bemerkung) "
                                "VALUES (?, ?, ?, ?, ?) ON CONFLICT (lerngruppe_id, schueler_id, art) DO UPDATE SET "
                                "note = excluded.note, bemerkung = excluded.bemerkung",
-                               (lerngruppe_id, schueler_id, art, note.kurz, bemerkung))
+                               (lerngruppe_id, schueler_id, art, note.speicher, bemerkung))
 
     def festgesetzt(self, lerngruppe_id: int) -> dict[tuple[int, str], Note]:
-        return {(s, a): Note.aus_kurz(n) for s, a, n in self.v.execute(
+        return {(s, a): Note.lies(n) for s, a, n in self.v.execute(
             "SELECT schueler_id, art, note FROM zeugnisnote WHERE lerngruppe_id = ?", (lerngruppe_id,))}
 
     # ---- Berechnung ----------------------------------------------------------------------------
     def zeilen(self, lerngruppe_id: int) -> list[Zeile]:
         g = self.sd.lerngruppe(lerngruppe_id)
         jahr = self.sd.schuljahr(g.schuljahr_id)
+        system = Notensystem.von(g.notensystem)
         gw = self.gewichtung(g)
         a_s = gw.anteil_schriftlich / 100
         arbeiten = [a for a in self.ar.arbeiten(g.id) if a.zaehlt]
@@ -251,6 +255,7 @@ class Zeugnis:
                                                     + f" × {gw.anteil_hj1:g} %", f"= {_z(wert)}"])
                 else:
                     vorschlag["hj2"] = v2
+            vorschlag = {k: replace(v, system=system) for k, v in vorschlag.items()}
             zeilen.append(Zeile(m, s, mu, vorschlag, f, qs, qm))
         return zeilen
 
@@ -309,6 +314,6 @@ class Zeugnis:
             v = z.vorschlag.get(art)
             if v is None or v.note is None or (nur_leere and art in z.fest):
                 continue
-            self.setze(lerngruppe_id, z.mitglied.schueler.id, art, naechste_ganze_note(v.wert) if ganze else v.note)
+            self.setze(lerngruppe_id, z.mitglied.schueler.id, art, v.system.ganz(v.wert) if ganze else v.note)
             n += 1
         return n

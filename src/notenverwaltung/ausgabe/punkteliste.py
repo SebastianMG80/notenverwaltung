@@ -139,7 +139,7 @@ class Punkteliste(Ausgabe):
         s.schrift(7)
         s.text(x, y + 4.3, b, 4.2, f"({zahl_text(self.hoechst)})", MITTE)
         s.schrift(8, fett=True)
-        s.text(sp[5 + na][0], y, sp[5 + na][1], TABELLENKOPF, "Note", MITTE)
+        s.text(sp[5 + na][0], y, sp[5 + na][1], TABELLENKOPF, "NP" if self.spiegel.sek2 else "Note", MITTE)
         s.text(sp[6 + na][0] + 1, y, sp[6 + na][1] - 1, TABELLENKOPF, "Vermerk", LINKS)
         y0 = y
         y += TABELLENKOPF
@@ -166,7 +166,7 @@ class Punkteliste(Ausgabe):
             s.schrift(8.5, fett=True)
             s.text(sp[4 + na][0], y, sp[4 + na][1], ZEILE, zahl_text(e.summe), MITTE)
             if e.note:
-                text = e.note.kurz if self.o.mit_tendenz else str(e.note.stufe)
+                text = e.note.kurz if self.o.mit_tendenz or self.spiegel.sek2 else str(e.note.stufe)
                 s.text(sp[5 + na][0], y, sp[5 + na][1], ZEILE, text + ("*" if e.note_manuell else ""), MITTE)
             vermerk = []
             if e.status:
@@ -206,7 +206,42 @@ class Punkteliste(Ausgabe):
             s.linie(x, y0, x, y)
         return y
 
+    def _spiegel_punkte(self, s: Seite, x0: float, y: float) -> float:
+        """Sek II: Anzahl je Punktzahl in zwei Zeilen (15–8, 7–0). Gibt die Breite zurück."""
+        b, h, kopf = 9.0, 5.0, 14.0
+        s.schrift(9, fett=True)
+        s.text(x0, y, 60, 5, "Notenspiegel (Punkte)", LINKS)
+        y1 = y + 6
+        for block, punkte in enumerate((range(15, 7, -1), range(7, -1, -1))):
+            yb = y1 + block * 2 * h
+            s.flaeche(x0, yb, kopf + 8 * b, h, FARBE_KOPF)
+            s.schrift(8, fett=True)
+            s.text(x0, yb, kopf, h, "Punkte", MITTE)
+            s.schrift(8)
+            s.text(x0, yb + h, kopf, h, "Anzahl", MITTE)
+            for i, p in enumerate(punkte):
+                s.schrift(8, fett=True)
+                s.text(x0 + kopf + i * b, yb, b, h, str(p), MITTE)
+                s.schrift(8)
+                s.text(x0 + kopf + i * b, yb + h, b, h, str(self.spiegel.anzahl[p]), MITTE)
+            s.kasten(x0, yb, kopf + 8 * b, 2 * h)
+            s.linie(x0, yb + h, x0 + kopf + 8 * b, yb + h)
+            for i in range(8):
+                s.linie(x0 + kopf + i * b, yb, x0 + kopf + i * b, yb + 2 * h)
+        s.schrift(8.5)
+        if self.spiegel.gesamt:
+            text = (f"Schnitt: {self.spiegel.schnitt:.1f} Punkte   Unter 5 Punkten: {self.spiegel.anteil_unter_4:.0f} %"
+                    f"   ·   {self.spiegel.gesamt} Klausuren").replace(".", ",")
+        else:
+            text = "Noch keine Punkte."
+        s.text(x0, y1 + 4 * h + 1.5, kopf + 8 * b + 60, 5, text, LINKS)
+        return kopf + 8 * b
+
     def _fuss(self, s: Seite, y: float) -> None:
+        if self.spiegel.sek2:
+            breite_spiegel = self._spiegel_punkte(s, RAND, y)
+            self._schluessel(s, y, RAND + breite_spiegel + 10, "Klausurschlüssel", "")
+            return
         # Notenspiegel links (wie ODS: Anzahl je ganzer Note, Schnitt, unter 4)
         s.stift("#000000", 0.15)
         b = 13.0
@@ -236,10 +271,13 @@ class Punkteliste(Ausgabe):
         s.text(x0, y1 + 14, b * 7 + 60, 5, text, LINKS)
 
         # Notenschlüssel rechts
-        x1 = RAND + b * 7 + 14
+        self._schluessel(s, y, RAND + b * 7 + 14, "Notenschlüssel", " P.")
+
+    def _schluessel(self, s: Seite, y: float, x1: float, titel: str, einheit: str) -> None:
         breite = BREITE - (x1 - RAND)
+        s.stift("#000000", 0.15)
         s.schrift(9, fett=True)
-        s.text(x1, y, breite, 5, "Notenschlüssel", LINKS)
+        s.text(x1, y, breite, 5, titel, LINKS)
         bereiche = list(reversed(self.arbeit.schluessel.bereiche(self.hoechst))) if self.hoechst else []
         spalten = max(1, math.ceil(len(bereiche) / 4))
         sb = min(36.0, breite / spalten)
@@ -247,4 +285,5 @@ class Punkteliste(Ausgabe):
         for i, (von, bis, note) in enumerate(bereiche):
             spalte, zeile = divmod(i, 4)
             punkte = zahl_text(von) if von == bis else f"{zahl_text(von)}–{zahl_text(bis)}"
-            s.text(x1 + spalte * sb, y + 6 + zeile * 4.5, sb, 4.5, f"{note.kurz:<3}  {punkte} P.", LINKS)
+            text = f"{note.kurz:>2} NP: {punkte}" if self.spiegel.sek2 else f"{note.kurz:<3}  {punkte}{einheit}"
+            s.text(x1 + spalte * sb, y + 6 + zeile * 4.5, sb, 4.5, text, LINKS)

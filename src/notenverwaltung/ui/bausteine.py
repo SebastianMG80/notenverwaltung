@@ -178,3 +178,37 @@ class Tabelle(QTableWidget):
     def aktuelle_daten(self):
         d = self.ausgewaehlte_daten()
         return d[0] if d else None
+
+
+from PySide6.QtWidgets import QSpinBox  # noqa: E402
+
+
+class JahrgangFeld(QSpinBox):
+    """Jahrgang 5–13; die Oberstufe heißt EF (11), Q1 (12), Q2 (13)."""
+
+    def __init__(self, wert: int = 5, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setRange(1, 13)
+        self.setValue(wert)
+
+    def textFromValue(self, wert: int) -> str:  # noqa: N802
+        from notenverwaltung.modell.stammdaten import stufe_text
+
+        return f"{wert} ({stufe_text(wert)})" if wert >= 11 else str(wert)
+
+    def valueFromText(self, text: str) -> int:  # noqa: N802
+        from notenverwaltung.modell.stammdaten import jahrgang_aus_klasse
+
+        return jahrgang_aus_klasse(text) or self.minimum()
+
+    def validate(self, text: str, pos: int):
+        from PySide6.QtGui import QValidator
+
+        from notenverwaltung.modell.stammdaten import jahrgang_aus_klasse
+
+        if not text.strip():
+            return QValidator.State.Intermediate, text, pos
+        j = jahrgang_aus_klasse(text)
+        if j is not None and self.minimum() <= j <= self.maximum():
+            return QValidator.State.Acceptable, text, pos
+        return QValidator.State.Intermediate, text, pos

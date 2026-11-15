@@ -136,7 +136,7 @@ class MuendlicheListe(Ausgabe):
 
     # ---- Zeichnen -----------------------------------------------------------------------------
     def _note(self, note) -> str:
-        return note.kurz if self.o.tendenzen else str(note.stufe)
+        return note.kurz if self.o.tendenzen or self.gruppe.sek2 else str(note.stufe)
 
     def _mittel(self, m: Mitglied, halbjahr: int) -> float | None:
         werte = [self.noten[(z.id, m.schueler.id)][0].wert for z in self.zeitraeume
@@ -153,8 +153,10 @@ class MuendlicheListe(Ausgabe):
         info = [self.gruppe.fach, f"Schuljahr {self.jahr.bezeichnung}"]
         if self.gruppe.niveau:
             info.append(f"{self.gruppe.niveau}-Kurs")
+        if self.gruppe.kursart:
+            info.append(self.gruppe.kursart)
         if not self.o.leerliste:
-            info.append("Noten mit Tendenz" if self.o.tendenzen else "ganze Noten")
+            info.append("Punkte 0–15" if self.gruppe.sek2 else "Noten mit Tendenz" if self.o.tendenzen else "ganze Noten")
         s.text(RAND, RAND + 7.5, self.breite * 0.6, 5, " · ".join(info), LINKS)
         s.text(RAND + self.breite * 0.6, RAND, self.breite * 0.4, 7, f"Seite {nummer + 1} von {self.seitenzahl()}",
                RECHTS)

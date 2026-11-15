@@ -25,11 +25,11 @@ Runde 2 (15.11.2026, nach Sebastians Linux-Test; „Ja, starten“ für Etappen 
 - [x] 14 Etiketten-Rand, Note ohne Punkte → Version 0.3.3 (15.11.2026)
 - [x] 15 Quartalsnoten (15.11.2026) – Schema 7: Quartalswechsel je Schuljahr, Notenarten q1/q3
 - [x] 16 Einzelnoten im Reiter „Noten“ → Version 0.4.0 (15.11.2026)
-- [ ] 17 Sek II (braucht Antworten auf Fragen 4–6) → Version 0.5.0
+- [x] 17 Sek II → Version 0.5.0 (15.11.2026) – Schema 8: Kursart GK/LK, Klausurschlüssel Sek II; Punkte als „11P“
 - [ ] 18 Hilfe im Programm → Version 0.6.0
 
 ## Nächster Schritt
-Etappe 17 (Sek II) braucht Antworten auf Fragen 4–6 (Klausurschlüssel, Umfang, Gewichtung). Etappe 18 (Hilfe) geht ohne.
+Etappe 18: Hilfe im Programm (Menü Hilfe, F1 je Ansicht, offline). Danach Testrunde Sebastian.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
 tests/daten/version_X_Y_Z` ausführen und die beiden Dateien committen – aber nur, wenn sich das Dateiformat
@@ -37,10 +37,10 @@ oder die Daten-Arten geändert haben. Bestehende Versionsdateien nie neu erzeuge
 
 Offen / Rückfragen an Sebastian:
 - Beispiel-Exporte aus SchILD-NRW und Untis (erfundene Namen) zum Gegenprüfen des Imports
-- Sek II: Klausurschlüssel (NRW-Standard?), nur Kursführung ohne Abiturberechnung?, 50/50 als Standard?
 
 Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Übernehmen genau ,5 → bessere Note (2,5 → 2).
 Bestätigt (15.11.2026): Quartalsnote nur aus dem Quartal, mit Tendenz; Dateien dürfen nach Umstellung mit alten Versionen inkompatibel sein.
+Bestätigt (15.11.2026): Sek II mit NRW-Klausurschlüssel, nur Kursführung (ohne Abitur), 50/50 als Standard.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
@@ -76,6 +76,11 @@ Bestätigt (15.11.2026): Quartalsnote nur aus dem Quartal, mit Tendenz; Dateien 
 | Quartale | Quartalswechsel je Schuljahr (Standard Mitte des Halbjahres = bisherige mündliche Quartale); Arbeit zählt zum Quartal ihres Datums, mündlicher Zeitraum zum Quartal seines Beginns; Quartalsnote = Halbjahresgewichtung nur über das Quartal, ohne Anteil anderer Zeiträume; Übernehmen mit Tendenz |
 | Noten-Reiter | Reihenfolge Q1 – 1. Hj. – Q3 – 2. Hj.; Zeitraum-Auswahl (Standard: laufendes Halbjahr); Ansicht „mit Einzelnoten“: Leistungen des 1./3. Quartals vor den Quartalsspalten, des 2./4. vor den Halbjahresspalten |
 | Notenübersicht-Druck | wählt die ausführlichste Spaltenauswahl, die passt: erst Quartals-Teilnoten weg, dann Halbjahres-Teilnoten, dann Vorschläge ohne Zahl, zuletzt schmalere Namensspalte; festgesetzte Noten bleiben immer |
+| Sek II – Punkte | `Punkte` ist eine Unterart von `Note` (stufe/tendenz = Sek-I-Entsprechung, 11 P = 2), Rechenwert = Punktzahl; Speicherung „11P“; `Notensystem` (sek1/sek2) bündelt Eingabe, Runden (,5 → besser), Liste, Standardschlüssel; Typprüfung beim Speichern (keine Noten in Sek-II-Kursen und umgekehrt) |
+| Sek II – Lerngruppe | Notensystem folgt dem Jahrgang (11–13 = Punkte), Wechsel nur ohne vorhandene Noten; Kursart GK/LK (eigene Spalte, E/G nur Sek I); Anteil 1. Hj. = 0 (Halbjahre getrennt); keine ZP10 |
+| Sek II – Notenspiegel | Anzahl je Punktzahl 15–0, Schnitt in Punkten, „unter 5 P.“ = Defizite (0–4 Punkte); Notenübersicht bündelt 15–13/12–10/…/0 |
+| Sek II – Wechsel | Klassen 10.x → EF, EF → Q1 → Q2; Q2 standardmäßig „endet“ (Abitur); übernommene Lerngruppen mit Jahrgang ≥ 11 werden zu Punkte-Gruppen (ohne E/G, Anteil 1. Hj. 0) |
+| Schlüssel-Vorlagen | je Notensystem eigener Standard; Vorlage „Standard Sek II (NRW)“ per Migration 8 |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |
 | Gewichtung | je Lerngruppe: Anteil schriftlich (automatisch 50 %/0 %), Anteil 1. Hj. an 2. Hj. (Standard 10 %), ZP10 automatisch für D/E/M Jahrgang 10 (abschaltbar) |

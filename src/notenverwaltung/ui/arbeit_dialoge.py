@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from notenverwaltung.modell.arbeiten import Arbeit, ArbeitFehler, Arbeiten
-from notenverwaltung.modell.noten import ALLE_NOTEN, Note, Notenschluessel, zahl, zahl_text
+from notenverwaltung.modell.noten import Note, Notenschluessel, Notensystem, zahl, zahl_text
 from notenverwaltung.modell.stammdaten import Lerngruppe, Schuljahr
 from notenverwaltung.ui.bausteine import Datumsfeld, Hinweis, OptionalesDatum, frage
 
@@ -169,8 +169,9 @@ class SchluesselDialog(QDialog):
         super().__init__(parent)
         self.ar = ar
         self.hoechstpunkte = hoechstpunkte
+        self.system = Notensystem.von(schluessel.system)   # Sek I: Noten, Sek II: Punkte
         self.ergebnis: Notenschluessel | None = None
-        self.setWindowTitle("Notenschlüssel")
+        self.setWindowTitle("Klausurschlüssel (Punkte 0–15)" if self.system.sek2 else "Notenschlüssel")
         self.setMinimumSize(520, 620)
 
         self.vorlage = QComboBox()
@@ -183,7 +184,8 @@ class SchluesselDialog(QDialog):
         oben.addWidget(laden)
 
         self.tabelle = QTableWidget(0, 3)
-        self.tabelle.setHorizontalHeaderLabels(["ab Prozent", "Note", f"ab Punkten (von {zahl_text(hoechstpunkte)})"])
+        self.tabelle.setHorizontalHeaderLabels(["ab Prozent", "Notenpunkte" if self.system.sek2 else "Note",
+                                                f"ab Punkten (von {zahl_text(hoechstpunkte)})"])
         self.tabelle.verticalHeader().setVisible(False)
         self.tabelle.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.raster = QComboBox()
@@ -192,7 +194,7 @@ class SchluesselDialog(QDialog):
         self.raster.currentIndexChanged.connect(self._vorschau)
         zeile_knoepfe = QHBoxLayout()
         plus = QPushButton("＋ Stufe")
-        plus.clicked.connect(lambda: self._zeile(50, Note.aus_kurz("4")))
+        plus.clicked.connect(lambda: self._zeile(50, self.system.alle[len(self.system.alle) // 2]))
         minus = QPushButton("Stufe entfernen")
         minus.clicked.connect(lambda: self.tabelle.removeRow(self.tabelle.currentRow()))
         zeile_knoepfe.addWidget(plus)
@@ -225,7 +227,7 @@ class SchluesselDialog(QDialog):
 
     def _vorlagen_fuellen(self) -> None:
         self.vorlage.clear()
-        for v in self.ar.vorlagen():
+        for v in self.ar.vorlagen_fuer(self.system.name):
             self.vorlage.addItem(v.name + ("  (Standard)" if v.standard else ""), v.schluessel)
 
     def _laden(self) -> None:
@@ -250,9 +252,9 @@ class SchluesselDialog(QDialog):
         spin.valueChanged.connect(self._vorschau)
         self.tabelle.setCellWidget(r, 0, spin)
         combo = QComboBox()
-        for n in ALLE_NOTEN:
-            combo.addItem(f"{n.kurz}  ({n.wort_mit_tendenz})", n.kurz)
-        combo.setCurrentIndex(combo.findData(note.kurz))
+        for n in self.system.alle:
+            combo.addItem(f"{n.kurz}  ({n.wort_mit_tendenz})", n.speicher)
+        combo.setCurrentIndex(combo.findData(note.speicher))
         combo.currentIndexChanged.connect(self._vorschau)
         self.tabelle.setCellWidget(r, 1, combo)
         punkte = QTableWidgetItem()
@@ -316,7 +318,7 @@ class ArbeitDialog(QDialog):
         self.ergebnis: Arbeit | None = None
         self.setWindowTitle("Arbeit bearbeiten" if arbeit else "Neue Klassenarbeit")
         self.setMinimumSize(620, 640)
-        self.schluessel = arbeit.schluessel if arbeit else ar.standard_schluessel()
+        self.schluessel = arbeit.schluessel if arbeit else ar.standard_schluessel(gruppe.notensystem)
 
         heute = date.today() if jahr.enthaelt(date.today()) else jahr.beginn
         self.titel = QLineEdit(arbeit.titel if arbeit else ar.titel_vorschlag(gruppe.id))

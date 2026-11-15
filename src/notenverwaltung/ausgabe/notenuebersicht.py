@@ -154,8 +154,10 @@ class Notenuebersicht(Ausgabe):
                 f"schriftlich {self.gw.anteil_schriftlich:g} % / mündlich {100 - self.gw.anteil_schriftlich:g} %"]
         if self.gw.zp10:
             info.append("ZP10-Fach")
-        elif self.o.halbjahr != 1:
+        elif self.o.halbjahr != 1 and self.gw.anteil_hj1 > 0:
             info.append(f"1. Hj. zählt {self.gw.anteil_hj1:g} % zum 2. Hj.")
+        if g.sek2:
+            info.insert(1, f"{g.kursart or 'Kurs'} · Punkte 0–15")
         s.text(RAND, RAND + 7.5, BREITE * 0.75, 5, " · ".join(info), LINKS)
         s.text(RAND + BREITE * 0.6, RAND, BREITE * 0.4, 7, f"Seite {nummer + 1} von {self.seitenzahl()}", RECHTS)
         if self.kopfzeile:
@@ -217,29 +219,34 @@ class Notenuebersicht(Ausgabe):
         abstand = 8.0
         breite = min(7 * 12.0, (BREITE - abstand * (len(bloecke) - 1)) / len(bloecke))
         b = breite / 7
+        sek2 = self.gruppe.sek2
+        koepfe = ["15–13", "12–10", "9–7", "6–4", "3–1", "0"] if sek2 else [str(k) for k in range(1, 7)]
         for i, (titel, noten) in enumerate(bloecke):
             x0 = RAND + i * (breite + abstand)
-            sp = Notenspiegel.aus(noten)
+            sp = Notenspiegel.aus(noten, sek2=sek2)
+            stufen = Notenspiegel.aus(noten, sek2=False).anzahl   # Sek II: nach Notenstufen gebündelt
             s.stift("#000000", 0.15)
             s.schrift(9, fett=True)
             s.text(x0, y, breite + abstand, 5, f"Notenspiegel {titel}", LINKS)
             y1 = y + 6
             s.flaeche(x0, y1, breite, 6, "#e2e2e2")
             s.schrift(8.5, fett=True)
-            s.text(x0, y1, b, 6, "Note", MITTE)
+            s.text(x0, y1, b, 6, "P." if sek2 else "Note", MITTE)
+            s.schrift(7 if sek2 else 8.5, fett=True)
             for k in range(1, 7):
-                s.text(x0 + k * b, y1, b, 6, str(k), MITTE)
+                s.text(x0 + k * b, y1, b, 6, koepfe[k - 1], MITTE)
             s.schrift(8.5)
             s.text(x0, y1 + 6, b, 6, "Anz.", MITTE)
             for k in range(1, 7):
-                s.text(x0 + k * b, y1 + 6, b, 6, str(sp.anzahl[k]), MITTE)
+                s.text(x0 + k * b, y1 + 6, b, 6, str(stufen[k]), MITTE)
             s.kasten(x0, y1, breite, 12)
             s.linie(x0, y1 + 6, x0 + breite, y1 + 6)
             for k in range(1, 7):
                 s.linie(x0 + k * b, y1, x0 + k * b, y1 + 12)
             s.schrift(8)
             if sp.gesamt:
-                s.text(x0, y1 + 13, breite + abstand, 4.5, f"Schnitt {_z(sp.schnitt)} · unter 4: {sp.anteil_unter_4:.0f} %",
+                s.text(x0, y1 + 13, breite + abstand, 4.5,
+                       f"Schnitt {_z(sp.schnitt)}{' P.' if sek2 else ''} · {sp.text_unter}: {sp.anteil_unter_4:.0f} %",
                        LINKS)
                 s.text(x0, y1 + 17.5, breite + abstand, 4.5, f"{sp.gesamt} Noten", LINKS)
             else:

@@ -12,7 +12,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from notenverwaltung.modell.noten import Note
+from notenverwaltung.modell.noten import Note, Notensystem, Punkte
 from notenverwaltung.modell.stammdaten import Mitglied, Schuljahr, Stammdaten
 
 
@@ -33,24 +33,13 @@ class Zeitraum:
         return (m.beginn is None or m.beginn <= self.ende) and (m.ende is None or m.ende >= self.beginn)
 
 
-def note_aus_eingabe(text: str) -> Note | None:
-    """„2-“, „2+“, „2“ oder Zahl („1,7“, „2.3“, „2,5“ → nächstgelegene Stufe). Leer → None."""
-    t = text.strip().replace("–", "-").replace("−", "-")
-    if not t:
-        return None
+def note_aus_eingabe(text: str, system: str = "sek1") -> Note | None:
+    """Sek I: „2-“, „2+“, „2“ oder Zahl („1,7“, „2.3“, „2,5“ → nächstgelegene Stufe). Sek II: 0–15 Punkte.
+    Leer → None."""
     try:
-        return Note.aus_kurz(t)
-    except ValueError:
-        pass
-    try:
-        wert = float(t.replace(",", "."))
-    except ValueError:
-        raise MuendlichFehler(f"„{text}“ ist keine Note. Beispiele: 2, 2+, 2-, 1,7") from None
-    if not 0.7 <= wert <= 6.0:
-        raise MuendlichFehler("Noten liegen zwischen 0,7 (1+) und 6.")
-    from notenverwaltung.modell.noten import ALLE_NOTEN
-
-    return min(ALLE_NOTEN, key=lambda n: (abs(n.wert - wert), n.wert))
+        return Notensystem.von(system).eingabe(text)
+    except ValueError as e:
+        raise MuendlichFehler(str(e)) from None
 
 
 def standard_zeitraeume(jahr: Schuljahr) -> list[tuple[str, date, date]]:
@@ -133,6 +122,8 @@ class Muendlich:
             m = next((m for m in self.sd.mitglieder(z.lerngruppe_id) if m.schueler.id == schueler_id), None)
             if m is None:
                 raise MuendlichFehler("Die Person gehört nicht zur Lerngruppe.")
+            if isinstance(note, Punkte) != self.sd.lerngruppe(z.lerngruppe_id).sek2:
+                raise MuendlichFehler("In der Oberstufe werden Punkte (0–15) vergeben, sonst Noten (1–6).")
             if not z.erfasst(m):
                 raise MuendlichFehler(f"{m.schueler.vorname} {m.schueler.nachname} war im Zeitraum "
                                       f"„{z.bezeichnung}“ nicht in der Lerngruppe.")
@@ -145,11 +136,11 @@ class Muendlich:
                 text = bemerkung if bemerkung is not None else (alt[0] if alt else "")
                 self.v.execute("INSERT INTO muendlich (zeitraum_id, schueler_id, note, bemerkung) VALUES (?, ?, ?, ?) "
                                "ON CONFLICT (zeitraum_id, schueler_id) DO UPDATE SET note = excluded.note, "
-                               "bemerkung = excluded.bemerkung", (zeitraum_id, schueler_id, note.kurz, text))
+                               "bemerkung = excluded.bemerkung", (zeitraum_id, schueler_id, note.speicher, text))
 
     def noten(self, lerngruppe_id: int) -> dict[tuple[int, int], tuple[Note, str]]:
         """(zeitraum_id, schueler_id) → (Note, Bemerkung)."""
-        return {(z, s): (Note.aus_kurz(n), b) for z, s, n, b in self.v.execute(
+        return {(z, s): (Note.lies(n), b) for z, s, n, b in self.v.execute(
             "SELECT m.zeitraum_id, m.schueler_id, m.note, m.bemerkung FROM muendlich m "
             "JOIN zeitraum z ON z.id = m.zeitraum_id WHERE z.lerngruppe_id = ?", (lerngruppe_id,))}
 

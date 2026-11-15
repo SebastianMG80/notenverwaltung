@@ -6,7 +6,7 @@ import sqlite3
 from dataclasses import dataclass, field
 from datetime import date
 
-from notenverwaltung.modell.noten import Note, Notenschluessel, Notenspiegel, zahl_text
+from notenverwaltung.modell.noten import Note, Notenschluessel, Notenspiegel, Punkte, zahl_text
 from notenverwaltung.modell.stammdaten import Mitglied, Stammdaten
 
 STATUS = {"": "", "fehlt": "fehlt", "nachschreiben": "schreibt nach", "befreit": "befreit"}
@@ -89,9 +89,13 @@ class Arbeiten:
         return [SchluesselVorlage(z[0], z[1], Notenschluessel.aus_json(z[2]), bool(z[3])) for z in self.v.execute(
             "SELECT id, name, daten, standard FROM notenschluessel ORDER BY standard DESC, name")]
 
-    def standard_schluessel(self) -> Notenschluessel:
-        vorlagen = self.vorlagen()
-        return vorlagen[0].schluessel if vorlagen else Notenschluessel.standard()
+    def vorlagen_fuer(self, system: str) -> list[SchluesselVorlage]:
+        """Vorlagen eines Notensystems (Sek I: Noten, Sek II: Punkte), Standard zuerst."""
+        return [v for v in self.vorlagen() if v.schluessel.system == system]
+
+    def standard_schluessel(self, system: str = "sek1") -> Notenschluessel:
+        vorlagen = self.vorlagen_fuer(system)
+        return vorlagen[0].schluessel if vorlagen else Notenschluessel.standard(system)
 
     def speichere_vorlage(self, name: str, schluessel: Notenschluessel, standard: bool = False) -> None:
         name = name.strip()
@@ -99,22 +103,25 @@ class Arbeiten:
             raise ArbeitFehler("Bitte einen Namen für die Vorlage angeben.")
         schluessel.pruefe()
         with self.v:
-            if standard:
-                self.v.execute("UPDATE notenschluessel SET standard = 0")
+            if standard:   # nur innerhalb desselben Notensystems gibt es genau einen Standard
+                for v in self.vorlagen_fuer(schluessel.system):
+                    self.v.execute("UPDATE notenschluessel SET standard = 0 WHERE id = ?", (v.id,))
             self.v.execute("INSERT INTO notenschluessel (name, daten, standard) VALUES (?, ?, ?) "
                            "ON CONFLICT (name) DO UPDATE SET daten = excluded.daten, standard = excluded.standard",
                            (name, schluessel.als_json(), int(standard)))
 
     def loesche_vorlage(self, vorlage_id: int) -> None:
-        if len(self.vorlagen()) <= 1:
+        v = next((x for x in self.vorlagen() if x.id == vorlage_id), None)
+        if v is None:
+            return
+        gleiche = self.vorlagen_fuer(v.schluessel.system)
+        if len(gleiche) <= 1:
             raise ArbeitFehler("Die letzte Vorlage kann nicht gelöscht werden.")
         with self.v:
-            war_standard = self.v.execute("SELECT standard FROM notenschluessel WHERE id = ?",
-                                          (vorlage_id,)).fetchone()
             self.v.execute("DELETE FROM notenschluessel WHERE id = ?", (vorlage_id,))
-            if war_standard and war_standard[0]:
-                self.v.execute("UPDATE notenschluessel SET standard = 1 WHERE id = "
-                               "(SELECT id FROM notenschluessel ORDER BY name LIMIT 1)")
+            if v.standard:
+                rest = sorted((x for x in gleiche if x.id != vorlage_id), key=lambda x: x.name)
+                self.v.execute("UPDATE notenschluessel SET standard = 1 WHERE id = ?", (rest[0].id,))
 
     # ---- Arbeiten ------------------------------------------------------------------------------
     _SPALTEN = ("id, lerngruppe_id, titel, datum, schluessel, rueckgabe, art, zaehlt, gewicht, thema, bemerkung, "
@@ -153,7 +160,7 @@ class Arbeiten:
                        schluessel: Notenschluessel | None = None, rueckgabe: date | None = None,
                        thema: str = "") -> Arbeit:
         self._pruefe(lerngruppe_id, titel, datum, rueckgabe)
-        schluessel = schluessel or self.standard_schluessel()
+        schluessel = schluessel or self.standard_schluessel(self.sd.lerngruppe(lerngruppe_id).notensystem)
         with self.v:
             c = self.v.execute(
                 "INSERT INTO arbeit (lerngruppe_id, titel, datum, rueckgabe, schluessel, thema) VALUES (?, ?, ?, ?, ?, ?)",
@@ -244,10 +251,13 @@ class Arbeiten:
                         note_manuell: Note | None | str = "unverändert", kommentar: str | None = None) -> None:
         if status is not None and status not in STATUS:
             raise ArbeitFehler("Unbekannter Status.")
+        if isinstance(note_manuell, Note) and (isinstance(note_manuell, Punkte)
+                                               != (self.arbeit(arbeit_id).schluessel.system == "sek2")):
+            raise ArbeitFehler("In der Oberstufe werden Punkte (0–15) vergeben, sonst Noten (1–6).")
         alt = self.v.execute("SELECT status, note_manuell, kommentar FROM teilnahme WHERE arbeit_id = ? AND "
                              "schueler_id = ?", (arbeit_id, schueler_id)).fetchone() or ("", None, "")
         neu_status = alt[0] if status is None else status
-        neu_note = alt[1] if isinstance(note_manuell, str) else (note_manuell.kurz if note_manuell else None)
+        neu_note = alt[1] if isinstance(note_manuell, str) else (note_manuell.speicher if note_manuell else None)
         neu_kommentar = alt[2] if kommentar is None else kommentar
         with self.v:
             if not neu_status and neu_note is None and not neu_kommentar:
@@ -280,14 +290,15 @@ class Arbeiten:
             status, manuell, kommentar = teilnahme.get(sid, ("", None, ""))
             ergebnisse.append(Ergebnis(
                 mitglied=m, punkte=werte, summe=summe, note_berechnet=berechnet,
-                note_manuell=Note.aus_kurz(manuell) if manuell else None, status=status, kommentar=kommentar,
+                note_manuell=Note.lies(manuell) if manuell else None, status=status, kommentar=kommentar,
                 erwartet=m.aktiv_am(a.datum),
                 unvollstaendig=bool(eingetragen) and len(eingetragen) < len(aufgaben)))
         return ergebnisse
 
     def notenspiegel(self, arbeit_id: int, ergebnisse: list[Ergebnis] | None = None) -> Notenspiegel:
         ergebnisse = ergebnisse if ergebnisse is not None else self.ergebnisse(arbeit_id)
-        return Notenspiegel.aus([e.note for e in ergebnisse if e.note is not None])
+        return Notenspiegel.aus([e.note for e in ergebnisse if e.note is not None],
+                                sek2=self.arbeit(arbeit_id).schluessel.system == "sek2")
 
     def aufgaben_statistik(self, arbeit_id: int, ergebnisse: list[Ergebnis] | None = None) -> list[AufgabenStatistik]:
         ergebnisse = ergebnisse if ergebnisse is not None else self.ergebnisse(arbeit_id)

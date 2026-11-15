@@ -153,7 +153,7 @@ class MuendlichModell(QAbstractTableModel):
         if rolle != Qt.ItemDataRole.EditRole or not self._erlaubt(index):
             return False
         try:
-            note = note_aus_eingabe(str(wert))
+            note = note_aus_eingabe(str(wert), self.gruppe.notensystem)
             self.mu.setze_note(self.zeitraeume[index.column() - FEST].id, self.mitglieder[index.row()].schueler.id, note)
         except MuendlichFehler as e:
             self.fehler.emit(str(e))
@@ -308,8 +308,8 @@ class MuendlichTab(QWidget):
         self.raster.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.raster.customContextMenuRequested.connect(self._kontextmenue)
         self.meldung = Hinweis()
-        hilfe = QLabel("Eingabe: 2, 2+, 2- oder als Zahl (1,7 → 2+). Graue Felder: in diesem Zeitraum nicht in der "
-                       "Gruppe. Rechtsklick: Bemerkung.", objectName="leise")
+        hilfe = QLabel(objectName="leise")
+        self.hilfe = hilfe
         hilfe.setWordWrap(True)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 8, 0, 0)
@@ -327,6 +327,9 @@ class MuendlichTab(QWidget):
             self.raster.setModel(self.modell)
         self.jahr, self.gruppe = jahr, gruppe
         self.meldung.setze("")
+        eingabe = ("Eingabe: Punkte 0–15 (10,5 → 11)" if gruppe.sek2
+                   else "Eingabe: 2, 2+, 2- oder als Zahl (1,7 → 2+)")
+        self.hilfe.setText(f"{eingabe}. Graue Felder: in diesem Zeitraum nicht in der Gruppe. Rechtsklick: Bemerkung.")
         self.modell.lade(jahr, gruppe)
         k = self.raster.horizontalHeader()
         k.setMinimumHeight(44)

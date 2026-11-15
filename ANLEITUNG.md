@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.4.0)
+# Notenverwaltung – Kurzanleitung (Stand 0.5.0)
 
 ## Starten
 
@@ -45,6 +45,20 @@ Datei lässt sich mit älteren Programmversionen nicht mehr öffnen.
      „Drucken / PDF …“: Notenübersicht mit Quartalen und Notenspiegeln.
    - **Schüler:innen:** Mitglieder, Sortierung (Klasse → Alphabet, Alphabet, eigene Reihenfolge), Ein-/Austritt.
 6. **Neues Schuljahr:** Datei → Schuljahr → „Neues Schuljahr aus bisherigem übernehmen …“.
+   Oberstufe: aus allen 10. Klassen wird die EF, dann Q1 und Q2; die Q2 endet (Abitur) – alles im Assistenten änderbar.
+
+## Oberstufe (EF, Q1, Q2)
+
+- Schüler:innen bekommen als Klasse „EF“, „Q1“ oder „Q2“ (Jahrgang 11, 12, 13).
+- Lerngruppe mit Jahrgang 11–13 anlegen: Notensystem **Punkte 0–15**, Kursart GK oder LK, schriftlich oder mündlich.
+- **Klausuren** wie Klassenarbeiten; Schlüssel nach NRW-Tabelle (ab 95 % 15 Punkte, je 5 % weniger ein Punkt bis
+  50 % = 6 Punkte, dann 45/39/33/27/20 % = 5/4/3/2/1 Punkt) – pro Klausur änderbar, eigene Vorlagen möglich.
+  Punkte ohne Klausurpunkte direkt in die Spalte „Notenpunkte“ tippen (ganze Punkte).
+- **Sonstige Mitarbeit** im Reiter „Mündlich“: Punkte 0–15 (Kommazahlen werden gerundet, 10,5 → 11).
+- **Noten:** Quartals- und Halbjahresnoten in Punkten; schriftliche Kurse standardmäßig 50 % Klausuren / 50 %
+  Sonstige Mitarbeit; die Halbjahre werden getrennt bewertet. Schnitte werden auf ganze Punkte gerundet (,5 → besser).
+- Ausdrucke (Punkteliste, Abschnitte, Rückmeldebogen, Übersichten) zeigen Punkte; der Notenspiegel zählt Punkte
+  und den Anteil unter 5 Punkten. Nicht enthalten: Abiturzulassung und Abiturprüfungen.
 
 ## Sicherheit
 

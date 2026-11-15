@@ -64,7 +64,8 @@ def test_natuerliche_sortierung_und_din5007():
 def test_jahrgang_aus_klasse():
     assert jahrgang_aus_klasse("8.4") == 8
     assert jahrgang_aus_klasse("10a") == 10
-    assert jahrgang_aus_klasse("Q1") is None
+    assert jahrgang_aus_klasse("Q1") == 12 and jahrgang_aus_klasse("ef") == 11 and jahrgang_aus_klasse("Q2 b") == 13
+    assert jahrgang_aus_klasse("Q12") is None and jahrgang_aus_klasse("Förder") is None
 
 
 # ---- Schuljahre --------------------------------------------------------------------------------
@@ -127,14 +128,23 @@ def test_lerngruppe_anlegen(sd, jahr):
     assert "E-Kurs" in g.beschreibung
     with pytest.raises(StammdatenFehler, match="gibt es"):
         kurs(sd, jahr)
-    with pytest.raises(StammdatenFehler, match="Sekundarstufe II"):
-        kurs(sd, jahr, bezeichnung="Q1 M", notensystem="sek2")
+    with pytest.raises(StammdatenFehler, match="nur in der Oberstufe"):
+        kurs(sd, jahr, bezeichnung="Q1 M", notensystem="sek2")          # Jahrgang 9 hat keine Punkte
+    with pytest.raises(StammdatenFehler, match="GK/LK"):
+        kurs(sd, jahr, bezeichnung="X", kursart="LK")
+    lk = kurs(sd, jahr, bezeichnung="M-LK1", notensystem="sek2", jahrgang=12, niveau="", kursart="LK")
+    assert lk.sek2 and lk.kursart == "LK" and "LK · Stufe Q1" in lk.beschreibung
+    from notenverwaltung.modell.zeugnis import Zeugnis
+
+    assert Zeugnis(sd.v).gewichtung(lk).anteil_hj1 == 0                # Sek II: Halbjahre stehen für sich
+    with pytest.raises(StammdatenFehler, match="E-/G-Kurse"):
+        kurs(sd, jahr, bezeichnung="Y", notensystem="sek2", jahrgang=11, niveau="E")
     with pytest.raises(StammdatenFehler):
         kurs(sd, jahr, bezeichnung="X", niveau="Z")
     k = kurs(sd, jahr, bezeichnung="8.4 Deutsch", fach="Deutsch", art="klasse", jahrgang=8, niveau="")
-    assert [x.bezeichnung for x in sd.lerngruppen(jahr.id)] == ["8.4 Deutsch", "M9.3E"]
+    assert [x.bezeichnung for x in sd.lerngruppen(jahr.id)] == ["8.4 Deutsch", "M9.3E", "M-LK1"]
     sd.loesche_lerngruppe(k.id)
-    assert len(sd.lerngruppen(jahr.id)) == 1
+    assert len(sd.lerngruppen(jahr.id)) == 2
 
 
 def _kursbelegung(sd, jahr):

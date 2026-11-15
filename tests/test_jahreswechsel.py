@@ -29,7 +29,7 @@ def neues_jahr(sd):
 
 def test_hochsetzen():
     assert klasse_hoch("8.4") == "9.4"
-    assert klasse_hoch("10a") == "11a"
+    assert klasse_hoch("10a") == "EF"          # Gesamtschule: nach der 10 kommt die Einführungsphase
     assert klasse_hoch("9.10") == "10.10"
     assert klasse_hoch("Förder") == "Förder"
     assert hochsetzen("M9.3E", 9, 10) == "M10.3E"
@@ -128,3 +128,50 @@ def test_klassengruppe_unabhaengig_von_bezeichnung(sd, bezeichnung):
     fuehre_aus(sd, plan, neu)
     neu_g = sd.lerngruppen(neu.id)[0]
     assert sorted(m.schueler.nachname for m in sd.mitglieder(neu_g.id)) == ["A", "B"]   # C wiederholt die 8.4
+
+
+def test_oberstufe_hochsetzen():
+    from notenverwaltung.modell.jahreswechsel import gruppe_hoch, klasse_endet
+
+    assert [klasse_hoch(k) for k in ("10.1", "10b", "EF", "Q1", "Q2", "ef", "Q1 b")] == [
+        "EF", "EF", "Q1", "Q2", "Q2", "Q1", "Q2 b"]
+    assert [klasse_endet(k) for k in ("Q2", "Q1", "10.1")] == [True, False, False]
+    g = lambda b, j, art="kurs": Lerngruppe(0, 1, b, "Deutsch", art, j, "D")  # noqa: E731
+    assert gruppe_hoch(g("Q1 D-LK", 12)) == "Q2 D-LK"
+    assert gruppe_hoch(g("D-GK1", 11)) == "D-GK1"
+    assert gruppe_hoch(g("10.2 Deutsch", 10, "klasse")) == "EF Deutsch"
+    assert gruppe_hoch(g("D 10b", 10, "klasse")) == "D EF"
+    assert gruppe_hoch(g("M9.3E", 9)) == "M10.3E"
+
+
+def test_wechsel_in_die_oberstufe(sd):
+    from notenverwaltung.modell.noten import Punkte
+
+    ids = {n: sd.lege_schueler_an(sd.alt.id, n, "y", k).id for n, k in
+           [("Q2a", "Q2"), ("Q1a", "Q1"), ("EFa", "EF"), ("Zehn", "10.2")]}
+    d10 = sd.lege_lerngruppe_an(Lerngruppe(0, sd.alt.id, "10.2 Deutsch", "Deutsch", "klasse", 10, "D"))
+    sd.uebernimm_klasse(d10.id, "10.2")
+    lk = sd.lege_lerngruppe_an(Lerngruppe(0, sd.alt.id, "Q1 D-LK", "Deutsch", "kurs", 12, "D", kursart="LK",
+                                          notensystem="sek2"))
+    sd.fuege_hinzu(lk.id, [ids["Q1a"]])
+    plan = plane(sd, sd.alt.id)
+    namen = {p.eintrag.schueler.nachname: p for p in plan.personen}
+    assert namen["Q2a"].aktion == "abgang"                                # Abitur
+    assert (namen["Q1a"].neue_klasse, namen["EFa"].neue_klasse, namen["Zehn"].neue_klasse) == ("Q2", "Q1", "EF")
+    assert namen["Zehn"].neuer_jahrgang == 11
+    for gp in plan.gruppen:
+        gp.uebernehmen = gp.gruppe.id in (d10.id, lk.id)
+    neu = neues_jahr(sd)
+    fuehre_aus(sd, plan, neu)
+    gruppen = {x.bezeichnung: x for x in sd.lerngruppen(neu.id)}
+    ef = gruppen["EF Deutsch"]
+    assert (ef.jahrgang, ef.notensystem, ef.niveau) == (11, "sek2", "")
+    assert Zeugnis(sd.v).gewichtung(ef).anteil_hj1 == 0
+    assert [m.schueler.nachname for m in sd.mitglieder(ef.id)] == ["D", "Zehn"]   # alle aus den 10. Klassen
+    q2 = gruppen["Q2 D-LK"]
+    assert (q2.jahrgang, q2.kursart, q2.notensystem) == (13, "LK", "sek2")
+    assert [m.schueler.nachname for m in sd.mitglieder(q2.id)] == ["Q1a"]
+    from notenverwaltung.modell.muendlich import Muendlich
+
+    mu = Muendlich(sd.v)
+    mu.setze_note(mu.zeitraeume(ef.id)[0].id, ids["Zehn"], Punkte.aus_punkte(10))   # Punkte gehen

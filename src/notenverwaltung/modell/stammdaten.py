@@ -55,9 +55,21 @@ def natuerlich(text: str) -> tuple:
                  for t in re.findall(r"\d+|\D+", text))
 
 
+OBERSTUFE = {"EF": 11, "Q1": 12, "Q2": 13}      # Gesamtschule/G9: Einführungsphase und Qualifikationsphase
+
+
 def jahrgang_aus_klasse(klasse: str) -> int | None:
+    """„8.4“ → 8, „10a“ → 10, Oberstufe: „EF“ → 11, „Q1“ → 12, „Q2“ → 13 (auch „Q1 b“, „ef“)."""
+    m = re.match(r"\s*(EF|Q1|Q2)(?![0-9])", klasse, re.IGNORECASE)
+    if m:
+        return OBERSTUFE[m.group(1).upper()]
     m = re.match(r"\s*(\d{1,2})", klasse)
     return int(m.group(1)) if m else None
+
+
+def stufe_text(jahrgang: int) -> str:
+    """11 → „EF“, 12 → „Q1“, 13 → „Q2“, sonst die Zahl."""
+    return {v: k for k, v in OBERSTUFE.items()}.get(jahrgang, str(jahrgang))
 
 
 def schuljahr_vorschlag(heute: date | None = None) -> tuple[str, date, date, date]:
@@ -153,10 +165,18 @@ class Lerngruppe:
     schriftlich: bool = True
     notensystem: str = "sek1"
     sortierung: str = "klasse"
+    kursart: str = ""             # Sek II: "GK" oder "LK"
+
+    @property
+    def sek2(self) -> bool:
+        return self.notensystem == "sek2"
 
     @property
     def beschreibung(self) -> str:
-        teile = [self.fach, "Klasse" if self.art == "klasse" else "Kurs", f"Jahrgang {self.jahrgang}"]
+        if self.sek2:
+            teile = [self.fach, self.kursart or "Kurs", f"Stufe {stufe_text(self.jahrgang)}"]
+        else:
+            teile = [self.fach, "Klasse" if self.art == "klasse" else "Kurs", f"Jahrgang {self.jahrgang}"]
         if self.niveau:
             teile.append(f"{self.niveau}-Kurs")
         teile.append("schriftlich" if self.schriftlich else "mündlich")
@@ -361,11 +381,11 @@ class Stammdaten:
 
     # ---- Lerngruppen ---------------------------------------------------------------------------
     _LG_SPALTEN = ("id, schuljahr_id, bezeichnung, fach, art, jahrgang, fach_kuerzel, niveau, schriftlich, "
-                   "notensystem, sortierung")
+                   "notensystem, sortierung, kursart")
 
     @staticmethod
     def _lerngruppe(z) -> Lerngruppe:
-        return Lerngruppe(z[0], z[1], z[2], z[3], z[4], z[5], z[6], z[7], bool(z[8]), z[9], z[10])
+        return Lerngruppe(z[0], z[1], z[2], z[3], z[4], z[5], z[6], z[7], bool(z[8]), z[9], z[10], z[11])
 
     def lerngruppe(self, lerngruppe_id: int) -> Lerngruppe:
         z = self.v.execute(f"SELECT {self._LG_SPALTEN} FROM lerngruppe WHERE id = ?", (lerngruppe_id,)).fetchone()
@@ -389,10 +409,19 @@ class Stammdaten:
             raise StammdatenFehler("Unbekannte Art der Lerngruppe.")
         if g.niveau not in ("", "E", "G"):
             raise StammdatenFehler("Das Kursniveau ist E, G oder leer.")
-        if g.notensystem != "sek1":
-            raise StammdatenFehler("Die Sekundarstufe II wird noch nicht unterstützt.")
+        if g.notensystem not in ("sek1", "sek2"):
+            raise StammdatenFehler("Unbekanntes Notensystem.")
         if not 1 <= g.jahrgang <= 13:
             raise StammdatenFehler("Der Jahrgang muss zwischen 1 und 13 liegen.")
+        if g.sek2:
+            if g.jahrgang < 11:
+                raise StammdatenFehler("Punkte (0–15) gibt es nur in der Oberstufe (EF, Q1, Q2).")
+            if g.niveau:
+                raise StammdatenFehler("E-/G-Kurse gibt es nur in der Sekundarstufe I.")
+            if g.kursart not in ("", "GK", "LK"):
+                raise StammdatenFehler("Die Kursart ist GK oder LK.")
+        elif g.kursart:
+            raise StammdatenFehler("GK/LK gibt es nur in der Oberstufe (Notensystem Punkte).")
 
     def lege_lerngruppe_an(self, g: Lerngruppe) -> Lerngruppe:
         self._pruefe_lerngruppe(g)
@@ -400,24 +429,34 @@ class Stammdaten:
             with self.v:
                 c = self.v.execute(
                     "INSERT INTO lerngruppe (schuljahr_id, bezeichnung, fach, art, jahrgang, fach_kuerzel, niveau, "
-                    "schriftlich, notensystem, sortierung) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "schriftlich, notensystem, sortierung, kursart, anteil_hj1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (g.schuljahr_id, g.bezeichnung.strip(), g.fach.strip(), g.art, g.jahrgang, g.fach_kuerzel.strip(),
-                     g.niveau, int(g.schriftlich), g.notensystem, g.sortierung))
+                     g.niveau, int(g.schriftlich), g.notensystem, g.sortierung, g.kursart,
+                     0 if g.sek2 else 10))   # Sek II: jedes Halbjahr steht für sich
         except sqlite3.IntegrityError as e:
             raise StammdatenFehler(f"Die Lerngruppe „{g.bezeichnung}“ gibt es in diesem Schuljahr schon.") from e
         return self.lerngruppe(c.lastrowid)
 
     def aendere_lerngruppe(self, g: Lerngruppe) -> None:
         self._pruefe_lerngruppe(g)
+        if g.notensystem != self.lerngruppe(g.id).notensystem and self._hat_noten(g.id):
+            raise StammdatenFehler("Zwischen Sekundarstufe I und Oberstufe kann nicht mehr gewechselt werden, "
+                                   "weil schon Noten eingetragen sind.")
         try:
             with self.v:
                 self.v.execute(
                     "UPDATE lerngruppe SET bezeichnung = ?, fach = ?, art = ?, jahrgang = ?, fach_kuerzel = ?, "
-                    "niveau = ?, schriftlich = ?, notensystem = ?, sortierung = ? WHERE id = ?",
+                    "niveau = ?, schriftlich = ?, notensystem = ?, sortierung = ?, kursart = ? WHERE id = ?",
                     (g.bezeichnung.strip(), g.fach.strip(), g.art, g.jahrgang, g.fach_kuerzel.strip(), g.niveau,
-                     int(g.schriftlich), g.notensystem, g.sortierung, g.id))
+                     int(g.schriftlich), g.notensystem, g.sortierung, g.kursart, g.id))
         except sqlite3.IntegrityError as e:
             raise StammdatenFehler(f"Die Lerngruppe „{g.bezeichnung}“ gibt es in diesem Schuljahr schon.") from e
+
+    def _hat_noten(self, lerngruppe_id: int) -> bool:
+        return any(self.v.execute(sql, (lerngruppe_id,)).fetchone() for sql in (
+            "SELECT 1 FROM arbeit WHERE lerngruppe_id = ? LIMIT 1",
+            "SELECT 1 FROM muendlich m JOIN zeitraum z ON z.id = m.zeitraum_id WHERE z.lerngruppe_id = ? LIMIT 1",
+            "SELECT 1 FROM zeugnisnote WHERE lerngruppe_id = ? LIMIT 1"))
 
     def loesche_lerngruppe(self, lerngruppe_id: int) -> None:
         with self.v:
