@@ -20,12 +20,26 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 - [x] 11 KI-Paket (12.11.2026)
 - [x] 12 Darstellung → **Meilenstein C** (12.11.2026, Version 0.3.0)
 
+Runde 2 (15.11.2026, nach Sebastians Linux-Test; „Ja, starten“ für Etappen 13 und 14):
+- [x] 13 Absicherung der Dateien (15.11.2026) – `tests/daten/version_0_3_2.nvdb/.json`, dauerhafte Sicherung vor Format-Umstellung; nebenbei Fehler im Schuljahreswechsel behoben (Klassengruppe „D 8.4“ bekam keine Mitglieder)
+- [ ] 14 Etiketten-Rand, Note ohne Punkte → Version 0.3.3
+- [ ] 15 Quartalsnoten (braucht Antworten auf Fragen 1–3)
+- [ ] 16 Einzelnoten im Reiter „Noten“ → Version 0.4.0
+- [ ] 17 Sek II (braucht Antworten auf Fragen 4–6) → Version 0.5.0
+- [ ] 18 Hilfe im Programm → Version 0.6.0
+
 ## Nächster Schritt
-Warten auf Rückmeldung von Sebastian zum Windows-Test (aktuell v0.3.2).
-Später: freier Layout-Editor, Sek II.
+Etappe 14. Danach auf Antworten zu den Fragen warten (Quartalsnoten, Kompatibilität, Sek II).
+
+**Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
+tests/daten/version_X_Y_Z` ausführen und die beiden Dateien committen – aber nur, wenn sich das Dateiformat
+oder die Daten-Arten geändert haben. Bestehende Versionsdateien nie neu erzeugen.
 
 Offen / Rückfragen an Sebastian:
 - Beispiel-Exporte aus SchILD-NRW und Untis (erfundene Namen) zum Gegenprüfen des Imports
+- Quartalsnoten: Was fließt ein (nur das Quartal?), ganze Noten oder mit Tendenz?
+- Arbeitet er mit derselben Datei an Rechnern mit verschiedenen Versionen?
+- Sek II: Klausurschlüssel (NRW-Standard?), nur Kursführung ohne Abiturberechnung?, 50/50 als Standard?
 
 Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Übernehmen genau ,5 → bessere Note (2,5 → 2).
 

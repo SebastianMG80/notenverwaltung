@@ -138,8 +138,11 @@ def fuehre_aus(sd: Stammdaten, plan: Wechselplan, neu: Schuljahr) -> WechselErge
             if gp.mitglieder:
                 if g.art == "klasse":
                     # Klasse in einem Fach: alle, die im neuen Jahr in dieser Klasse sind (auch Wiederholer:innen)
-                    klasse = gp.neue_bezeichnung.split(" ")[0]
-                    ids = [sid for sid, k in neue_klasse.items() if k == klasse]
+                    # Zielklasse(n) aus den Mitgliedern ableiten – die Bezeichnung kann „8.4 D“ oder „D 8.4“ sein
+                    alte_klassen = {m.klasse for m in sd.mitglieder(g.id)}
+                    ziele = {p.neue_klasse.strip() for p in plan.personen
+                             if p.aktion == "versetzen" and p.eintrag.klasse in alte_klassen}
+                    ids = [sid for sid, k in neue_klasse.items() if k in ziele]
                 else:
                     # Kurs: bisherige Mitglieder, die versetzt werden und bis zum Schluss dabei waren
                     ids = [m.schueler.id for m in sd.mitglieder(g.id)

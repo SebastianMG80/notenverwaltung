@@ -6,6 +6,7 @@
 *.nvdb.*
 # Ausnahme: erfundene Testdatenbank für den Kompatibilitätstest Linux ↔ Windows
 !tests/daten/kompatibilitaet_linux.nvdb
+!tests/daten/version_*.nvdb
 *.nvkey
 notfallblatt*.pdf
 /daten/

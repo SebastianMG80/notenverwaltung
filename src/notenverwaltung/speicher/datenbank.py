@@ -29,6 +29,7 @@ from notenverwaltung.speicher.tresor import PASSWORT, FormatFehler, Tresor
 ENDUNG = ".nvdb"
 SCHLUESSELDATEI_ENDUNG = ".nvkey"
 MAX_SICHERUNGEN = 20
+DAUERHAFT = "_vor-Umstellung"   # Namensteil dauerhafter Sicherungen
 
 
 class GesperrtFehler(Exception):
@@ -180,10 +181,13 @@ class Datenbank:
             raise FormatFehler("Die Datenbank im Inneren der Datei ist beschädigt.") from e
         cls._pruefe_integritaet(verbindung)
         verbindung.execute("PRAGMA foreign_keys = ON")
+        stand = schema.schema_version(verbindung)
         migriert = schema.migriere(verbindung)
         db = cls(pfad, tresor, verbindung)
         db._sperren()
         if migriert:
+            # Die Datei im alten Format bleibt als eigene, dauerhafte Sicherung erhalten
+            db._sichern(f"_vor-Umstellung-Format-{stand}-auf-{schema.SCHEMA_VERSION}")
             db._tresor_geaendert = True  # Schema-Anhebung soll gespeichert werden
         return db
 
@@ -223,13 +227,19 @@ class Datenbank:
         self._gespeicherte_aenderungen = self.verbindung.total_changes
         self._tresor_geaendert = False
 
-    def _sichern(self) -> None:
+    def _sichern(self, zusatz: str = "") -> None:
+        """Kopiert die Datei (wie sie auf der Platte liegt) in den Sicherungsordner.
+
+        Mit `zusatz` (z. B. vor einer Format-Umstellung) ist die Sicherung dauerhaft: Sie zählt nicht
+        zu den höchstens MAX_SICHERUNGEN gewöhnlichen Sicherungen und wird nie automatisch gelöscht.
+        """
         if self.pfad.exists():
             ordner = sicherungsordner(self.pfad)
             ordner.mkdir(exist_ok=True)
             stempel = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            shutil.copy2(self.pfad, ordner / f"{self.pfad.stem}_{stempel}{ENDUNG}")
-            for alt in self.sicherungen()[MAX_SICHERUNGEN:]:
+            shutil.copy2(self.pfad, ordner / f"{self.pfad.stem}_{stempel}{zusatz}{ENDUNG}")
+            gewoehnlich = [s for s in self.sicherungen() if DAUERHAFT not in s.name]
+            for alt in gewoehnlich[MAX_SICHERUNGEN:]:
                 alt.unlink(missing_ok=True)
         self._gesichert = True
 

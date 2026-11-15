@@ -113,3 +113,18 @@ def test_assistent(sd, app, monkeypatch):
     ng = sd.lerngruppen(neu.id)[0]
     assert ng.bezeichnung == "9.4 Deutsch"
     assert sorted(m.schueler.nachname for m in sd.mitglieder(ng.id)) == ["A", "B"]  # C wiederholt die 8.4
+
+
+@pytest.mark.parametrize("bezeichnung", ["8.4 Deutsch", "D 8.4", "Deutsch"])
+def test_klassengruppe_unabhaengig_von_bezeichnung(sd, bezeichnung):
+    """Die neue Klasse kommt aus den Mitgliedern, nicht aus dem ersten Wort der Bezeichnung."""
+    g = sd.lege_lerngruppe_an(Lerngruppe(0, sd.alt.id, bezeichnung, "Deutsch", "klasse", 8, "D"))
+    sd.uebernimm_klasse(g.id, "8.4")
+    sd.fuege_hinzu(g.id, [])
+    plan = plane(sd, sd.alt.id)
+    setze_wiederholer(next(p for p in plan.personen if p.eintrag.schueler.nachname == "C"))
+    plan.gruppen[0].uebernehmen = True
+    neu = neues_jahr(sd)
+    fuehre_aus(sd, plan, neu)
+    neu_g = sd.lerngruppen(neu.id)[0]
+    assert sorted(m.schueler.nachname for m in sd.mitglieder(neu_g.id)) == ["A", "B"]   # C wiederholt die 8.4
