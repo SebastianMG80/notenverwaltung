@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.6.1)
+# Notenverwaltung – Kurzanleitung (Stand 0.7.0)
 
 ## Starten
 
@@ -27,7 +27,9 @@ Häufige Fragen. Die Hilfe ist im Programm enthalten und funktioniert ohne Inter
 3. **Schüler:innen** links → „Neu …“ oder „Importieren …“ (CSV, Excel, ODS, Exporte aus SchILD/Untis).
 4. **Lerngruppen** anlegen (Datei → Neue Lerngruppe, Strg+L): Klasse in einem Fach oder klassenübergreifender Kurs,
    E/G-Vermerk, schriftlich oder mündlich.
-5. In der Lerngruppe:
+5. **Strg+Z** nimmt jede Änderung zurück (eine Zelle, ein Dialog, auch Löschen oder den Schuljahreswechsel),
+   Strg+Y stellt sie wieder her. **Übersichten → Nachschreibliste:** alle mit „fehlt“/„schreibt nach“.
+6. In der Lerngruppe:
    - **Klassenarbeiten:** „Neue Arbeit …“ (Aufgaben wie 1, 2, 3a, b, c), Punkte eintippen – Enter springt weiter,
      Summe und Note erscheinen sofort. Rechtsklick: fehlt / schreibt nach / Note festsetzen / Rückmeldung.
      **Note ohne Punkte** (z. B. Nachschreiber:innen): Note direkt in die Spalte „Note“ tippen (2, 3+, 4-);
@@ -38,6 +40,11 @@ Häufige Fragen. Die Hilfe ist im Programm enthalten und funktioniert ohne Inter
      Rückmeldebögen mit langem Erwartungshorizont: erst kleinere Schrift (bis 7 pt, für alle gleich), sonst eine
      Folgeseite; für beidseitigen Druck „jeder Bogen beginnt auf einem neuen Blatt“ wählen.
      „KI-Vorlage …“: Prompt kopieren, Antwort der KI einfügen → Aufgaben, Punkte, Erwartungshorizont, Musterlösung.
+     **Aufgabe für Aufgabe korrigieren:** „Enter springt nach unten“ – nach der letzten Person geht es mit der
+     nächsten Aufgabe weiter; daneben steht, wie viele schon eingetragen sind.
+     **Rückmeldungen …:** Person für Person schreiben (Strg+Bild auf/ab), Textbausteine per Doppelklick oder
+     Kürzel + Strg+Leertaste, Platzhalter wie {Vorname}, {Stärken}, {Übungsbedarf}. Optional (Bearbeiten →
+     Einstellungen): Vorschlag aus den Punkten und Aufgabenanalyse (Lösungsquote je Aufgabe, auch als Ausdruck).
    - **Mündlich:** Noten je Quartal (feiner unterteilbar unter „Zeiträume …“), Eingabe 2, 2+, 2- oder 1,7.
      „Drucken / PDF …“: Liste der mündlichen Noten (mit/ohne Tendenz, Halbjahresmittel, Bemerkungen)
      oder leere Liste zum Eintragen von Hand. Bei vielen Zeiträumen automatisch im Querformat.

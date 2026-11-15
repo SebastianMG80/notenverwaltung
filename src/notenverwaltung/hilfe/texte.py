@@ -171,7 +171,7 @@ schon eingetragen sind („Aufgabe 3a: 17 von 28 eingetragen“) – ohne „feh
 <li><b>Note direkt eintippen:</b> in die Spalte „Note“ (z. B. 2, 3+ oder 4-; Oberstufe: Punkte 0–15) – etwa bei
 Nachschreiber:innen. Ein <b>*</b> markiert eine festgesetzte Note; <b>Entf</b> hebt die Festsetzung auf.</li>
 <li><b>Rechtsklick</b> auf eine Zeile: fehlt, schreibt nach, befreit, Note festsetzen, Rückmeldung an die Person
-(erscheint auf dem Rückmeldebogen).</li>
+(erscheint auf dem Rückmeldebogen). → <a href="#rueckmeldungen">Rückmeldungen und Textbausteine</a></li>
 </ul>
 <h3>Nachschreibliste</h3>
 <p>Menü <b>Übersichten → Nachschreibliste</b>: alle mit „fehlt“ oder „schreibt nach“ aus allen Lerngruppen des
@@ -180,6 +180,39 @@ zum Mitgeben an die Aufsicht. Erledigt ist, wer Punkte oder eine Note hat.</p>
 <p>Schüler:innen sehen bei Klassenarbeiten die Note <b>ohne Tendenz</b> („gut“). Intern wird mit Tendenz gerechnet
 (2+ = 1,7; 2- = 2,3).</p>
 <p>→ <a href="#schluessel">Notenschlüssel</a> · <a href="#drucken">Drucken</a> · <a href="#ki">KI-Vorlage</a></p>
+"""),
+    Thema("rueckmeldungen", "Rückmeldungen, Textbausteine, Aufgabenanalyse", """
+<h2>Rückmeldungen, Textbausteine, Aufgabenanalyse</h2>
+<p><b>„Rückmeldungen …“</b> (oder Rechtsklick → „Rückmeldung an die Person …“) öffnet ein Fenster, in dem du
+Person für Person schreibst: <b>Vorige / Nächste</b> (Strg + Bild auf / ab) speichert und blättert. Die Rückmeldung
+erscheint auf dem <a href="#drucken">Rückmeldebogen</a>.</p>
+<h3>Textbausteine</h3>
+<ul>
+<li>Rechts stehen deine Bausteine: <b>Doppelklick</b> setzt einen an der Schreibmarke ein.</li>
+<li>Schneller: <b>Kürzel tippen und Strg + Leertaste</b> – z. B. „stark“ wird zu „Besonders gut gelungen: …“.</li>
+<li><b>Platzhalter</b> werden für die jeweilige Person ersetzt: {Vorname}, {Nachname}, {Note}, {Punkte},
+{Höchstpunkte}, {Prozent}, {Arbeit}, {Fach}, {Stärken}, {Übungsbedarf}. Stärken und Übungsbedarf nennen die
+Themen der Aufgaben mit vielen bzw. wenigen Punkten (sonst „Aufgabe 3a“).</li>
+<li>Verwalten: im Fenster „Bausteine verwalten …“ oder Menü Bearbeiten → Textbausteine. Ein Baustein kann nur für
+ein Fach gelten. Die Bausteine stehen in der Datenbank – auf jedem Rechner dieselben.</li>
+</ul>
+<h3>Vorschlag aus den Punkten (opt-in)</h3>
+<p>Unter <a href="#einstellungen">Bearbeiten → Einstellungen</a> einschalten. Dann erzeugt der Knopf „Vorschlag
+aus den Punkten“ einen Satz aus den Aufgabenergebnissen, z. B. „Besonders gut gelungen: Halbaddierer. Übe noch
+einmal: Volladdierer.“ Das ist nur ein Vorschlag zum Weiterschreiben.</p>
+<h3>Aufgabenanalyse (opt-in)</h3>
+<p>Ebenfalls unter Einstellungen. Neben dem Notenspiegel steht dann je Aufgabe die <b>Lösungsquote</b> (mittlerer
+Anteil der Höchstpunkte), wie viele die volle Punktzahl und wie viele 0 Punkte haben. Niedrige Quoten sind rot.
+Im Druckdialog gibt es sie als eigenen Ausdruck – ohne Namen, z. B. für die Fachkonferenz.</p>
+"""),
+    Thema("einstellungen", "Einstellungen", """
+<h2>Einstellungen</h2>
+<p>Menü <b>Bearbeiten → Einstellungen</b>. Sie gelten für diesen Rechner und enthalten keine Notendaten.</p>
+<ul>
+<li><b>Klassenarbeiten:</b> Rückmeldungs-Vorschlag und Aufgabenanalyse ein- oder ausschalten; ab wie viel Prozent
+eine Aufgabe als Stärke gilt und unter wie viel Prozent als Übungsbedarf (Standard 80 % und 50 %).
+→ <a href="#rueckmeldungen">Rückmeldungen</a></li>
+</ul>
 """),
     Thema("schluessel", "Notenschlüssel", """
 <h2>Notenschlüssel</h2>
@@ -352,6 +385,8 @@ stehen in der (verschlüsselten) Datenbank.</li>
 <tr><td><b>Strg + L</b></td><td>Neue Lerngruppe</td></tr>
 <tr><td><b>Strg + Z</b></td><td>Rückgängig (jede Änderung seit dem Öffnen, bis zu 200 Schritte)</td></tr>
 <tr><td><b>Strg + Y / Strg + Umschalt + Z</b></td><td>Wiederholen</td></tr>
+<tr><td><b>Strg + Leertaste</b></td><td>im Rückmeldungsfenster: Kürzel durch Textbaustein ersetzen</td></tr>
+<tr><td><b>Strg + Bild auf / ab</b></td><td>im Rückmeldungsfenster: vorige / nächste Person</td></tr>
 <tr><td><b>Strg + Plus / Minus</b></td><td>Schrift größer / kleiner</td></tr>
 <tr><td><b>Strg + Q</b></td><td>Beenden</td></tr>
 </table>
@@ -399,7 +434,9 @@ JE_KLASSE: dict[str, str] = {
     "SchuelerSeite": "schueler", "SchuelerDialog": "schueler", "AbgangDialog": "schueler",
     "LerngruppeDialog": "lerngruppen", "MitgliederDialog": "lerngruppen", "ZeitraumDialog": "lerngruppen",
     "MitgliederTab": "lerngruppen",
-    "ArbeitenTab": "arbeiten", "ArbeitDialog": "arbeiten", "NachschreibDialog": "arbeiten", "SchluesselDialog": "schluessel",
+    "ArbeitenTab": "arbeiten", "ArbeitDialog": "arbeiten", "NachschreibDialog": "arbeiten",
+    "RueckmeldungDialog": "rueckmeldungen", "TextbausteineDialog": "rueckmeldungen",
+    "EinstellungenDialog": "einstellungen", "SchluesselDialog": "schluessel",
     "DruckDialog": "drucken",
     "MuendlichTab": "muendlich", "ZeitraeumeDialog": "muendlich",
     "NotenTab": "noten", "GewichtungDialog": "noten",

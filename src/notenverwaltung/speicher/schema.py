@@ -180,6 +180,23 @@ MIGRATIONEN: list[str] = [
     INSERT OR IGNORE INTO notenschluessel (name, daten, standard) VALUES ('Standard Sek II (NRW)',
         '{"stufen":[[0.0,"0P"],[20.0,"1P"],[27.0,"2P"],[33.0,"3P"],[39.0,"4P"],[45.0,"5P"],[50.0,"6P"],[55.0,"7P"],[60.0,"8P"],[65.0,"9P"],[70.0,"10P"],[75.0,"11P"],[80.0,"12P"],[85.0,"13P"],[90.0,"14P"],[95.0,"15P"]],"raster":1.0}', 1);
     """,
+    # 9 (Version 0.7): Textbausteine für Rückmeldungen – in der Datei, damit sie auf jedem Rechner da sind
+    """
+    CREATE TABLE textbaustein (
+        id              INTEGER PRIMARY KEY,
+        kuerzel         TEXT NOT NULL DEFAULT '',          -- z. B. „stark“; Strg+Leertaste setzt den Text ein
+        text            TEXT NOT NULL,                     -- mit Platzhaltern wie {Vorname}
+        fach            TEXT NOT NULL DEFAULT '',          -- leer = alle Fächer
+        position        INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT INTO textbaustein (kuerzel, text, position) VALUES
+        ('stark', 'Besonders gut gelungen: {Stärken}.', 1),
+        ('üben', 'Übe noch einmal: {Übungsbedarf}.', 2),
+        ('weiter', 'Weiter so, {Vorname}!', 3),
+        ('sorgfalt', 'Achte auf eine sorgfältige und vollständige Darstellung deiner Lösungswege.', 4),
+        ('zeit', 'Teile dir die Zeit besser ein, damit du alle Aufgaben bearbeiten kannst.', 5),
+        ('gespräch', 'Lass uns gemeinsam besprechen, wie du dich verbessern kannst.', 6);
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)

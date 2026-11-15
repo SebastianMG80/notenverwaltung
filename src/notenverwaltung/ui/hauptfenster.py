@@ -254,6 +254,11 @@ class Hauptfenster(QMainWindow):
         self.a_wiederholen.setShortcuts(kuerzel)
         self.m_bearbeiten.addAction(self.a_rueckgaengig)
         self.m_bearbeiten.addAction(self.a_wiederholen)
+        self.m_bearbeiten.addSeparator()
+        self.a_textbausteine = self._aktion("&Textbausteine …", self.textbausteine)
+        self.m_bearbeiten.addAction(self.a_textbausteine)
+        self.m_bearbeiten.addAction(self._aktion("&Einstellungen …", self.einstellungen_zeigen,
+                                                 QKeySequence.StandardKey.Preferences))
         self.m_bearbeiten.aboutToShow.connect(self._bearbeiten_menue)
 
         self.m_uebersichten = self.menuBar().addMenu("Ü&bersichten")
@@ -298,7 +303,8 @@ class Hauptfenster(QMainWindow):
     def _zustand_aktualisieren(self) -> None:
         offen = self.db is not None
         for a in (self.a_speichern, self.a_schliessen, self.a_passwort, self.a_notfall,
-                  self.a_schluesseldatei, self.a_sicherungen, self.a_rueckgaengig, self.a_wiederholen):
+                  self.a_schluesseldatei, self.a_sicherungen, self.a_rueckgaengig, self.a_wiederholen,
+                  self.a_textbausteine):
             a.setEnabled(offen)
         self.m_schuljahr.setEnabled(offen)
         self.a_angaben.setEnabled(offen)
@@ -388,6 +394,20 @@ class Hauptfenster(QMainWindow):
         d = NachschreibDialog(Arbeiten(self.db.verbindung), self.jahr, self)
         if d.exec() and d.ziel:
             self.oeffne_arbeit(*d.ziel)
+
+    def textbausteine(self) -> None:
+        if self.db is None:
+            return
+        from notenverwaltung.modell.rueckmeldung import Textbausteine
+        from notenverwaltung.ui.textbausteine_dialog import TextbausteineDialog
+
+        TextbausteineDialog(Textbausteine(self.db.verbindung), parent=self).exec()
+
+    def einstellungen_zeigen(self) -> None:
+        from notenverwaltung.ui.einstellungen_dialog import EinstellungenDialog
+
+        if EinstellungenDialog(self).exec() and self.db is not None:
+            self._navigation_fuellen(self._letzte_auswahl)      # z. B. Aufgabenanalyse ein-/ausblenden
 
     def oeffne_arbeit(self, gruppe_id: int, arbeit_id: int) -> None:
         """Springt zur Lerngruppe, Reiter Klassenarbeiten, und wählt die Arbeit."""

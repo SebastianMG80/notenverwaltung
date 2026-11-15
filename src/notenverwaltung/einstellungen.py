@@ -71,3 +71,37 @@ def setze_druck_schrift(familie: str) -> None:
     s = einstellungen()
     s.setValue("druck/schrift", familie)
     s.sync()
+
+
+# ---- Klassenarbeiten: Zusatzfunktionen (opt-in) ------------------------------------------------------
+
+def _wahr(wert) -> bool:
+    return wert in (True, "true", "1", 1)
+
+
+def rueckmeldung_vorschlag_an() -> bool:
+    """Knopf „Vorschlag aus den Punkten“ im Rückmeldungsdialog (Standard: aus)."""
+    return _wahr(einstellungen().value("arbeiten/vorschlag", False))
+
+
+def aufgabenanalyse_an() -> bool:
+    """Lösungsquote je Aufgabe neben dem Notenspiegel und als Ausdruck (Standard: aus)."""
+    return _wahr(einstellungen().value("arbeiten/analyse", False))
+
+
+def schwellen() -> tuple[float, float]:
+    """(Stärke ab %, Übungsbedarf unter %) für Vorschlag und Platzhalter {Stärken}/{Übungsbedarf}."""
+    s = einstellungen()
+    try:
+        return float(s.value("arbeiten/stark", 80)), float(s.value("arbeiten/schwach", 50))
+    except (TypeError, ValueError):
+        return 80.0, 50.0
+
+
+def setze_arbeiten_optionen(vorschlag: bool, analyse: bool, stark: float, schwach: float) -> None:
+    s = einstellungen()
+    s.setValue("arbeiten/vorschlag", vorschlag)
+    s.setValue("arbeiten/analyse", analyse)
+    s.setValue("arbeiten/stark", stark)
+    s.setValue("arbeiten/schwach", schwach)
+    s.sync()

@@ -11,11 +11,11 @@ from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QHeaderView,
-    QInputDialog,
     QLabel,
     QMenu,
     QPushButton,
     QSplitter,
+    QStyledItemDelegate,
     QTableView,
     QTableWidget,
     QTableWidgetItem,
@@ -32,6 +32,23 @@ from notenverwaltung.ui.bausteine import Hinweis, aktuelle_farben, frage
 
 SP_SUMME, SP_NOTE = 3, 4
 FESTE_SPALTEN = 5  # Nr., Name, Klasse, Summe, Note – immer sichtbar, Aufgaben danach
+
+
+class QuotenBalken(QStyledItemDelegate):
+    """Zeichnet die Lösungsquote als schmalen Balken unter den Text (Wert in UserRole, 0–100)."""
+
+    def paint(self, painter, option, index) -> None:
+        super().paint(painter, option, index)
+        quote = index.data(Qt.ItemDataRole.UserRole)
+        if quote is None:
+            return
+        r = option.rect.adjusted(4, option.rect.height() - 5, -4, -2)
+        painter.save()
+        painter.fillRect(r, QColor(128, 128, 128, 60))
+        r.setWidth(int(r.width() * max(0.0, min(100.0, quote)) / 100))
+        farbe = index.data(Qt.ItemDataRole.ForegroundRole)
+        painter.fillRect(r, farbe.color() if isinstance(farbe, QBrush) else QColor(128, 128, 128))
+        painter.restore()
 
 
 class PunkteModell(QAbstractTableModel):
@@ -372,12 +389,17 @@ class ArbeitenTab(QWidget):
         self.k_loeschen.clicked.connect(self.loeschen)
         self.k_drucken = QPushButton("Drucken / PDF …")
         self.k_drucken.clicked.connect(self.drucken)
+        self.k_rueckmeldung = QPushButton("Rückmeldungen …")
+        self.k_rueckmeldung.setToolTip("Rückmeldungen an die Schüler:innen schreiben – mit Textbausteinen, "
+                                       "Person für Person")
+        self.k_rueckmeldung.clicked.connect(lambda: self._kommentar())
         oben = QHBoxLayout()
         oben.addWidget(QLabel("Arbeit:"))
         oben.addWidget(self.auswahl)
         oben.addWidget(self.k_bearbeiten)
         oben.addWidget(self.k_loeschen)
         oben.addWidget(self.k_drucken)
+        oben.addWidget(self.k_rueckmeldung)
         oben.addStretch(1)
         oben.addWidget(self.k_ki)
         oben.addWidget(self.k_neu)
@@ -426,6 +448,22 @@ class ArbeitenTab(QWidget):
         rl.addWidget(QLabel("<b>Notenspiegel</b>"))
         rl.addWidget(self.spiegel, 1)
         rl.addWidget(self.zusammenfassung)
+        self.analyse_titel = QLabel("<b>Aufgabenanalyse</b>")
+        self.analyse_titel.setToolTip("Lösungsquote = mittlerer Anteil der Höchstpunkte. "
+                                      "Ein- und ausschalten unter Bearbeiten → Einstellungen.")
+        self.analyse = QTableWidget(0, 4)
+        self.analyse.setHorizontalHeaderLabels(["Aufg.", "Quote", "voll", "0"])
+        self.analyse.verticalHeader().setVisible(False)
+        self.analyse.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.analyse.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.analyse.verticalHeader().setDefaultSectionSize(20)
+        self.analyse.setShowGrid(False)
+        ka = self.analyse.horizontalHeader()
+        ka.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        ka.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.analyse.setItemDelegateForColumn(1, QuotenBalken(self.analyse))
+        rl.addWidget(self.analyse_titel)
+        rl.addWidget(self.analyse, 1)
 
         teiler = QSplitter(Qt.Orientation.Horizontal)
         teiler.addWidget(self.raster)
@@ -472,7 +510,8 @@ class ArbeitenTab(QWidget):
     def _arbeit_gewaehlt(self, *_) -> None:
         a = self.aktuelle_arbeit()
         da = a is not None
-        for w in (self.k_bearbeiten, self.k_loeschen, self.k_drucken, self.auswahl, self.richtung, self.alle):
+        for w in (self.k_bearbeiten, self.k_loeschen, self.k_drucken, self.k_rueckmeldung, self.auswahl,
+                  self.richtung, self.alle):
             w.setEnabled(da)
         self.leer.setVisible(not da)
         self._teiler.setVisible(da)
@@ -537,6 +576,37 @@ class ArbeitenTab(QWidget):
                 + f"<br>Unter 4: <b>{s.anteil_unter_4:.0f} %</b> · {s.gesamt} Noten")
         else:
             self.zusammenfassung.setText("Noch keine Noten.")
+        self._analyse()
+
+    def _analyse(self) -> None:
+        """Lösungsquote je Aufgabe (opt-in): niedrige Quoten fallen farbig auf."""
+        from notenverwaltung.einstellungen import aufgabenanalyse_an, schwellen
+        from notenverwaltung.modell.rueckmeldung import aufgabenanalyse
+
+        an = aufgabenanalyse_an() and self.modell.arbeit is not None
+        self.analyse_titel.setVisible(an)
+        self.analyse.setVisible(an)
+        if not an:
+            return
+        stark, schwach = schwellen()
+        f = aktuelle_farben()
+        zeilen = aufgabenanalyse(self.modell.ergebnisse, self.modell.aufgaben)
+        self.analyse.setRowCount(len(zeilen))
+        for r, z in enumerate(zeilen):
+            werte = [z.aufgabe.bezeichnung, "–" if z.quote is None else f"{z.quote:.0f} %",
+                     str(z.voll) if z.bearbeitet else "", str(z.null) if z.bearbeitet else ""]
+            for c, text in enumerate(werte):
+                item = QTableWidgetItem(text)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                if c == 1:
+                    item.setData(Qt.ItemDataRole.UserRole, z.quote)
+                item.setToolTip(f"Aufgabe {z.aufgabe.bezeichnung}" + (f": {z.aufgabe.thema}" if z.aufgabe.thema else "")
+                                + f"\n{z.bearbeitet} bearbeitet · {z.voll}× volle Punktzahl · {z.null}× 0 Punkte")
+                if c == 1 and z.quote is not None and z.quote < schwach:
+                    item.setForeground(QColor(f.fehler))
+                elif c == 1 and z.quote is not None and z.quote >= stark:
+                    item.setForeground(QColor(f.akzent))
+                self.analyse.setItem(r, c, item)
 
     # ---- Aktionen --------------------------------------------------------------------------------
     def neue_arbeit(self) -> None:
@@ -609,10 +679,20 @@ class ArbeitenTab(QWidget):
         self.ar.setze_teilnahme(aid, sid, **werte)
         self.modell.aktualisiere()
 
-    def _kommentar(self, e: Ergebnis) -> None:
-        text, ok = QInputDialog.getMultiLineText(
-            self, "Rückmeldung", f"Rückmeldung an {e.mitglied.schueler.vorname} {e.mitglied.schueler.nachname} "
-                                 "(erscheint auf dem Rückmeldebogen):", e.kommentar)
-        if ok:
-            self._teilnahme(e.mitglied.schueler.id, self.modell.arbeit.id, kommentar=text.strip())
+    def _kommentar(self, e: Ergebnis | None = None) -> None:
+        """Rückmeldungen schreiben – ab der gewählten Person, mit Blättern durch alle in der Tabelle."""
+        from notenverwaltung.ui.rueckmeldung_dialog import RueckmeldungDialog
+
+        if self.modell.arbeit is None or not self.modell.ergebnisse:
+            return
+        ids = [x.mitglied.schueler.id for x in self.modell.ergebnisse]
+        if e is None:
+            zeile = self.raster.currentIndex().row()
+            start = zeile if self.modell.ist_schuelerzeile(zeile) else 0
+        else:
+            start = ids.index(e.mitglied.schueler.id)
+        d = RueckmeldungDialog(self.ar, self.modell.arbeit, self.gruppe, ids, start, self)
+        self._rueckmeldungsdialog = d    # für Tests erreichbar
+        d.exec()
+        self.modell.aktualisiere()
 

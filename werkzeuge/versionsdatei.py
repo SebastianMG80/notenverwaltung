@@ -179,6 +179,18 @@ def erzeuge(ziel: Path) -> None:
     zg.uebernimm_vorschlaege(lk.id, "hj1")
     ar.speichere_vorlage("Sek II streng", Notenschluessel.aus_liste([(0, "0P"), (50, "5P"), (96, "15P")]))
 
+    # --- ab 0.7: Textbausteine (Standard geändert, eigener, fachbezogener)
+    try:
+        from notenverwaltung.modell.rueckmeldung import Textbausteine
+    except ImportError:          # ältere Programmstände
+        Textbausteine = None
+    if Textbausteine is not None:
+        tb = Textbausteine(v)
+        liste = [(b.id, b.kuerzel, b.text, b.fach) for b in tb.alle() if b.kuerzel != "zeit"]
+        liste[2] = (liste[2][0], "prima", "Prima, {Vorname} – {Punkte} von {Höchstpunkte} Punkten!", "")
+        liste.append((None, "beleg", "Belege deine Deutung mit Zitaten (Zeilenangabe).", "Deutsch"))
+        tb.setze(liste)
+
     db.setze_meta("versionsdatei", __version__)
     db.schliessen()
     ziel.with_suffix(".json").write_text(json.dumps(inhalt(pfad), ensure_ascii=False, indent=1, sort_keys=True),

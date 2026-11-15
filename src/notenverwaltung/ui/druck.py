@@ -30,9 +30,16 @@ from PySide6.QtWidgets import (
 
 from notenverwaltung.ausgabe.abschnitte import AVERY_3424, AVERY_3425, BLATTRAND, Notenabschnitte, freies_format
 from notenverwaltung.ausgabe.punkteliste import ListenOptionen, Punkteliste
+from notenverwaltung.ausgabe.aufgabenanalyse import Aufgabenanalyse
 from notenverwaltung.ausgabe.rueckmeldebogen import Rueckmeldebogen
 from notenverwaltung.ausgabe.seite import Ausgabe, als_pdf, drucke, kopfzeile_aus, vorschau
-from notenverwaltung.einstellungen import druck_schrift, einstellungen, setze_druck_schrift
+from notenverwaltung.einstellungen import (
+    aufgabenanalyse_an,
+    druck_schrift,
+    einstellungen,
+    schwellen,
+    setze_druck_schrift,
+)
 from notenverwaltung.modell.arbeiten import Arbeit, Arbeiten
 from notenverwaltung.ui.bausteine import Hinweis, OptionalesDatum, fehler
 
@@ -62,11 +69,16 @@ class DruckDialog(QDialog):
         self.art_liste = QRadioButton("Punkteliste (für dich)")
         self.art_abschnitte = QRadioButton("Notenabschnitte (für die Schüler:innen)")
         self.art_bogen = QRadioButton("Rückmeldebögen (ein Bogen pro Person)")
+        self.art_analyse = QRadioButton("Aufgabenanalyse (Lösungsquote je Aufgabe)")
+        self.art_analyse.setVisible(aufgabenanalyse_an())
         gruppe = QButtonGroup(self)
-        for k in (self.art_liste, self.art_abschnitte, self.art_bogen):
+        for k in (self.art_liste, self.art_abschnitte, self.art_bogen, self.art_analyse):
             gruppe.addButton(k)
-        {"abschnitte": self.art_abschnitte, "bogen": self.art_bogen}.get(
-            einstellungen().value("druck/art", "liste"), self.art_liste).setChecked(True)
+        gemerkt = einstellungen().value("druck/art", "liste")
+        if gemerkt == "analyse" and not aufgabenanalyse_an():
+            gemerkt = "liste"
+        {"abschnitte": self.art_abschnitte, "bogen": self.art_bogen, "analyse": self.art_analyse}.get(
+            gemerkt, self.art_liste).setChecked(True)
 
         # ---- Optionen Rückmeldebogen
         self.box_bogen = QGroupBox("Rückmeldebögen")
@@ -169,6 +181,7 @@ class DruckDialog(QDialog):
         self.datum.datum.dateChanged.connect(self._aktualisieren)
         self.art_liste.toggled.connect(self._aktualisieren)
         self.art_bogen.toggled.connect(self._aktualisieren)
+        self.art_analyse.toggled.connect(self._aktualisieren)
 
         # ---- Schrift
         self.schrift = QFontComboBox()
@@ -216,6 +229,7 @@ class DruckDialog(QDialog):
         links.addWidget(self.art_liste)
         links.addWidget(self.art_abschnitte)
         links.addWidget(self.art_bogen)
+        links.addWidget(self.art_analyse)
         links.addWidget(self.box_liste)
         links.addWidget(self.box_abschnitte)
         links.addWidget(self.box_bogen)
@@ -250,6 +264,9 @@ class DruckDialog(QDialog):
         if self.art_liste.isChecked():
             o = ListenOptionen(**{k: c.isChecked() for k, c in self.opt.items()})
             return Punkteliste(self.ar, self.arbeit, o)
+        if self.art_analyse.isChecked():
+            stark, schwach = schwellen()
+            return Aufgabenanalyse(self.ar, self.arbeit, stark, schwach)
         if self.art_bogen.isChecked():
             return Rueckmeldebogen(self.ar, self.arbeit, nur_mit_note=self.bogen_nur_note.isChecked(),
                                    erwartung=self.bogen_erwartung.isChecked(),
@@ -311,8 +328,8 @@ class DruckDialog(QDialog):
 
     def _merken(self) -> None:
         s = einstellungen()
-        s.setValue("druck/art", "liste" if self.art_liste.isChecked() else
-                   "bogen" if self.art_bogen.isChecked() else "abschnitte")
+        s.setValue("druck/art", "liste" if self.art_liste.isChecked() else "bogen" if self.art_bogen.isChecked()
+                   else "analyse" if self.art_analyse.isChecked() else "abschnitte")
         s.setValue("druck/bogen/erwartung", self.bogen_erwartung.isChecked())
         s.setValue("druck/bogen/unterschrift", self.bogen_unterschrift.isChecked())
         s.setValue("druck/bogen/beidseitig", self.bogen_beidseitig.isChecked())
@@ -344,7 +361,8 @@ class DruckDialog(QDialog):
     def _dateiname(self) -> str:
         g = self.ar.sd.lerngruppe(self.arbeit.lerngruppe_id)
         art = ("Punkteliste" if self.art_liste.isChecked() else
-               "Rückmeldebögen" if self.art_bogen.isChecked() else "Notenabschnitte")
+               "Rückmeldebögen" if self.art_bogen.isChecked() else
+               "Aufgabenanalyse" if self.art_analyse.isChecked() else "Notenabschnitte")
         roh = f"{art} {g.bezeichnung} {self.arbeit.titel}"
         return "".join(z if z not in '\\/:*?"<>|' else "_" for z in roh) + ".pdf"
 

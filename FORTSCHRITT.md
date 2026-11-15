@@ -34,7 +34,7 @@ Nach Runde 2:
 Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte Version 1.0.0):
 - [x] 19 Rückgängig / Wiederholen (15.11.2026)
 - [x] 20 Aufgabenweise korrigieren, Nachschreibliste (15.11.2026)
-- [ ] 21 Textbausteine, Rückmeldungs-Vorschlag, Aufgabenanalyse → Version 0.7.0
+- [x] 21 Textbausteine, Rückmeldungs-Vorschlag, Aufgabenanalyse → Version 0.7.0 (15.11.2026) – Schema 9: Tabelle textbaustein
 - [ ] 22 Automatisch sperren, zweiter Sicherungsort
 - [ ] 23 Schnellsuche, Übersicht „Offene Punkte“ → Version 0.8.0
 - [ ] 24 Schnellerfassung je Stunde
@@ -42,7 +42,7 @@ Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte 
 - [ ] 26 Schüler:innen-Bogen → Version 1.0.0
 
 ## Nächster Schritt
-Etappe 21: Textbausteine (Format 9), Rückmeldungs-Vorschlag (opt-in), Aufgabenanalyse (opt-in) → Version 0.7.0.
+Etappe 22: Automatisch sperren (15 min, einstellbar, abschaltbar; Passwort zum Entsperren), zweiter Sicherungsort – beides im Einstellungsdialog (Abschnitt Sicherheit).
 Später: freier Layout-Editor.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
@@ -101,6 +101,9 @@ Bestätigt (15.11.2026, Runde 3): Schnellerfassung ++ = 1 … –– = 5 als Vor
 | Rückgängig | TEMP-Trigger protokollieren je Änderung den Umkehrbefehl (Verfahren von sqlite.org), `speicher/verlauf.py`; kein neues Dateiformat, Verlauf endet beim Schließen; ein Schritt = alles zwischen zwei Eingaben (Ereignisfilter auf Taste/Mausklick), max. 200; Umkehren mit `defer_foreign_keys`; vom Programm selbst angelegte Standard-Zeiträume ohne Verlauf; nach Rückgängig bleiben Ansicht, Arbeit und Zelle erhalten; Strg+Z, Strg+Y und Strg+Umschalt+Z |
 | Aufgabenweise | Umschalter „Enter springt nach unten“ gab es schon; neu: am Spaltenende zur ersten Person der nächsten Aufgabe, gesperrte Felder übersprungen, am Rasterende stehen bleiben, Wahl je Reiter gemerkt (QSettings), Fortschritt „Aufgabe 3a: 17 von 28 eingetragen“ (ohne fehlt/schreibt nach/befreit) |
 | Nachschreibliste | Menü „Übersichten“; Status fehlt/schreibt nach aus allen Gruppen des Schuljahrs; erledigt = Punkte oder Note; Ausdruck ohne Noten mit Spalten Termin/Raum/erledigt (für die Aufsicht); Doppelklick öffnet die Arbeit |
+| Textbausteine | In der Datenbank (Schema 9), damit sie auf allen Rechnern gleich sind; 6 Startbausteine per Migration; Kürzel eindeutig je Fach (fachbezogen vor allgemein); Platzhalter {Vorname} {Nachname} {Note} {Punkte} {Höchstpunkte} {Prozent} {Arbeit} {Fach} {Stärken} {Übungsbedarf}, unbekannte bleiben stehen |
+| Rückmeldungsfenster | Ersetzt das einfache Textfeld: Person für Person mit Vorige/Nächste (speichert), Bausteinliste mit Suche, Kürzel + Strg+Leertaste; Knopf „Rückmeldungen …“ im Reiter |
+| Vorschlag / Analyse | Opt-in unter Bearbeiten → Einstellungen (QSettings, je Rechner); Stärke ab 80 %, Übungsbedarf unter 50 % (einstellbar); Thema der Aufgabe, sonst „Aufgabe 3a“; Analyse neben dem Notenspiegel (Balken, rot/grün) und als Ausdruck ohne Namen |
 | Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |
