@@ -50,6 +50,17 @@ Gegendert wird mit : (Lehrer:innen).
 - Schuljahreswechsel: Übernahme wird angeboten (z. B. 8.4 → 9.4). Dabei können Schüler:innen wegfallen und hinzukommen.
 - Windows: zunächst ein Build. Den Test macht Sebastian selbst.
 
+#Klärungen Runde 3 (15.11.2026)
+- Gewünscht: aufgabenweise korrigieren, Textbausteine für Rückmeldungen, Rückmeldungs-Vorschlag (opt-in),
+  Rückgängig, Aufgabenanalyse (opt-in), Nachschreibliste, Schnellerfassung je Stunde (++, +, o, –, ––), Sitzplan,
+  Schüler:innen-Bogen, automatisch sperren, zweiter Sicherungsort, Schnellsuche, Übersicht „Offene Punkte“.
+- Schnellerfassung: ++ = 1, + = 2, o = 3, – = 4, –– = 5; der Durchschnitt je Zeitraum ist nur ein Vorschlag neben
+  der mündlichen Note. Keine Abwesenheit erfassen – die Schnellerfassung wird nur sporadisch eingesetzt.
+- Sitzplan: Raster, um Tische schnell zu platzieren, danach Schüler:innen auf die Plätze setzen.
+- Schüler:innen-Bogen zunächst für die Lehrkraft (alles), mit Häkchen zum Weglassen für die Weitergabe.
+- Automatisch sperren: Standard 15 Minuten, einstellbar.
+- Alle Etappen am Stück, Freigabe je Version; die letzte Version ist 1.0.0 (produktiver Einsatz).
+
 #Klärungen Runde 2 (15.11.2026)
 - Quartalsnoten müssen abgegeben werden, Reihenfolge: 1. Quartal, 1. Halbjahr, 3. Quartal, 2. Halbjahr.
   In eine Quartalsnote fließen nur die Leistungen dieses Quartals ein. Quartalsnoten werden mit Tendenz abgegeben.

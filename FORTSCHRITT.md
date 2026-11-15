@@ -31,8 +31,18 @@ Runde 2 (15.11.2026, nach Sebastians Linux-Test; „Ja, starten“ für Etappen 
 Nach Runde 2:
 - [x] Rückmeldebögen liefen bei langen Erwartungshorizonten (KI-Antwort) über Note und Unterschriften → Version 0.6.1 (15.11.2026)
 
+Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte Version 1.0.0):
+- [ ] 19 Rückgängig / Wiederholen
+- [ ] 20 Aufgabenweise korrigieren, Nachschreibliste
+- [ ] 21 Textbausteine, Rückmeldungs-Vorschlag, Aufgabenanalyse → Version 0.7.0
+- [ ] 22 Automatisch sperren, zweiter Sicherungsort
+- [ ] 23 Schnellsuche, Übersicht „Offene Punkte“ → Version 0.8.0
+- [ ] 24 Schnellerfassung je Stunde
+- [ ] 25 Sitzplan → Version 0.9.0
+- [ ] 26 Schüler:innen-Bogen → Version 1.0.0
+
 ## Nächster Schritt
-Runde 2 ist abgeschlossen (Etappen 13–18, Version 0.6.0). Warten auf Sebastians Testrunde.
+Etappe 19: Rückgängig / Wiederholen.
 Später: freier Layout-Editor.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
@@ -45,6 +55,7 @@ Offen / Rückfragen an Sebastian:
 Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Übernehmen genau ,5 → bessere Note (2,5 → 2).
 Bestätigt (15.11.2026): Quartalsnote nur aus dem Quartal, mit Tendenz; Dateien dürfen nach Umstellung mit alten Versionen inkompatibel sein.
 Bestätigt (15.11.2026): Sek II mit NRW-Klausurschlüssel, nur Kursführung (ohne Abitur), 50/50 als Standard.
+Bestätigt (15.11.2026, Runde 3): Schnellerfassung ++ = 1 … –– = 5 als Vorschlag, keine Abwesenheit; Sitzplan mit Tisch-Raster, dann Personen setzen; Schüler:innen-Bogen für die Lehrkraft mit Weglass-Häkchen; Sperre nach 15 min (einstellbar); am Stück, letzte Version 1.0.0.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
