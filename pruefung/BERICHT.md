@@ -18,13 +18,18 @@ Gefunden habe ich trotzdem **zwei schwere Lücken**, beide sind behoben und mit 
 
 Dazu kommen vier mittlere und mehrere kleine Funde (Dateirechte, Sperre nach Ruhezustand, Sicherungen bei
 Dateinamen mit `[ ]`, Import beschädigter Tabellen). Alles Eindeutige ist behoben. Die Korrekturen sind
-auf deinen Wunsch **lokal committet (ein Commit auf `main`), aber nicht gepusht**. Auf GitHub habe ich zwei Einstellungen
+auf deinen Wunsch **committet und gepusht** (Commit `2fa74f3` auf `main`, kein Tag, kein Release). Auf GitHub habe ich zwei Einstellungen
 verschärft (Abschnitt 5).
 
 Offen sind Punkte, die deine Entscheidung brauchen (Abschnitt 6), vor allem: Ein Passwortwechsel tauscht den
 eigentlichen Schlüssel nicht aus, und der Notenschlüssel verhält sich bei Arbeiten unter 10 Punkten unerwartet.
 
 Die Windows-Fassung konnte ich nicht selbst ausführen; dafür gelten die CI-Ergebnisse (Abschnitt 7).
+
+**Nachtrag nach dem Push (15.11.2026):** Der CI-Lauf zu `2fa74f3` ist vollständig grün. Linux: 319 Tests
+bestanden. Windows: 315 bestanden, 4 übersprungen (der Sperrdatei-Test wie bisher und drei neue Tests, die es nur
+unter Linux geben kann: Temp-Dateien auflisten, Dateirechte, `CLOCK_BOOTTIME`). Selbsttest in beiden gebauten
+Programmen bestanden, Dateien in beide Richtungen lesbar. Die engeren Workflow-Rechte (G1) gelten damit.
 
 | Schwere | gefunden | behoben | offen |
 |---|---|---|---|
@@ -176,7 +181,7 @@ Nicht möglich im kostenlosen Tarif bei privatem Repository: Schutzregeln für `
 ## 7 Nicht geprüft
 
 - **Windows-Programm ausgeführt:** nein, hier steht kein Windows-Rechner. Belege sind die CI-Läufe zu v1.0.0.
-  Meine Korrekturen und die neuen Tests liefen nur unter Linux; unter Windows laufen sie erst nach einem Push.
+  Meine Korrekturen und die neuen Tests liefen unter Windows nur in der CI (siehe Nachtrag in Abschnitt 1).
 - **Bedienung von Hand:** Ich habe das Fenster nicht durchgeklickt. Die Oberfläche ist über die vorhandenen und
   neuen Tests geprüft.
 - **Quelltext Zeile für Zeile:** vollständig gelesen habe ich Speicherung, Verschlüsselung, Sperre,
@@ -189,7 +194,7 @@ Nicht möglich im kostenlosen Tarif bei privatem Repository: Schutzregeln für `
   (nur festgestellt, dass es sie gibt).
 - **Ältere Releases** (v0.3.0 bis v0.9.0): nur aufgelistet, nicht heruntergeladen.
 
-## 8 Geänderte Dateien (lokal committet, nicht gepusht)
+## 8 Geänderte Dateien (Commit `2fa74f3`)
 
 | Datei | Änderung |
 |---|---|
@@ -233,5 +238,5 @@ füllt dort den Arbeitsspeicher. Genau das hat während der Prüfung einmal den 
 | Automatische Dependabot-Korrekturen | aus gelassen | Würden Pull Requests gegen die bewusst festen Versionen öffnen |
 | Ältere Releases | nicht heruntergeladen | Erlaubt war v1.0.0; ältere sind überholt |
 | `~/Notenverwaltung` und echte `.ini` | nicht gelesen | Könnten auf echte Daten zeigen; für die Prüfung nicht nötig |
-| Commit, Push, Tag | zunächst nichts; nach deinem Auftrag ein lokaler Commit auf `main`, kein Push, kein Tag | So von dir festgelegt |
+| Commit, Push, Tag | zunächst nichts; nach deinem Auftrag ein Commit auf `main` und Push, kein Tag | So von dir festgelegt |
 | Projektdoku | nur ein Verweis in `FORTSCHRITT.md`, `ANLEITUNG.md` unverändert | Die Bedienung ändert sich nicht |

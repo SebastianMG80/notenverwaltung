@@ -44,7 +44,7 @@ Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte 
 ## Prüfung auf Bugs und Sicherheit (15.11.2026)
 Bericht: `pruefung/BERICHT.md`, Stand der Prüfung: `pruefung/FORTSCHRITT.md`. Zwei schwere Lücken (Sperre per
 Dateitausch umgehbar, Klartext im Temp-Ordner) und weitere Funde sind behoben, Tests in `tests/test_pruefung.py`.
-**Die Korrekturen sind lokal committet, aber noch nicht gepusht** (unter Windows liefen sie daher noch nicht). Offene Entscheidungen stehen in
+Die Korrekturen sind committet und gepusht (`2fa74f3`), CI unter Linux und Windows grün; noch kein neues Release. Offene Entscheidungen stehen in
 Abschnitt 6 des Berichts (u. a. Hauptschlüssel beim Passwortwechsel erneuern, Notenschlüssel unter 10 Punkten).
 
 ## Nächster Schritt
