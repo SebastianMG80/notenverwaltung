@@ -108,6 +108,26 @@ def _schreibe_atomar(ziel: Path, daten: bytes) -> None:
             os.close(fd)
 
 
+def sichere_nach(pfad: Path, ordner: Path, anzahl: int = 10) -> Path:
+    """Legt eine Kopie der (verschlüsselten) Datenbankdatei mit Zeitstempel in `ordner` ab, z. B. auf einem
+    USB-Stick, und behält dort die neuesten `anzahl` Kopien dieser Datenbank. Die Schlüsseldatei wird nie
+    mitkopiert. Wirft OSError, wenn der Ordner nicht erreichbar ist (Stick nicht eingesteckt)."""
+    pfad, ordner = Path(pfad), Path(ordner)
+    if not ordner.is_dir():
+        raise OSError(f"Der Ordner „{ordner}“ ist nicht erreichbar.")
+    if ordner.resolve() == pfad.parent.resolve():
+        raise OSError("Der zweite Sicherungsort darf nicht der Ordner der Datenbank sein.")
+    stempel = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    ziel = ordner / f"{pfad.stem}_{stempel}{ENDUNG}"
+    teil = ziel.with_name(ziel.name + ".teil")
+    shutil.copyfile(pfad, teil)
+    os.replace(teil, ziel)
+    alte = sorted(ordner.glob(f"{pfad.stem}_????-??-??_??-??-??{ENDUNG}"), reverse=True)
+    for alt in alte[max(1, anzahl):]:
+        alt.unlink(missing_ok=True)
+    return ziel
+
+
 def cloud_hinweis(pfad: Path) -> str | None:
     """Erkennt typische synchronisierte Ordner. Gibt einen Warntext zurück oder None."""
     namen = ("cloud", "nextcloud", "owncloud", "dropbox", "onedrive", "google drive", "googledrive",

@@ -77,6 +77,8 @@ neue Passwort umgestellt.</li>
 Datenbank ohne Passwort öffnen lässt. Bewahre sie getrennt vom Rechner auf.</li>
 <li><b>Ordner mit Sicherungen anzeigen</b> – Bei jeder Sitzung legt das Programm vor dem ersten Speichern eine
 Sicherung an (die letzten 20 bleiben). Eine Sicherung öffnest du wie jede andere Datenbank.</li>
+<li><b>Zweiter Sicherungsort</b> (z. B. USB-Stick) und <b>automatisch sperren</b> stellst du unter
+<a href="#einstellungen">Bearbeiten → Einstellungen</a> ein. <b>Jetzt sperren:</b> Strg + Umschalt + L.</li>
 </ul>
 <h3>Passwort vergessen?</h3>
 <p>Im Startdialog auf <b>„Passwort vergessen?“</b> klicken und den Wiederherstellungscode vom Notfallblatt
@@ -212,6 +214,13 @@ Im Druckdialog gibt es sie als eigenen Ausdruck – ohne Namen, z. B. für die F
 <li><b>Klassenarbeiten:</b> Rückmeldungs-Vorschlag und Aufgabenanalyse ein- oder ausschalten; ab wie viel Prozent
 eine Aufgabe als Stärke gilt und unter wie viel Prozent als Übungsbedarf (Standard 80 % und 50 %).
 → <a href="#rueckmeldungen">Rückmeldungen</a></li>
+<li><b>Automatisch sperren:</b> nach 15 Minuten ohne Eingabe (einstellbar, 0 = nie). Alle Fenster werden
+abgedeckt; vorher wird gespeichert, auch ein offener Dialog bleibt erhalten. Weiter geht es mit dem Passwort der
+Datenbank. Sofort sperren: <b>Strg + Umschalt + L</b> (Datei → Sicherheit → Jetzt sperren).</li>
+<li><b>Zweiter Sicherungsort:</b> ein Ordner, z. B. auf einem USB-Stick. Beim Schließen der Datenbank legt das
+Programm dort eine verschlüsselte Kopie mit Datum ab und behält die neuesten 10 (einstellbar). Ist der Stick
+nicht eingesteckt, wird nur diese Kopie übersprungen. Die Schlüsseldatei wird nie mitkopiert.
+→ <a href="#sicherheit">Sicherheit</a></li>
 </ul>
 """),
     Thema("schluessel", "Notenschlüssel", """
@@ -385,6 +394,7 @@ stehen in der (verschlüsselten) Datenbank.</li>
 <tr><td><b>Strg + L</b></td><td>Neue Lerngruppe</td></tr>
 <tr><td><b>Strg + Z</b></td><td>Rückgängig (jede Änderung seit dem Öffnen, bis zu 200 Schritte)</td></tr>
 <tr><td><b>Strg + Y / Strg + Umschalt + Z</b></td><td>Wiederholen</td></tr>
+<tr><td><b>Strg + Umschalt + L</b></td><td>Programm sofort sperren</td></tr>
 <tr><td><b>Strg + Leertaste</b></td><td>im Rückmeldungsfenster: Kürzel durch Textbaustein ersetzen</td></tr>
 <tr><td><b>Strg + Bild auf / ab</b></td><td>im Rückmeldungsfenster: vorige / nächste Person</td></tr>
 <tr><td><b>Strg + Plus / Minus</b></td><td>Schrift größer / kleiner</td></tr>

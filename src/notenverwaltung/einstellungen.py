@@ -105,3 +105,35 @@ def setze_arbeiten_optionen(vorschlag: bool, analyse: bool, stark: float, schwac
     s.setValue("arbeiten/stark", stark)
     s.setValue("arbeiten/schwach", schwach)
     s.sync()
+
+
+# ---- Sicherheit (je Rechner) ---------------------------------------------------------------------------
+SPERRE_STANDARD = 15
+
+
+def sperre_minuten() -> int:
+    """Nach so vielen Minuten ohne Eingabe sperrt sich das Programm (0 = nie)."""
+    try:
+        return max(0, int(einstellungen().value("sicherheit/sperre_minuten", SPERRE_STANDARD)))
+    except (TypeError, ValueError):
+        return SPERRE_STANDARD
+
+
+def zweiter_ort() -> str:
+    """Ordner für zusätzliche Sicherungen (z. B. USB-Stick) oder leer."""
+    return str(einstellungen().value("sicherheit/zweiter_ort", "") or "")
+
+
+def zweiter_ort_anzahl() -> int:
+    try:
+        return max(1, int(einstellungen().value("sicherheit/zweiter_ort_anzahl", 10)))
+    except (TypeError, ValueError):
+        return 10
+
+
+def setze_sicherheit(minuten: int, ort: str, anzahl: int) -> None:
+    s = einstellungen()
+    s.setValue("sicherheit/sperre_minuten", int(minuten))
+    s.setValue("sicherheit/zweiter_ort", ort)
+    s.setValue("sicherheit/zweiter_ort_anzahl", int(anzahl))
+    s.sync()

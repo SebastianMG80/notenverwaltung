@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -32,9 +33,12 @@ from notenverwaltung.einstellungen import (
     merke_geoeffnet,
     setze_design_name,
     setze_ui_schrift,
+    sperre_minuten,
+    zweiter_ort,
+    zweiter_ort_anzahl,
 )
 from notenverwaltung.modell.stammdaten import Schuljahr, Stammdaten
-from notenverwaltung.speicher.datenbank import SCHLUESSELDATEI_ENDUNG, Datenbank, sicherungsordner
+from notenverwaltung.speicher.datenbank import SCHLUESSELDATEI_ENDUNG, Datenbank, sichere_nach, sicherungsordner
 from notenverwaltung.speicher.verlauf import VerlaufFehler
 from notenverwaltung.ui.bausteine import fehler, frage, info
 from notenverwaltung.ui.design import wende_design_an
@@ -42,6 +46,7 @@ from notenverwaltung.ui.neue_datenbank import NeueDatenbankAssistent
 from notenverwaltung.ui.notfall import NotfallDialog
 from notenverwaltung.ui.seiten.stammdaten_seiten import LerngruppeSeite, SchuelerSeite, SchuljahrSeite
 from notenverwaltung.ui.sicherheit import PasswortAendernDialog
+from notenverwaltung.ui.sperre import Sperre
 from notenverwaltung.hilfe.fenster import zeige_hilfe
 from notenverwaltung.hilfe.texte import JE_KLASSE
 from notenverwaltung.ui.stammdaten_dialoge import LerngruppeDialog, SchuljahrDialog
@@ -51,17 +56,37 @@ OFFLINE_HINWEIS = "Offline – dieses Programm sendet keine Daten."
 
 
 class EingabeGrenze(QObject):
-    """Jede Eingabe (Taste, Mausklick) beendet den laufenden Schritt für „Rückgängig“: Was zwischen zwei
-    Eingaben geändert wurde – eine Zelle, ein „OK“ im Dialog –, wird in einem Schritt zurückgenommen."""
+    """Sieht jede Eingabe der Anwendung:
+
+    - Jede Taste / jeder Mausklick beendet den laufenden Schritt für „Rückgängig“: Was zwischen zwei Eingaben
+      geändert wurde – eine Zelle, ein „OK“ im Dialog –, wird in einem Schritt zurückgenommen.
+    - Merkt sich die Zeit der letzten Eingabe (automatisch sperren).
+    - Während der Sperre kommen Eingaben nur beim Entsperr-Feld an; Tastenkürzel greifen nicht.
+    """
 
     ARTEN = (QEvent.Type.KeyPress, QEvent.Type.MouseButtonPress, QEvent.Type.ShortcutOverride)
+    EINGABEN = (QEvent.Type.KeyPress, QEvent.Type.KeyRelease, QEvent.Type.ShortcutOverride,
+                QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonRelease, QEvent.Type.MouseButtonDblClick,
+                QEvent.Type.Wheel, QEvent.Type.ContextMenu)
 
     def __init__(self, fenster: "Hauptfenster") -> None:
         super().__init__(fenster)
         self.fenster = fenster
 
     def eventFilter(self, objekt, ereignis) -> bool:  # noqa: N802
-        if ereignis.type() in self.ARTEN and self.fenster.db is not None:
+        art = ereignis.type()
+        if art not in self.EINGABEN:
+            return False
+        sperre = self.fenster.sperre
+        if sperre.aktiv:
+            if not isinstance(objekt, QWidget):
+                return False                       # Fensterereignisse: Qt leitet sie an die Widgets weiter
+            if art == QEvent.Type.ShortcutOverride:
+                ereignis.accept()                  # kein Tastenkürzel löst etwas aus
+            return not sperre.erlaubt(objekt)
+        if art in (QEvent.Type.KeyPress, QEvent.Type.MouseButtonPress, QEvent.Type.Wheel):
+            self.fenster.letzte_eingabe = time.monotonic()
+        if art in self.ARTEN and self.fenster.db is not None:
             self.fenster.db.verlauf.abschliessen()
         return False
 AUTOSPEICHERN_MS = 120_000
@@ -198,6 +223,14 @@ class Hauptfenster(QMainWindow):
         self.autospeichern.setInterval(AUTOSPEICHERN_MS)
         self.autospeichern.timeout.connect(self._autospeichern)
 
+        self.sperre = Sperre(self)
+        self.sperre.pruefe = lambda pw: self.db is not None and self.db.pruefe_passwort(pw)
+        self.sperre.entsperrt.connect(lambda: self.statusBar().showMessage(f"Entsperrt. {OFFLINE_HINWEIS}", 5000))
+        self.letzte_eingabe = time.monotonic()
+        self.sperruhr = QTimer(self)
+        self.sperruhr.setInterval(10_000)
+        self.sperruhr.timeout.connect(self.sperre_pruefen)
+        self.sperruhr.start()
         self._menues()
         self._eingabegrenze = EingabeGrenze(self)
         QApplication.instance().installEventFilter(self._eingabegrenze)
@@ -236,10 +269,16 @@ class Hauptfenster(QMainWindow):
         self.a_schluesseldatei = self._aktion("&Schlüsseldatei anlegen …", self.schluesseldatei_anlegen)
         self.a_schluesseldatei_weg = self._aktion("Schlüsseldatei &entfernen", self.schluesseldatei_entfernen)
         self.a_sicherungen = self._aktion("Ordner mit Si&cherungen anzeigen", self.sicherungen_zeigen)
+        self.a_zweiter_ort = self._aktion("Jetzt auf den &zweiten Sicherungsort kopieren", self.zweiten_ort_sichern)
+        self.a_sperren = self._aktion("Jetzt sp&erren", lambda: self.sperren("Von Hand gesperrt."),
+                                      QKeySequence("Ctrl+Shift+L"))
         for a in (self.a_passwort, self.a_notfall, self.a_schluesseldatei, self.a_schluesseldatei_weg):
             self.m_sicherheit.addAction(a)
         self.m_sicherheit.addSeparator()
         self.m_sicherheit.addAction(self.a_sicherungen)
+        self.m_sicherheit.addAction(self.a_zweiter_ort)
+        self.m_sicherheit.addSeparator()
+        self.m_sicherheit.addAction(self.a_sperren)
 
         datei.addSeparator()
         datei.addAction(self._aktion("&Beenden", self.close, QKeySequence.StandardKey.Quit))
@@ -304,7 +343,7 @@ class Hauptfenster(QMainWindow):
         offen = self.db is not None
         for a in (self.a_speichern, self.a_schliessen, self.a_passwort, self.a_notfall,
                   self.a_schluesseldatei, self.a_sicherungen, self.a_rueckgaengig, self.a_wiederholen,
-                  self.a_textbausteine):
+                  self.a_textbausteine, self.a_sperren, self.a_zweiter_ort):
             a.setEnabled(offen)
         self.m_schuljahr.setEnabled(offen)
         self.a_angaben.setEnabled(offen)
@@ -338,6 +377,7 @@ class Hauptfenster(QMainWindow):
             db.schliessen(speichern=False)
             return
         self.db = db
+        self.letzte_eingabe = time.monotonic()
         self.sd = Stammdaten(db.verbindung)
         self.jahr = self.sd.aktuelles_schuljahr()
         self._zustand_aktualisieren()
@@ -348,6 +388,8 @@ class Hauptfenster(QMainWindow):
         """Speichert und schließt. Gibt False zurück, wenn das Schließen abgebrochen wurde."""
         if self.db is None:
             return True
+        self.sperre.aufheben()
+        pfad = self.db.pfad
         try:
             self.db.schliessen(speichern=True)
         except OSError as e:
@@ -357,6 +399,8 @@ class Hauptfenster(QMainWindow):
                          ja="Ohne Speichern schließen", nein="Abbrechen", warnung=True):
                 return False
             self.db.schliessen(speichern=False)
+        else:
+            self._zweiter_ort(pfad, still=True)
         self.db = None
         self.sd = None
         self.jahr = None
@@ -415,6 +459,54 @@ class Hauptfenster(QMainWindow):
         seite = self.seite_gruppe
         seite.reiter.setCurrentWidget(seite.arbeiten)
         seite.arbeiten.zeige(self.sd, self.jahr, seite.gruppe, arbeit_id)
+
+    # ---- Sperre und zweiter Sicherungsort -----------------------------------------------------
+    def sperre_pruefen(self) -> None:
+        minuten = sperre_minuten()
+        if (self.db is not None and minuten and not self.sperre.aktiv
+                and time.monotonic() - self.letzte_eingabe >= minuten * 60):
+            self.sperren(f"Nach {minuten} Minuten ohne Eingabe automatisch gesperrt.")
+
+    def sperren(self, grund: str) -> None:
+        if self.db is None or self.sperre.aktiv:
+            return
+        try:
+            if self.db.geaendert:
+                self.db.speichern()
+        except OSError as e:
+            self.statusBar().showMessage(f"Speichern vor dem Sperren fehlgeschlagen: {e}")
+        self.sperre.sperren(self, grund)
+
+    def zweiten_ort_sichern(self) -> None:
+        if self.db is None:
+            return
+        if not zweiter_ort():
+            info(self, "Zweiter Sicherungsort", "Es ist noch kein zweiter Sicherungsort eingestellt.\n\n"
+                 "Bearbeiten → Einstellungen → Sicherheit, z. B. einen Ordner auf einem USB-Stick.")
+            return
+        try:
+            self.db.speichern()
+        except OSError as e:
+            fehler(self, "Speichern", f"Die Datenbank konnte nicht gespeichert werden:\n{e}")
+            return
+        self._zweiter_ort(self.db.pfad, still=False)
+
+    def _zweiter_ort(self, pfad: Path, still: bool) -> None:
+        """Kopiert die verschlüsselte Datei auf den zweiten Sicherungsort (falls eingestellt). Ist er nicht
+        erreichbar (Stick nicht eingesteckt), gibt es nur einen Hinweis – Schließen geht trotzdem."""
+        ort = zweiter_ort()
+        if not ort:
+            return
+        try:
+            ziel = sichere_nach(pfad, Path(ort), zweiter_ort_anzahl())
+        except OSError as e:
+            text = f"Zweiter Sicherungsort: {e} Die Sicherung dort wurde übersprungen."
+            if still:
+                self.statusBar().showMessage(text, 15000)
+            else:
+                fehler(self, "Zweiter Sicherungsort", text)
+            return
+        self.statusBar().showMessage(f"Kopie gesichert: {ziel}", 10000)
 
     # ---- Rückgängig / Wiederholen --------------------------------------------------------------
     def _bearbeiten_menue(self) -> None:
