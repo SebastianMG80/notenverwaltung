@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.6.0)
+# Notenverwaltung – Kurzanleitung (Stand 0.6.1)
 
 ## Starten
 
@@ -35,6 +35,8 @@ Häufige Fragen. Die Hilfe ist im Programm enthalten und funktioniert ohne Inter
      dann nur die Note.
      „Drucken / PDF …“: Punkteliste, Notenabschnitte (Avery 3424/3425 oder frei), Rückmeldebögen.
      Wird bei Etiketten am Rand etwas abgeschnitten: „Abstand zum Blattrand“ erhöhen (Standard 7 mm).
+     Rückmeldebögen mit langem Erwartungshorizont: erst kleinere Schrift (bis 7 pt, für alle gleich), sonst eine
+     Folgeseite; für beidseitigen Druck „jeder Bogen beginnt auf einem neuen Blatt“ wählen.
      „KI-Vorlage …“: Prompt kopieren, Antwort der KI einfügen → Aufgaben, Punkte, Erwartungshorizont, Musterlösung.
    - **Mündlich:** Noten je Quartal (feiner unterteilbar unter „Zeiträume …“), Eingabe 2, 2+, 2- oder 1,7.
      „Drucken / PDF …“: Liste der mündlichen Noten (mit/ohne Tendenz, Halbjahresmittel, Bemerkungen)

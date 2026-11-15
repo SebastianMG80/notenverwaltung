@@ -28,6 +28,9 @@ Runde 2 (15.11.2026, nach Sebastians Linux-Test; „Ja, starten“ für Etappen 
 - [x] 17 Sek II → Version 0.5.0 (15.11.2026) – Schema 8: Kursart GK/LK, Klausurschlüssel Sek II; Punkte als „11P“
 - [x] 18 Hilfe im Programm → Version 0.6.0 (15.11.2026)
 
+Nach Runde 2:
+- [x] Rückmeldebögen liefen bei langen Erwartungshorizonten (KI-Antwort) über Note und Unterschriften → Version 0.6.1 (15.11.2026)
+
 ## Nächster Schritt
 Runde 2 ist abgeschlossen (Etappen 13–18, Version 0.6.0). Warten auf Sebastians Testrunde.
 Später: freier Layout-Editor.
@@ -83,6 +86,7 @@ Bestätigt (15.11.2026): Sek II mit NRW-Klausurschlüssel, nur Kursführung (ohn
 | Sek II – Wechsel | Klassen 10.x → EF, EF → Q1 → Q2; Q2 standardmäßig „endet“ (Abitur); übernommene Lerngruppen mit Jahrgang ≥ 11 werden zu Punkte-Gruppen (ohne E/G, Anteil 1. Hj. 0) |
 | Schlüssel-Vorlagen | je Notensystem eigener Standard; Vorlage „Standard Sek II (NRW)“ per Migration 8 |
 | Hilfe | Texte als HTML im Python-Modul `hilfe/texte.py` (kein Datei-Nachladen, PyInstaller-sicher, offline); Fenster mit Themenliste, Volltextsuche, internen Verweisen (externe werden ignoriert); F1 anwendungsweit per Ereignisfilter, Thema vom Fokus-Widget aufwärts (`JE_KLASSE`, `hilfe_thema()`); bei modalem Dialog gehört das Hilfefenster zum Dialog; Test: jede Dialog-/Assistentenklasse hat ein Thema, alle Verweise gültig, alle Seiten erreichbar |
+| Rückmeldebogen-Umbruch | Bogen wird vorher ausgemessen (600 dpi, Schrift ohne Hinting → Vorschau und Druck brechen gleich um). Erwartungshorizont über die ganze Tabellenbreite, Teilaufgaben „a) … b) …“ als eigene Absätze. Stufen 8,5 → 8 → 7,5 → 7 pt, eine Größe für alle Bögen eines Ausdrucks; reicht 7 pt nicht, Folgeseite mit 8,5 pt, Tabellenkopf wiederholt, Note + Rückmeldung + Unterschriften zusammen am Ende. Unterschriften kompakt in einer Zeile, unterer Rand 14 mm. Option „beidseitig“ fügt leere Rückseiten ein. Titel wird verkleinert statt abgeschnitten |
 | Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |

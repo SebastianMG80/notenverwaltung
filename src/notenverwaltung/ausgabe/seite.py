@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from PySide6.QtCore import QMarginsF, QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QPageLayout, QPageSize, QPainter, QPdfWriter, QPen
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPageLayout, QPageSize, QPainter, QPdfWriter, QPen
 
 A4 = QPageSize(QPageSize.PageSizeId.A4)
 
@@ -55,6 +55,8 @@ class Seite:
         f.setPointSizeF(pt)
         f.setBold(fett)
         f.setItalic(kursiv)
+        # ohne Hinting skalieren die Maße linear: Vorschau (80 dpi), PDF (600 dpi) und Drucker brechen gleich um
+        f.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
         self.p.setFont(f)
         return f
 
@@ -73,6 +75,10 @@ class Seite:
         """Höhe in mm, die ein umbrochener Text bei aktueller Schrift auf Breite b braucht."""
         r = self.p.boundingRect(self.rechteck(0, 0, b, 1000), int(Qt.TextFlag.TextWordWrap), text)
         return r.height() / self._px_pro_mm_y
+
+    def textbreite_mm(self, text: str) -> float:
+        """Breite in mm, die ein einzeiliger Text bei aktueller Schrift braucht."""
+        return QFontMetricsF(self.p.font(), self.p.device()).horizontalAdvance(text) / self._px_pro_mm_x
 
     def linie(self, x1: float, y1: float, x2: float, y2: float) -> None:
         self.p.drawLine(QPointF(self.x(x1), self.y(y1)), QPointF(self.x(x2), self.y(y2)))

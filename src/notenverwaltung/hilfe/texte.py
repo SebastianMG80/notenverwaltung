@@ -195,8 +195,12 @@ nicht in einer Cloud ablegen.</p>
 ausblenden, Lücken hervorheben, Tendenz zeigen.</li>
 <li><b>Notenabschnitte</b> zum Ausschneiden oder auf Etiketten (Avery Zweckform 3424/3425).
 → <a href="#etiketten">Etiketten</a></li>
-<li><b>Rückmeldebögen:</b> eine Seite pro Person mit Aufgaben, Punkten, Erwartungshorizont, Note (ohne Tendenz),
-Rückmeldung und auf Wunsch Unterschriftenfeldern.</li>
+<li><b>Rückmeldebögen:</b> ein Bogen pro Person mit Aufgaben, Punkten, Erwartungshorizont, Note (ohne Tendenz),
+Rückmeldung und auf Wunsch Unterschriftenfeldern. Teilaufgaben im Erwartungshorizont („a) … b) …“) stehen in
+eigenen Zeilen. Ist der Text lang (z. B. aus der <a href="#ki">KI-Hilfe</a>), wird seine Schrift etwas kleiner
+(bis 7 pt, für alle Bögen gleich). Reicht das nicht, geht der Bogen auf einer Folgeseite weiter; Note, Rückmeldung und
+Unterschriften stehen dann zusammen am Ende. Für beidseitigen Druck gibt es die Option „jeder Bogen beginnt auf
+einem neuen Blatt“. Kürzer wird der Bogen, wenn du den Erwartungshorizont abwählst.</li>
 </ul>
 <p>Weitere Ausdrucke: <a href="#muendlich">Liste der mündlichen Noten</a> und
 <a href="#noten">Notenübersicht</a>. Schule und Lehrkraft in der Kopfzeile: Datei → Angaben für Ausdrucke.

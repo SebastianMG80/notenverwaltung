@@ -61,7 +61,7 @@ class DruckDialog(QDialog):
         # ---- Art der Ausgabe
         self.art_liste = QRadioButton("Punkteliste (für dich)")
         self.art_abschnitte = QRadioButton("Notenabschnitte (für die Schüler:innen)")
-        self.art_bogen = QRadioButton("Rückmeldebögen (eine Seite pro Person)")
+        self.art_bogen = QRadioButton("Rückmeldebögen (ein Bogen pro Person)")
         gruppe = QButtonGroup(self)
         for k in (self.art_liste, self.art_abschnitte, self.art_bogen):
             gruppe.addButton(k)
@@ -77,7 +77,11 @@ class DruckDialog(QDialog):
         self.bogen_unterschrift.setChecked(_bool("druck/bogen/unterschrift", True))
         self.bogen_nur_note = QCheckBox("Nur Schüler:innen mit Note")
         self.bogen_nur_note.setChecked(True)
-        for c in (self.bogen_erwartung, self.bogen_unterschrift, self.bogen_nur_note):
+        self.bogen_beidseitig = QCheckBox("Beidseitiger Druck: jeder Bogen beginnt auf einem neuen Blatt")
+        self.bogen_beidseitig.setToolTip("Fügt leere Rückseiten ein, damit ein Bogen mit Folgeseite nicht auf der "
+                                         "Rückseite des vorigen beginnt.")
+        self.bogen_beidseitig.setChecked(_bool("druck/bogen/beidseitig", False))
+        for c in (self.bogen_erwartung, self.bogen_unterschrift, self.bogen_nur_note, self.bogen_beidseitig):
             c.toggled.connect(self._aktualisieren)
             fb.addWidget(c)
 
@@ -249,7 +253,8 @@ class DruckDialog(QDialog):
         if self.art_bogen.isChecked():
             return Rueckmeldebogen(self.ar, self.arbeit, nur_mit_note=self.bogen_nur_note.isChecked(),
                                    erwartung=self.bogen_erwartung.isChecked(),
-                                   unterschrift=self.bogen_unterschrift.isChecked())
+                                   unterschrift=self.bogen_unterschrift.isChecked(),
+                                   beidseitig=self.bogen_beidseitig.isChecked())
         art = self.format.currentData()
         fmt = {"3424": AVERY_3424, "3425": AVERY_3425}.get(art) or freies_format(self.frei_b.value(), self.frei_h.value())
         a = Notenabschnitte(self.ar, self.arbeit, fmt, startplatz=self.startplatz.value() - 1,
@@ -291,9 +296,15 @@ class DruckDialog(QDialog):
         except ValueError as e:
             self.meldung.setze(str(e), "fehler")
             return
-        self.meldung.setze("" if not isinstance(self.ausgabe, (Notenabschnitte, Rueckmeldebogen))
-                           or self.ausgabe.ergebnisse else
-                           "Noch keine Noten – es gibt nichts zu drucken.", "info")
+        if isinstance(self.ausgabe, (Notenabschnitte, Rueckmeldebogen)) and not self.ausgabe.ergebnisse:
+            self.meldung.setze("Noch keine Noten – es gibt nichts zu drucken.", "info")
+        elif isinstance(self.ausgabe, Rueckmeldebogen) and self.ausgabe.mehrseitig:
+            n = sum(1 for k in self.ausgabe.seiten_je_bogen if k > 1)
+            self.meldung.setze(f"{n} {'Bogen braucht' if n == 1 else 'Bögen brauchen'} eine Folgeseite (lange "
+                               "Erwartungshorizonte oder Rückmeldungen). Für beidseitigen Druck die Option "
+                               "„jeder Bogen beginnt auf einem neuen Blatt“ wählen.", "info")
+        else:
+            self.meldung.setze("", "info")
         self._seite = min(self._seite, self.ausgabe.seitenzahl() - 1)
         self._merken()
         self._vorschau()
@@ -304,6 +315,7 @@ class DruckDialog(QDialog):
                    "bogen" if self.art_bogen.isChecked() else "abschnitte")
         s.setValue("druck/bogen/erwartung", self.bogen_erwartung.isChecked())
         s.setValue("druck/bogen/unterschrift", self.bogen_unterschrift.isChecked())
+        s.setValue("druck/bogen/beidseitig", self.bogen_beidseitig.isChecked())
         for k, c in self.opt.items():
             s.setValue(f"druck/liste/{k}", c.isChecked())
         s.setValue("druck/format", self.format.currentData())

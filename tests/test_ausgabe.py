@@ -238,3 +238,113 @@ def test_note_ohne_punkte_im_ausdruck(arbeit, tmp_path):
     t = text(als_pdf(b, tmp_path / "b.pdf"))
     assert "Diese Arbeit wurde ohne Einzelpunkte bewertet." in t
     assert seite >= 0 and t.count("Diese Arbeit wurde ohne Einzelpunkte bewertet.") == 1
+
+
+# ---- Rückmeldebogen mit langen Erwartungshorizonten (z. B. aus der KI-Hilfe) ---------------------------------
+
+LANG = ("a) Wahrheitstabelle: alle vier Zeilen korrekt, L = 1 nur bei C = 1 und F = 0 (1,5 P.); je falscher Zeile "
+        "0,5 P. Abzug. b) Schaltung zeichnen: NOT- und UND-Gatter mit korrekten Symbolen (1 P.), richtige "
+        "Verschaltung (1 P.), Eingänge und Ausgang beschriftet (0,5 P.). c) Fehlerhafte Schaltung bewerten: "
+        "Aussage, dass das ODER-Gatter die Anforderung nicht erfüllt (0,5 P.); Begründung anhand einer konkreten "
+        "Zeile (1,5 P.; 0,5 P. bei Begründung ohne Zeilenbezug). Ende Aufgabe.")
+
+
+def _unterkanten(bogen):
+    """Je Seite: größte Unterkante aller Inhalte (mm) und ob die Unterschriften darauf stehen."""
+    from functools import partial
+
+    ergebnis = []
+    for ops in bogen._plan():
+        unten, unterschrift = 0.0, False
+        for op in ops or []:
+            if isinstance(op, partial):
+                kw = op.keywords
+                if "y1" in kw:
+                    unten = max(unten, kw["y1"])
+                elif "h" in kw:
+                    unten = max(unten, kw["y"] + kw["h"])
+                elif op.func.__name__ == "_note":
+                    unten = max(unten, kw["y"] + 12)
+            elif getattr(op, "__name__", "") == "_unterschriften":
+                unterschrift = True
+        ergebnis.append((unten, unterschrift))
+    return ergebnis
+
+
+def _lange_arbeit(ar, a, anzahl: int, text: str = LANG):
+    x = ar.aufgaben(a.id)
+    ar.setze_aufgaben(a.id, [(x[0].id, "1", 10, "Klassenraum-Lüftung", text), (x[1].id, "2a", 5, "Halbaddierer", text),
+                             (x[2].id, "b", 5, "Volladdierer", text)]
+                      + [(None, str(i), 2, f"Aufgabe {i}", text) for i in range(3, 3 + anzahl)])
+    return ar.arbeit(a.id)
+
+
+def test_absaetze_teilaufgaben():
+    from notenverwaltung.ausgabe.rueckmeldebogen import absaetze
+
+    assert absaetze(LANG)[0].startswith("a) Wahrheitstabelle") and len(absaetze(LANG)) == 3
+    assert absaetze("Erste Zeile\nZweite (1 P.) b) dritte") == ["Erste Zeile", "Zweite (1 P.)", "b) dritte"]
+    assert absaetze("NOT-Ausgang (von F) und C") == ["NOT-Ausgang (von F) und C"]     # „F)“ ist keine Teilaufgabe
+
+
+@pytest.mark.skipif(not PDFTEXT, reason="pdftotext fehlt")
+def test_rueckmeldebogen_lang_bleibt_auf_einer_seite(arbeit, tmp_path):
+    """Acht Aufgaben mit langem Erwartungshorizont: kleinere Schrift statt Überdruck, alles lesbar, eine Seite."""
+    from notenverwaltung.ausgabe.rueckmeldebogen import ERW_GROESSEN, FUSS, UNTEN, UNTERSCHRIFT, Rueckmeldebogen
+
+    ar, a, ids = arbeit
+    a = _lange_arbeit(ar, a, 3)
+    b = Rueckmeldebogen(ar, a, schueler_ids=ids[:3])
+    assert b.seitenzahl() == 3 and not b.mehrseitig
+    assert b.erwartung_pt < ERW_GROESSEN[0]
+    for unten, unterschrift in _unterkanten(b):
+        assert unterschrift and unten <= UNTEN - UNTERSCHRIFT and unten <= UNTEN - FUSS
+    t = text(als_pdf(b, tmp_path / "b.pdf"))
+    assert t.count("Ende Aufgabe.") == 3 * 6 and t.count("Kenntnis genommen") == 3
+    # ohne Erwartungshorizont bleibt die große Schrift
+    assert Rueckmeldebogen(ar, a, erwartung=False, schueler_ids=ids[:3]).erwartung_pt == ERW_GROESSEN[0]
+
+
+@pytest.mark.skipif(not PDFTEXT, reason="pdftotext fehlt")
+def test_rueckmeldebogen_mit_folgeseite(arbeit, tmp_path):
+    """Passt es auch klein nicht, geht der Bogen weiter: Kopf wiederholt, Note und Unterschriften am Ende."""
+    from notenverwaltung.ausgabe.rueckmeldebogen import FUSS, UNTEN, UNTERSCHRIFT, Rueckmeldebogen
+
+    ar, a, ids = arbeit
+    riesig = " ".join([LANG] * 12)                       # ein Absatz länger als eine Seite → wird geteilt
+    a = _lange_arbeit(ar, a, 4, riesig)
+    ar.setze_teilnahme(a.id, ids[0], kommentar="Schön gemacht. " * 120)
+    b = Rueckmeldebogen(ar, a, schueler_ids=ids[:2])
+    assert b.mehrseitig and len(b.seiten_je_bogen) == 2 and min(b.seiten_je_bogen) >= 3
+    assert b.seitenzahl() == sum(b.seiten_je_bogen)
+    seiten = _unterkanten(b)
+    for i, (unten, unterschrift) in enumerate(seiten):
+        assert unten <= UNTEN - FUSS + 0.01, i
+        if unterschrift:
+            assert unten <= UNTEN - UNTERSCHRIFT + 0.01, i
+    assert sum(u for _, u in seiten) == 2                 # Unterschriften je Bogen genau einmal, auf der letzten Seite
+    t = text(als_pdf(b, tmp_path / "b.pdf"))
+    assert "Fortsetzung auf Seite 2" in t and "(Fortsetzung)" in t and f"Seite 1 von {b.seiten_je_bogen[0]}" in t
+    assert t.count("Ende Aufgabe.") == 2 * 7 * 12 and t.count("Schön gemacht.") == 120
+    # beidseitig: jeder Bogen beginnt auf einer ungeraden Seite
+    d = Rueckmeldebogen(ar, a, schueler_ids=ids[:2], beidseitig=True)
+    assert d.seitenzahl() == sum(n + n % 2 for n in d.seiten_je_bogen)
+    assert d._plan()[b.seiten_je_bogen[0]] is None or b.seiten_je_bogen[0] % 2 == 0
+    vorschau(d, d.seitenzahl() - 1)                       # leere Seiten lassen sich zeichnen
+
+
+def test_druckdialog_hinweis_folgeseite(arbeit):
+    from notenverwaltung.ui.druck import DruckDialog
+
+    ar, a, ids = arbeit
+    a = _lange_arbeit(ar, a, 4, " ".join([LANG] * 12))
+    d = DruckDialog(ar, a)
+    d.art_bogen.setChecked(True)
+    assert "Folgeseite" in d.meldung.text()
+    n = d.ausgabe.seitenzahl()
+    d.bogen_beidseitig.setChecked(True)
+    assert d.ausgabe.beidseitig and d.ausgabe.seitenzahl() >= n
+    d.bogen_erwartung.setChecked(False)
+    assert d.ausgabe.seitenzahl() == 60 and "Folgeseite" not in d.meldung.text()   # je Bogen eine leere Rückseite
+    d.bogen_beidseitig.setChecked(False)
+    assert d.ausgabe.seitenzahl() == 30
