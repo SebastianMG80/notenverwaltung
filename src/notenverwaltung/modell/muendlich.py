@@ -14,6 +14,7 @@ from datetime import date, timedelta
 
 from notenverwaltung.modell.noten import Note, Notensystem, Punkte
 from notenverwaltung.modell.stammdaten import Mitglied, Schuljahr, Stammdaten
+from notenverwaltung.speicher.verlauf import ohne_verlauf
 
 
 class MuendlichFehler(ValueError):
@@ -59,7 +60,8 @@ class Muendlich:
             "ORDER BY beginn, id", (lerngruppe_id,))]
         if not liste and anlegen:
             jahr = self.sd.schuljahr(self.sd.lerngruppe(lerngruppe_id).schuljahr_id)
-            self.setze_zeitraeume(lerngruppe_id, [(None, *z) for z in standard_zeitraeume(jahr)])
+            with ohne_verlauf(self.v):     # legt das Programm selbst an – kein eigener Schritt für „Rückgängig“
+                self.setze_zeitraeume(lerngruppe_id, [(None, *z) for z in standard_zeitraeume(jahr)])
             return self.zeitraeume(lerngruppe_id, anlegen=False)
         return liste
 

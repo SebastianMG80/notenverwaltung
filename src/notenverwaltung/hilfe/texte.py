@@ -55,6 +55,11 @@ sicher aufbewahren – nicht neben dem Rechner.</li>
 <p>Beim Start erscheint die zuletzt benutzte Datenbank. Mit „Andere Datenbank …“ wählst du eine andere Datei.
 Die Datei lässt sich auf einen anderen Rechner kopieren (Linux oder Windows) und dort normal öffnen.</p>
 <p>Ist die Datenbank schon woanders geöffnet, warnt das Programm. Öffne sie nie auf zwei Rechnern gleichzeitig.</p>
+<h3>Rückgängig</h3>
+<p><b>Strg + Z</b> (Menü Bearbeiten) nimmt die letzte Änderung zurück – eine Zelle, ein „OK“ in einem Dialog,
+auch ein Löschen oder einen ganzen Schuljahreswechsel. <b>Strg + Y</b> stellt sie wieder her. Das geht für alle
+Änderungen seit dem Öffnen der Datenbank (bis zu 200 Schritte); nach dem Schließen beginnt der Verlauf neu.
+Beim Tippen in einem Textfeld wirkt Strg + Z zuerst auf den Text darin.</p>
 <h3>Neue Programmversionen</h3>
 <p>Neue Versionen öffnen alle älteren Dateien und stellen sie auf das neue Format um. Vorher legt das Programm
 die alte Datei als dauerhafte Sicherung ab (<i>…_vor-Umstellung-…</i> im Ordner mit den Sicherungen).
@@ -338,6 +343,8 @@ stehen in der (verschlüsselten) Datenbank.</li>
 <tr><td><b>Strg + S</b></td><td>Speichern</td></tr>
 <tr><td><b>Strg + W</b></td><td>Datenbank schließen</td></tr>
 <tr><td><b>Strg + L</b></td><td>Neue Lerngruppe</td></tr>
+<tr><td><b>Strg + Z</b></td><td>Rückgängig (jede Änderung seit dem Öffnen, bis zu 200 Schritte)</td></tr>
+<tr><td><b>Strg + Y / Strg + Umschalt + Z</b></td><td>Wiederholen</td></tr>
 <tr><td><b>Strg + Plus / Minus</b></td><td>Schrift größer / kleiner</td></tr>
 <tr><td><b>Strg + Q</b></td><td>Beenden</td></tr>
 </table>

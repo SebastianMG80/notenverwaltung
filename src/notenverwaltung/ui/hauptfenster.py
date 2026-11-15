@@ -5,9 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QFileDialog,
     QFrame,
@@ -34,6 +35,7 @@ from notenverwaltung.einstellungen import (
 )
 from notenverwaltung.modell.stammdaten import Schuljahr, Stammdaten
 from notenverwaltung.speicher.datenbank import SCHLUESSELDATEI_ENDUNG, Datenbank, sicherungsordner
+from notenverwaltung.speicher.verlauf import VerlaufFehler
 from notenverwaltung.ui.bausteine import fehler, frage, info
 from notenverwaltung.ui.design import wende_design_an
 from notenverwaltung.ui.neue_datenbank import NeueDatenbankAssistent
@@ -46,6 +48,22 @@ from notenverwaltung.ui.stammdaten_dialoge import LerngruppeDialog, SchuljahrDia
 from notenverwaltung.ui.startdialog import StartDialog
 
 OFFLINE_HINWEIS = "Offline – dieses Programm sendet keine Daten."
+
+
+class EingabeGrenze(QObject):
+    """Jede Eingabe (Taste, Mausklick) beendet den laufenden Schritt für „Rückgängig“: Was zwischen zwei
+    Eingaben geändert wurde – eine Zelle, ein „OK“ im Dialog –, wird in einem Schritt zurückgenommen."""
+
+    ARTEN = (QEvent.Type.KeyPress, QEvent.Type.MouseButtonPress, QEvent.Type.ShortcutOverride)
+
+    def __init__(self, fenster: "Hauptfenster") -> None:
+        super().__init__(fenster)
+        self.fenster = fenster
+
+    def eventFilter(self, objekt, ereignis) -> bool:  # noqa: N802
+        if ereignis.type() in self.ARTEN and self.fenster.db is not None:
+            self.fenster.db.verlauf.abschliessen()
+        return False
 AUTOSPEICHERN_MS = 120_000
 
 
@@ -181,6 +199,8 @@ class Hauptfenster(QMainWindow):
         self.autospeichern.timeout.connect(self._autospeichern)
 
         self._menues()
+        self._eingabegrenze = EingabeGrenze(self)
+        QApplication.instance().installEventFilter(self._eingabegrenze)
         self._fenster_wiederherstellen()
         self._zustand_aktualisieren()
 
@@ -224,6 +244,18 @@ class Hauptfenster(QMainWindow):
         datei.addSeparator()
         datei.addAction(self._aktion("&Beenden", self.close, QKeySequence.StandardKey.Quit))
 
+        self.m_bearbeiten = self.menuBar().addMenu("&Bearbeiten")
+        self.a_rueckgaengig = self._aktion("&Rückgängig", self.rueckgaengig, QKeySequence.StandardKey.Undo)
+        self.a_wiederholen = self._aktion("&Wiederholen", self.wiederholen)
+        kuerzel = QKeySequence.keyBindings(QKeySequence.StandardKey.Redo)
+        for k in (QKeySequence("Ctrl+Y"), QKeySequence("Ctrl+Shift+Z")):
+            if k not in kuerzel:
+                kuerzel.append(k)
+        self.a_wiederholen.setShortcuts(kuerzel)
+        self.m_bearbeiten.addAction(self.a_rueckgaengig)
+        self.m_bearbeiten.addAction(self.a_wiederholen)
+        self.m_bearbeiten.aboutToShow.connect(self._bearbeiten_menue)
+
         ansicht = self.menuBar().addMenu("&Ansicht")
         design_menue = ansicht.addMenu("&Design")
         self.design_gruppe = QActionGroup(self)
@@ -262,7 +294,7 @@ class Hauptfenster(QMainWindow):
     def _zustand_aktualisieren(self) -> None:
         offen = self.db is not None
         for a in (self.a_speichern, self.a_schliessen, self.a_passwort, self.a_notfall,
-                  self.a_schluesseldatei, self.a_sicherungen):
+                  self.a_schluesseldatei, self.a_sicherungen, self.a_rueckgaengig, self.a_wiederholen):
             a.setEnabled(offen)
         self.m_schuljahr.setEnabled(offen)
         self.a_angaben.setEnabled(offen)
@@ -340,6 +372,56 @@ class Hauptfenster(QMainWindow):
                     f"Automatisch gespeichert um {datetime.now():%H:%M} Uhr. {OFFLINE_HINWEIS}", 8000)
             except OSError as e:
                 self.statusBar().showMessage(f"Automatisches Speichern fehlgeschlagen: {e}")
+
+    # ---- Rückgängig / Wiederholen --------------------------------------------------------------
+    def _bearbeiten_menue(self) -> None:
+        v = self.db.verlauf if self.db else None
+        r = v.text_rueckgaengig() if v else ""
+        w = v.text_wiederholen() if v else ""
+        self.a_rueckgaengig.setText(f"&Rückgängig: {r}" if r else "&Rückgängig")
+        self.a_wiederholen.setText(f"&Wiederholen: {w}" if w else "&Wiederholen")
+
+    def rueckgaengig(self) -> None:
+        self._verlauf_schritt(rueck=True)
+
+    def wiederholen(self) -> None:
+        self._verlauf_schritt(rueck=False)
+
+    def _verlauf_schritt(self, rueck: bool) -> None:
+        if self.db is None:
+            return
+        try:
+            text = self.db.verlauf.rueckgaengig() if rueck else self.db.verlauf.wiederholen()
+        except VerlaufFehler as e:
+            fehler(self, "Rückgängig", str(e))
+            return
+        if text is None:
+            self.statusBar().showMessage("Nichts rückgängig zu machen." if rueck else "Nichts zu wiederholen.", 5000)
+            return
+        ansicht = self._ansicht_merken()
+        if self.jahr is not None:
+            ids = {sj.id for sj in self.sd.schuljahre()}
+            self.jahr = self.sd.schuljahr(self.jahr.id) if self.jahr.id in ids else self.sd.aktuelles_schuljahr()
+        else:
+            self.jahr = self.sd.aktuelles_schuljahr()
+        self._zustand_aktualisieren()
+        self._navigation_fuellen(self._letzte_auswahl)
+        self._ansicht_wiederherstellen(ansicht)
+        self.statusBar().showMessage(f"{'Rückgängig gemacht' if rueck else 'Wiederholt'}: {text}", 6000)
+
+    def _ansicht_merken(self) -> list:
+        """Aktuelle Zelle und Bildlauf aller Tabellen der sichtbaren Seite – nach dem Neuladen geht es dort weiter."""
+        seite = self.stapel.currentWidget()
+        return [(t, t.currentIndex().row(), t.currentIndex().column(), t.verticalScrollBar().value(),
+                 t.horizontalScrollBar().value()) for t in seite.findChildren(QAbstractItemView) if t.isVisible()]
+
+    def _ansicht_wiederherstellen(self, ansicht: list) -> None:
+        for t, zeile, spalte, v, h in ansicht:
+            m = t.model()
+            if m is not None and 0 <= zeile < m.rowCount() and 0 <= spalte < m.columnCount():
+                t.setCurrentIndex(m.index(zeile, spalte))
+            t.verticalScrollBar().setValue(v)
+            t.horizontalScrollBar().setValue(h)
 
     # ---- Schuljahr und Navigation -------------------------------------------------------------
     def _schuljahr_menue_fuellen(self) -> None:

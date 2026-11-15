@@ -25,6 +25,7 @@ from notenverwaltung import __version__
 from notenverwaltung.speicher import schema
 from notenverwaltung.speicher.krypto import KdfParameter
 from notenverwaltung.speicher.tresor import PASSWORT, FormatFehler, Tresor
+from notenverwaltung.speicher.verlauf import Verlauf
 
 ENDUNG = ".nvdb"
 SCHLUESSELDATEI_ENDUNG = ".nvkey"
@@ -139,6 +140,7 @@ class Datenbank:
         self._tresor_geaendert = False
         self._gesichert = False
         self._sperre_gesetzt = False
+        self.verlauf = Verlauf(verbindung)      # Rückgängig / Wiederholen (nur im Arbeitsspeicher)
 
     # ---- Anlegen / Öffnen --------------------------------------------------------------------
     @classmethod
