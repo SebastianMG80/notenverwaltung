@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.3.3)
+# Notenverwaltung – Kurzanleitung (Stand 0.4.0)
 
 ## Starten
 
@@ -11,13 +11,16 @@
 - **Selbsttest:** `Notenverwaltung --selbsttest` prüft Verschlüsselung, Datenbank, PDF und Oberfläche
   (Ergebnis auch in `notenverwaltung-selbsttest.txt` im Temp-Ordner).
 
-Beide Fassungen öffnen dieselben `.nvdb`-Dateien.
+Beide Fassungen öffnen dieselben `.nvdb`-Dateien. Neue Versionen öffnen auch alle älteren Dateien und stellen sie
+um; vorher bleibt die alte Datei im Ordner `<Name>-Sicherungen` erhalten („…_vor-Umstellung-…“). Eine umgestellte
+Datei lässt sich mit älteren Programmversionen nicht mehr öffnen.
 
 ## Erste Schritte
 
 1. **Neue Datenbank** anlegen: Datenschutzhinweis lesen, Speicherort wählen (nicht in einem Cloud-Ordner),
    Passwort festlegen, **Notfallblatt drucken** (Wiederherstellungscode).
-2. **Schuljahr anlegen** (wird vorgeschlagen).
+2. **Schuljahr anlegen** (wird vorgeschlagen). Quartalswechsel: automatisch in der Mitte des Halbjahres oder
+   eigene Daten (Schuljahr bearbeiten → „Quartale“).
 3. **Schüler:innen** links → „Neu …“ oder „Importieren …“ (CSV, Excel, ODS, Exporte aus SchILD/Untis).
 4. **Lerngruppen** anlegen (Datei → Neue Lerngruppe, Strg+L): Klasse in einem Fach oder klassenübergreifender Kurs,
    E/G-Vermerk, schriftlich oder mündlich.
@@ -33,8 +36,13 @@ Beide Fassungen öffnen dieselben `.nvdb`-Dateien.
    - **Mündlich:** Noten je Quartal (feiner unterteilbar unter „Zeiträume …“), Eingabe 2, 2+, 2- oder 1,7.
      „Drucken / PDF …“: Liste der mündlichen Noten (mit/ohne Tendenz, Halbjahresmittel, Bemerkungen)
      oder leere Liste zum Eintragen von Hand. Bei vielen Zeiträumen automatisch im Querformat.
-   - **Noten:** Vorschläge mit Herleitung (Maus über den Vorschlag), Zeugnisnoten festsetzen, Gewichtung einstellen.
+   - **Noten:** in der Reihenfolge der Abgabe – 1. Quartal, 1. Halbjahr, 3. Quartal, 2. Halbjahr. Vorschläge mit
+     Herleitung (Maus über den Vorschlag), Noten festsetzen, Gewichtung einstellen.
+     Quartalsnoten zählen nur die Leistungen des Quartals und werden mit Tendenz festgesetzt (2+, 2-),
+     Halbjahresnoten ganz. „Zeitraum“: ganzes Jahr oder ein Halbjahr. „Ansicht: mit Einzelnoten“ zeigt jede
+     Arbeit und jeden mündlichen Zeitraum vor der Note, zu der sie zählen.
      Bei Deutsch/Englisch/Mathematik in Jahrgang 10: Vornote, ZP10 und Endnote.
+     „Drucken / PDF …“: Notenübersicht mit Quartalen und Notenspiegeln.
    - **Schüler:innen:** Mitglieder, Sortierung (Klasse → Alphabet, Alphabet, eigene Reihenfolge), Ein-/Austritt.
 6. **Neues Schuljahr:** Datei → Schuljahr → „Neues Schuljahr aus bisherigem übernehmen …“.
 

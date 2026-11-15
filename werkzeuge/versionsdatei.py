@@ -10,6 +10,7 @@ freigegeben wurde – danach werden die Dateien nie wieder verändert. `tests/te
 - Tabellen: Jede Zeile der alten Datei muss (in den alten Spalten) unverändert vorhanden sein.
   Neue Spalten und Tabellen sind erlaubt. Bei Datentabellen darf auch keine Zeile dazukommen.
 - Sicht: Was die Lehrkraft sieht (Punkte, Noten, mündliche Noten, Zeugnisnoten, Vorschläge) bleibt gleich.
+  Neue Einträge in Wörterbüchern (z. B. Quartalsvorschläge ab 0.4) sind erlaubt, alte müssen gleich bleiben.
 
 Ändert eine neue Version absichtlich eine Berechnung, schlägt der Test fehl – dann muss die Änderung
 bewusst begründet und hier dokumentiert werden.
@@ -74,7 +75,8 @@ def erzeuge(ziel: Path) -> None:
         zg.setze(d8.id, sid, "hj1", n(k))
         zg.setze(d8.id, sid, "hj2", n(k), "Jahresnote" if k == "1" else "")
 
-    jahr = sd.lege_schuljahr_an("2026/27", date(2026, 8, 1), date(2027, 2, 1), date(2027, 7, 31))
+    jahr = sd.lege_schuljahr_an("2026/27", date(2026, 8, 1), date(2027, 2, 1), date(2027, 7, 31),
+                                quartal2=date(2026, 10, 26))                       # ab 0.4: Quartalswechsel
     plan = jahreswechsel.plane(sd, alt.id)
     jahreswechsel.setze_wiederholer(next(p for p in plan.personen if p.eintrag.schueler.id == ids[3]))
     for g in plan.gruppen:
@@ -133,6 +135,7 @@ def erzeuge(ziel: Path) -> None:
                               "Referat gehalten" if (k, j) == (1, 2) else None)
     zg.setze_gewichtung(d9.id, 60, 5, None)
     zg.uebernimm_vorschlaege(d9.id, "hj1")
+    zg.uebernimm_vorschlaege(d9.id, "q1")                                      # ab 0.4: Quartalsnoten
 
     # --- Mathematik E-Kurs Jg. 10 (ZP10), Erdkunde mündlich
     m10 = sd.lege_lerngruppe_an(Lerngruppe(0, jahr.id, "M10 E1", "Mathematik", "kurs", 10, "M", "E",
@@ -147,6 +150,7 @@ def erzeuge(ziel: Path) -> None:
         zg.setze(m10.id, sid, "vornote", n(vor))
         zg.setze(m10.id, sid, "zp10", n(zp))
     zg.uebernimm_vorschlaege(m10.id, "hj2", ganze=False)
+    zg.setze(m10.id, neu[2], "q3", n("2+"), "Quartalsnote mit Tendenz")
     ek = sd.lege_lerngruppe_an(Lerngruppe(0, jahr.id, "EK 9.4", "Erdkunde", "klasse", 9, "EK", schriftlich=False))
     sd.uebernimm_klasse(ek.id, "9.4")
     sd.setze_zeitraum(ek.id, neu[0], date(2026, 9, 1), date(2027, 4, 30))
@@ -206,6 +210,15 @@ def inhalt(pfad: Path) -> dict:
         db.schliessen(speichern=False)
 
 
+def enthaelt(alt, neu) -> bool:
+    """Ist `alt` unverändert in `neu` enthalten? Wörterbücher dürfen neue Schlüssel haben, Listen nicht wachsen."""
+    if isinstance(alt, dict):
+        return isinstance(neu, dict) and all(k in neu and enthaelt(v, neu[k]) for k, v in alt.items())
+    if isinstance(alt, list):
+        return isinstance(neu, list) and len(alt) == len(neu) and all(enthaelt(a, b) for a, b in zip(alt, neu))
+    return alt == neu
+
+
 def vergleiche(erwartet: dict, ist: dict) -> list[str]:
     """Liste der Abweichungen (leer = alles in Ordnung)."""
     fehler = []
@@ -231,7 +244,7 @@ def vergleiche(erwartet: dict, ist: dict) -> list[str]:
             fehler.append(f"Lerngruppe {gruppe} fehlt")
             continue
         for teil, wert in alt.items():
-            if neu.get(teil) != wert:
+            if not enthaelt(wert, neu.get(teil)):
                 fehler.append(f"{gruppe} / {teil}: erwartet {wert!r}, jetzt {neu.get(teil)!r}")
     return fehler
 

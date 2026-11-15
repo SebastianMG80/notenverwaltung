@@ -49,3 +49,12 @@ Gegendert wird mit : (Lehrer:innen).
 - Import: alle genannten Formate – CSV, Excel (.xlsx), ODS, SchILD-NRW-Export, Untis-Export.
 - Schuljahreswechsel: Übernahme wird angeboten (z. B. 8.4 → 9.4). Dabei können Schüler:innen wegfallen und hinzukommen.
 - Windows: zunächst ein Build. Den Test macht Sebastian selbst.
+
+#Klärungen Runde 2 (15.11.2026)
+- Quartalsnoten müssen abgegeben werden, Reihenfolge: 1. Quartal, 1. Halbjahr, 3. Quartal, 2. Halbjahr.
+  In eine Quartalsnote fließen nur die Leistungen dieses Quartals ein. Quartalsnoten werden mit Tendenz abgegeben.
+- Im Reiter „Noten“ wahlweise zusammengefasst oder mit allen Einzelnoten.
+- Klassenarbeiten: Note auch ohne Punkte eingeben (Nachschreiber:innen).
+- Dateien: Neue Versionen müssen alle bisherigen Dateien lesen. Eine umgestellte Datei darf mit älteren
+  Versionen inkompatibel sein.
+- Hilfe im Programm; Sek II jetzt umsetzen.

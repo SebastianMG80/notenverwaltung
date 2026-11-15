@@ -85,3 +85,12 @@ def test_sicherung_vor_format_umstellung(app, tmp_path, schnelle_kdf, monkeypatc
     db.schliessen(speichern=False)
     namen = [s.name for s in db.sicherungen()]
     assert len(namen) == MAX_SICHERUNGEN + 1 and any(DAUERHAFT in n for n in namen)
+
+
+def test_enthaelt():
+    e = _werkzeug().enthaelt
+    assert e({"hj1": 2.0}, {"hj1": 2.0, "q1": 1.7})          # neuer Schlüssel erlaubt
+    assert not e({"hj1": 2.0}, {"hj1": 2.3, "q1": 1.7})      # alter Wert verändert
+    assert not e({"hj1": 2.0}, {"q1": 1.7})                  # alter Schlüssel fehlt
+    assert e([["A", {"x": 1}]], [["A", {"x": 1, "y": 2}]])
+    assert not e([["A"]], [["A"], ["B"]])                    # Listen wachsen nicht

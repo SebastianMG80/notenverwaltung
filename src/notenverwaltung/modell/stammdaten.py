@@ -15,7 +15,7 @@ import re
 import sqlite3
 import unicodedata
 from dataclasses import dataclass, field, replace
-from datetime import date
+from datetime import date, timedelta
 
 SORTIERUNGEN = {"klasse": "Klasse, dann Alphabet", "alphabet": "Alphabet", "eigene": "Eigene Reihenfolge"}
 
@@ -73,6 +73,10 @@ def _in_zeitraum(datum: date, von: date | None, bis: date | None) -> bool:
 
 # ---- Datenklassen ------------------------------------------------------------------------------
 
+def _mitte(a: date, b: date) -> date:
+    return a + timedelta(days=(b - a).days // 2)
+
+
 @dataclass(frozen=True)
 class Schuljahr:
     id: int
@@ -80,12 +84,34 @@ class Schuljahr:
     beginn: date
     halbjahreswechsel: date
     ende: date
+    quartal2: date | None = None    # erster Tag des 2. Quartals; None = Mitte des 1. Halbjahres
+    quartal4: date | None = None    # erster Tag des 4. Quartals; None = Mitte des 2. Halbjahres
 
     def enthaelt(self, datum: date) -> bool:
         return self.beginn <= datum <= self.ende
 
     def halbjahr(self, datum: date) -> int:
         return 1 if datum < self.halbjahreswechsel else 2
+
+    @property
+    def quartal2_ab(self) -> date:
+        return self.quartal2 or _mitte(self.beginn, self.halbjahreswechsel - timedelta(days=1)) + timedelta(days=1)
+
+    @property
+    def quartal4_ab(self) -> date:
+        return self.quartal4 or _mitte(self.halbjahreswechsel, self.ende) + timedelta(days=1)
+
+    def quartal(self, datum: date) -> int:
+        """1–4; das 1. und 3. Quartal enden am Tag vor `quartal2_ab` bzw. `quartal4_ab`."""
+        if datum < self.halbjahreswechsel:
+            return 1 if datum < self.quartal2_ab else 2
+        return 3 if datum < self.quartal4_ab else 4
+
+    def quartale(self) -> list[tuple[date, date]]:
+        """(Beginn, Ende) der vier Quartale."""
+        tag = timedelta(days=1)
+        return [(self.beginn, self.quartal2_ab - tag), (self.quartal2_ab, self.halbjahreswechsel - tag),
+                (self.halbjahreswechsel, self.quartal4_ab - tag), (self.quartal4_ab, self.ende)]
 
 
 @dataclass(frozen=True)
@@ -181,16 +207,16 @@ class Stammdaten:
     # ---- Schuljahre ----------------------------------------------------------------------------
     @staticmethod
     def _schuljahr(z) -> Schuljahr:
-        return Schuljahr(z[0], z[1], _d(z[2]), _d(z[3]), _d(z[4]))
+        return Schuljahr(z[0], z[1], _d(z[2]), _d(z[3]), _d(z[4]), _d(z[5]), _d(z[6]))
+
+    _SJ = "SELECT id, bezeichnung, beginn, halbjahreswechsel, ende, quartal2_ab, quartal4_ab FROM schuljahr"
 
     def schuljahre(self) -> list[Schuljahr]:
         """Neueste zuerst."""
-        return [self._schuljahr(z) for z in self.v.execute(
-            "SELECT id, bezeichnung, beginn, halbjahreswechsel, ende FROM schuljahr ORDER BY beginn DESC")]
+        return [self._schuljahr(z) for z in self.v.execute(self._SJ + " ORDER BY beginn DESC")]
 
     def schuljahr(self, schuljahr_id: int) -> Schuljahr:
-        z = self.v.execute("SELECT id, bezeichnung, beginn, halbjahreswechsel, ende FROM schuljahr WHERE id = ?",
-                           (schuljahr_id,)).fetchone()
+        z = self.v.execute(self._SJ + " WHERE id = ?", (schuljahr_id,)).fetchone()
         if z is None:
             raise StammdatenFehler("Schuljahr nicht gefunden.")
         return self._schuljahr(z)
@@ -205,30 +231,39 @@ class Stammdaten:
         return vergangen[0] if vergangen else (jahre[-1] if jahre else None)
 
     @staticmethod
-    def _pruefe_schuljahr(bezeichnung: str, beginn: date, wechsel: date, ende: date) -> None:
+    def _pruefe_schuljahr(bezeichnung: str, beginn: date, wechsel: date, ende: date,
+                          quartal2: date | None = None, quartal4: date | None = None) -> None:
         if not bezeichnung.strip():
             raise StammdatenFehler("Bitte eine Bezeichnung für das Schuljahr angeben.")
         if not (beginn < wechsel <= ende):
             raise StammdatenFehler("Der Halbjahreswechsel muss zwischen Beginn und Ende des Schuljahres liegen.")
+        if quartal2 is not None and not beginn < quartal2 < wechsel:
+            raise StammdatenFehler("Das 2. Quartal muss im 1. Halbjahr beginnen (nach dem Schuljahresbeginn).")
+        if quartal4 is not None and not wechsel < quartal4 <= ende:
+            raise StammdatenFehler("Das 4. Quartal muss im 2. Halbjahr beginnen (nach dem Halbjahreswechsel).")
 
-    def lege_schuljahr_an(self, bezeichnung: str, beginn: date, wechsel: date, ende: date) -> Schuljahr:
-        self._pruefe_schuljahr(bezeichnung, beginn, wechsel, ende)
+    def lege_schuljahr_an(self, bezeichnung: str, beginn: date, wechsel: date, ende: date,
+                          quartal2: date | None = None, quartal4: date | None = None) -> Schuljahr:
+        self._pruefe_schuljahr(bezeichnung, beginn, wechsel, ende, quartal2, quartal4)
         try:
             with self.v:
                 c = self.v.execute(
-                    "INSERT INTO schuljahr (bezeichnung, beginn, halbjahreswechsel, ende) VALUES (?, ?, ?, ?)",
-                    (bezeichnung.strip(), _iso(beginn), _iso(wechsel), _iso(ende)))
+                    "INSERT INTO schuljahr (bezeichnung, beginn, halbjahreswechsel, ende, quartal2_ab, quartal4_ab) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (bezeichnung.strip(), _iso(beginn), _iso(wechsel), _iso(ende), _iso(quartal2), _iso(quartal4)))
         except sqlite3.IntegrityError as e:
             raise StammdatenFehler(f"Das Schuljahr „{bezeichnung}“ gibt es schon.") from e
         return self.schuljahr(c.lastrowid)
 
     def aendere_schuljahr(self, sj: Schuljahr) -> None:
-        self._pruefe_schuljahr(sj.bezeichnung, sj.beginn, sj.halbjahreswechsel, sj.ende)
+        self._pruefe_schuljahr(sj.bezeichnung, sj.beginn, sj.halbjahreswechsel, sj.ende, sj.quartal2, sj.quartal4)
         try:
             with self.v:
                 self.v.execute(
-                    "UPDATE schuljahr SET bezeichnung = ?, beginn = ?, halbjahreswechsel = ?, ende = ? WHERE id = ?",
-                    (sj.bezeichnung.strip(), _iso(sj.beginn), _iso(sj.halbjahreswechsel), _iso(sj.ende), sj.id))
+                    "UPDATE schuljahr SET bezeichnung = ?, beginn = ?, halbjahreswechsel = ?, ende = ?, "
+                    "quartal2_ab = ?, quartal4_ab = ? WHERE id = ?",
+                    (sj.bezeichnung.strip(), _iso(sj.beginn), _iso(sj.halbjahreswechsel), _iso(sj.ende),
+                     _iso(sj.quartal2), _iso(sj.quartal4), sj.id))
         except sqlite3.IntegrityError as e:
             raise StammdatenFehler(f"Das Schuljahr „{sj.bezeichnung}“ gibt es schon.") from e
 

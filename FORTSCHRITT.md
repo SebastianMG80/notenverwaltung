@@ -23,13 +23,13 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 Runde 2 (15.11.2026, nach Sebastians Linux-Test; „Ja, starten“ für Etappen 13 und 14):
 - [x] 13 Absicherung der Dateien (15.11.2026) – `tests/daten/version_0_3_2.nvdb/.json`, dauerhafte Sicherung vor Format-Umstellung; nebenbei Fehler im Schuljahreswechsel behoben (Klassengruppe „D 8.4“ bekam keine Mitglieder)
 - [x] 14 Etiketten-Rand, Note ohne Punkte → Version 0.3.3 (15.11.2026)
-- [ ] 15 Quartalsnoten (braucht Antworten auf Fragen 1–3)
-- [ ] 16 Einzelnoten im Reiter „Noten“ → Version 0.4.0
+- [x] 15 Quartalsnoten (15.11.2026) – Schema 7: Quartalswechsel je Schuljahr, Notenarten q1/q3
+- [x] 16 Einzelnoten im Reiter „Noten“ → Version 0.4.0 (15.11.2026)
 - [ ] 17 Sek II (braucht Antworten auf Fragen 4–6) → Version 0.5.0
 - [ ] 18 Hilfe im Programm → Version 0.6.0
 
 ## Nächster Schritt
-Auf Sebastians Antworten zu den Fragen warten (Quartalsnoten, Kompatibilität, Sek II), dann Etappe 15.
+Etappe 17 (Sek II) braucht Antworten auf Fragen 4–6 (Klausurschlüssel, Umfang, Gewichtung). Etappe 18 (Hilfe) geht ohne.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
 tests/daten/version_X_Y_Z` ausführen und die beiden Dateien committen – aber nur, wenn sich das Dateiformat
@@ -37,11 +37,10 @@ oder die Daten-Arten geändert haben. Bestehende Versionsdateien nie neu erzeuge
 
 Offen / Rückfragen an Sebastian:
 - Beispiel-Exporte aus SchILD-NRW und Untis (erfundene Namen) zum Gegenprüfen des Imports
-- Quartalsnoten: Was fließt ein (nur das Quartal?), ganze Noten oder mit Tendenz?
-- Arbeitet er mit derselben Datei an Rechnern mit verschiedenen Versionen?
 - Sek II: Klausurschlüssel (NRW-Standard?), nur Kursführung ohne Abiturberechnung?, 50/50 als Standard?
 
 Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Übernehmen genau ,5 → bessere Note (2,5 → 2).
+Bestätigt (15.11.2026): Quartalsnote nur aus dem Quartal, mit Tendenz; Dateien dürfen nach Umstellung mit alten Versionen inkompatibel sein.
 
 ## Entscheidungen
 | Punkt | Entscheidung |
@@ -74,6 +73,9 @@ Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Ü
 | Etiketten-Rand | Inhalt hält am Papierrand mindestens 7 mm Abstand (einstellbar 0–15 mm, Druckversatz eingerechnet), zur Etikettenmitte weiter 4 mm Innenrand; Grund: Etiketten reichen seitlich bis an den Blattrand, Drucker bedrucken dort 4–6 mm nicht |
 | Note ohne Punkte | Note direkt in die Notenspalte tippen = Festsetzung (*); gleich der berechneten Note → keine Festsetzung; eingetippte Note löscht den Vermerk fehlt/schreibt nach/befreit; Entf hebt Festsetzung auf; Abschnitt/Bogen ohne Punkte zeigen „ohne Einzelpunkte bewertet“ statt leerer Tabelle |
 | Versionsdateien | Pro Freigabe mit geändertem Format eine Testdatenbank `tests/daten/version_X_Y_Z` (+ JSON); nie neu erzeugen; vor jeder Format-Umstellung bleibt die alte Datei als dauerhafte Sicherung („_vor-Umstellung-Format-a-auf-b“), die nicht rotiert |
+| Quartale | Quartalswechsel je Schuljahr (Standard Mitte des Halbjahres = bisherige mündliche Quartale); Arbeit zählt zum Quartal ihres Datums, mündlicher Zeitraum zum Quartal seines Beginns; Quartalsnote = Halbjahresgewichtung nur über das Quartal, ohne Anteil anderer Zeiträume; Übernehmen mit Tendenz |
+| Noten-Reiter | Reihenfolge Q1 – 1. Hj. – Q3 – 2. Hj.; Zeitraum-Auswahl (Standard: laufendes Halbjahr); Ansicht „mit Einzelnoten“: Leistungen des 1./3. Quartals vor den Quartalsspalten, des 2./4. vor den Halbjahresspalten |
+| Notenübersicht-Druck | wählt die ausführlichste Spaltenauswahl, die passt: erst Quartals-Teilnoten weg, dann Halbjahres-Teilnoten, dann Vorschläge ohne Zahl, zuletzt schmalere Namensspalte; festgesetzte Noten bleiben immer |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |
 | Gewichtung | je Lerngruppe: Anteil schriftlich (automatisch 50 %/0 %), Anteil 1. Hj. an 2. Hj. (Standard 10 %), ZP10 automatisch für D/E/M Jahrgang 10 (abschaltbar) |

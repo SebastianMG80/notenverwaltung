@@ -155,6 +155,24 @@ MIGRATIONEN: list[str] = [
     """
     ALTER TABLE arbeit ADD COLUMN musterloesung TEXT NOT NULL DEFAULT '';
     """,
+    # 7 – Quartalsnoten (Version 0.4): Quartalswechsel je Schuljahr, Notenarten q1/q3
+    #     SQLite kann CHECK-Bedingungen nicht ändern → Tabelle zeugnisnote neu anlegen und umkopieren.
+    """
+    ALTER TABLE schuljahr ADD COLUMN quartal2_ab TEXT;   -- erster Tag des 2. Quartals, NULL = Mitte des 1. Hj.
+    ALTER TABLE schuljahr ADD COLUMN quartal4_ab TEXT;   -- erster Tag des 4. Quartals, NULL = Mitte des 2. Hj.
+    CREATE TABLE zeugnisnote_neu (
+        lerngruppe_id   INTEGER NOT NULL REFERENCES lerngruppe(id) ON DELETE CASCADE,
+        schueler_id     INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+        art             TEXT NOT NULL CHECK (art IN ('q1', 'hj1', 'q3', 'hj2', 'vornote', 'zp10')),
+        note            TEXT NOT NULL,                    -- Kurzform, z. B. "2" oder "2-"
+        bemerkung       TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (lerngruppe_id, schueler_id, art)
+    );
+    INSERT INTO zeugnisnote_neu (lerngruppe_id, schueler_id, art, note, bemerkung)
+        SELECT lerngruppe_id, schueler_id, art, note, bemerkung FROM zeugnisnote;
+    DROP TABLE zeugnisnote;
+    ALTER TABLE zeugnisnote_neu RENAME TO zeugnisnote;
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)

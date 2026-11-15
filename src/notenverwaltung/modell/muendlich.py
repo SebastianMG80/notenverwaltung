@@ -54,15 +54,8 @@ def note_aus_eingabe(text: str) -> Note | None:
 
 
 def standard_zeitraeume(jahr: Schuljahr) -> list[tuple[str, date, date]]:
-    """Vier Quartale: jedes Halbjahr in der Mitte geteilt."""
-    def halbiere(a: date, b: date) -> date:
-        return a + timedelta(days=(b - a).days // 2)
-
-    hj1_ende = jahr.halbjahreswechsel - timedelta(days=1)
-    m1 = halbiere(jahr.beginn, hj1_ende)
-    m2 = halbiere(jahr.halbjahreswechsel, jahr.ende)
-    return [("1. Quartal", jahr.beginn, m1), ("2. Quartal", m1 + timedelta(days=1), hj1_ende),
-            ("3. Quartal", jahr.halbjahreswechsel, m2), ("4. Quartal", m2 + timedelta(days=1), jahr.ende)]
+    """Die vier Quartale des Schuljahres (Quartalswechsel aus dem Schuljahr, sonst Mitte des Halbjahres)."""
+    return [(f"{i}. Quartal", a, b) for i, (a, b) in enumerate(jahr.quartale(), start=1)]
 
 
 class Muendlich:

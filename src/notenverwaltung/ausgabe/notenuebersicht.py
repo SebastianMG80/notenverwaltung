@@ -1,5 +1,9 @@
-"""Notenübersicht einer Lerngruppe (A4 quer): schriftlich, mündlich, Vorschlag und Zeugnisnote je Halbjahr
-sowie Notenspiegel je Halbjahr und fürs ganze Jahr."""
+"""Notenübersicht einer Lerngruppe (A4 quer): schriftlich, mündlich, Vorschlag und festgesetzte Note je Abschnitt
+in der Reihenfolge der Abgabe (Q1 – 1. Hj. – Q3 – 2. Hj.) sowie Notenspiegel je Abschnitt.
+
+Passt nicht alles auf die Seite, fallen zuerst die Teilnoten der Quartale weg, dann die der Halbjahre,
+dann werden Vorschläge ohne Zahlenwert gezeigt – die festgesetzten Noten bleiben immer.
+"""
 
 from __future__ import annotations
 
@@ -20,7 +24,8 @@ HOEHE = 210 - 2 * RAND
 ZEILE = 6.0
 KOPF = 17.0
 TKOPF = 10.0
-FUSS = 34.0
+FUSS = 36.0
+BEMERKUNG_MIN = 25.0
 
 
 def _z(wert: float | None) -> str:
@@ -34,6 +39,7 @@ class UebersichtOptionen:
     leere_ausblenden: bool = False
     zebra: bool = True
     notenspiegel: bool = True
+    quartale: bool = True                # Quartalsnoten (1. und 3. Quartal)
 
 
 class Notenuebersicht(Ausgabe):
@@ -49,7 +55,7 @@ class Notenuebersicht(Ausgabe):
         if self.o.leere_ausblenden:
             zeilen = [z for z in zeilen if z.fest or any(v.wert is not None for v in z.vorschlag.values())]
         self.zeilen: list[Zeile] = zeilen
-        self.spalten = self._spalten()
+        self.spalten = self._passende_spalten()
         zeitraum = {1: "1. Halbjahr", 2: "2. Halbjahr", None: "ganzes Schuljahr"}[self.o.halbjahr]
         self.titel = f"Notenübersicht {self.gruppe.bezeichnung} – {zeitraum}"
         pro_seite = int((HOEHE - KOPF - TKOPF) // ZEILE)
@@ -57,26 +63,50 @@ class Notenuebersicht(Ausgabe):
         rest = KOPF + TKOPF + len(self._seiten[-1]) * ZEILE
         self._fuss_extra = self.o.notenspiegel and rest + FUSS > HOEHE
 
-    def _spalten(self) -> list[tuple[str, str, float]]:
-        s = [("Nr.", "nr", 9), ("Name", "name", 50), ("Kl.", "kl", 11)]
+    def _passende_spalten(self) -> list[tuple[str, str, float]]:
+        """Die ausführlichste Spaltenauswahl, die auf die Seite passt."""
+        stufen = [dict(q_teile=True, hj_teile=True, kompakt=False), dict(q_teile=False, hj_teile=True, kompakt=False),
+                  dict(q_teile=False, hj_teile=False, kompakt=False), dict(q_teile=False, hj_teile=False, kompakt=True),
+                  dict(q_teile=False, hj_teile=False, kompakt=True, name=40.0)]
+        for st in stufen:
+            s = self._spalten(**st)
+            if sum(b for _, _, b in s[:-1]) <= BREITE - BEMERKUNG_MIN:
+                break
+        self.stufe = st
+        return s
+
+    def _spalten(self, q_teile: bool = True, hj_teile: bool = True, kompakt: bool = False,
+                 name: float = 50.0) -> list[tuple[str, str, float]]:
+        s = [("Nr.", "nr", 9), ("Name", "name", name), ("Kl.", "kl", 11)]
         halbjahre = (1, 2) if self.o.halbjahr is None else (self.o.halbjahr,)
+        vb = 15 if kompakt else 24
+        v = self.o.vorschlaege
         for h in halbjahre:
             p = f"{h}. Hj. "
+            if self.o.quartale:
+                q = 2 * h - 1
+                if q_teile:
+                    s += [(f"Q{q} schriftl.", f"sq{q}", 20), (f"Q{q} mündl.", f"mq{q}", 20)]
+                if v:
+                    s.append((f"Q{q} Vorschl.", f"v:q{q}", vb))
+                s.append((f"Q{q} Note", f"f:q{q}", 18))
             if h == 2 and self.gw.zp10:
-                s += [(p + "schriftl.", "s1+2", 20), (p + "mündl.", "m1+2", 20)]
-                if self.o.vorschlaege:
-                    s.append(("Vornote Vorschl.", "v:vornote", 22))
+                if hj_teile:
+                    s += [(p + "schriftl.", "s1+2", 20), (p + "mündl.", "m1+2", 20)]
+                if v:
+                    s.append(("Vornote Vorschl.", "v:vornote", vb if kompakt else vb - 2))
                 s += [("Vornote", "f:vornote", 18), ("ZP10", "f:zp10", 14)]
-                if self.o.vorschlaege:
-                    s.append(("Endnote Vorschl.", "v:hj2", 22))
+                if v:
+                    s.append(("Endnote Vorschl.", "v:hj2", vb if kompakt else vb - 2))
                 s.append(("Endnote", "f:hj2", 18))
                 continue
-            s += [(p + "schriftl.", f"s{h}", 20), (p + "mündl.", f"m{h}", 20)]
-            if self.o.vorschlaege:
-                s.append((p + "Vorschlag", f"v:hj{h}", 24))
+            if hj_teile:
+                s += [(p + "schriftl.", f"s{h}", 20), (p + "mündl.", f"m{h}", 20)]
+            if v:
+                s.append((p + ("Vorschl." if kompakt else "Vorschlag"), f"v:hj{h}", vb))
             s.append((p + "Zeugnis", f"f:hj{h}", 20))
         rest = BREITE - sum(b for _, _, b in s)
-        s.append(("Bemerkung", "bem", max(28.0, rest)))
+        s.append(("Bemerkung", "bem", max(BEMERKUNG_MIN, rest)))
         return s
 
     def seitenzahl(self) -> int:
@@ -94,13 +124,18 @@ class Notenuebersicht(Ausgabe):
         if inhalt in ("s1", "s2", "m1", "m2"):
             t = (z.schriftlich if inhalt[0] == "s" else z.muendlich)[int(inhalt[1])]
             return _z(t.wert), False
+        if inhalt in ("sq1", "sq3", "mq1", "mq3"):
+            t = (z.quartal_s if inhalt[0] == "s" else z.quartal_m).get(int(inhalt[2]))
+            return (_z(t.wert) if t else ""), False
         if inhalt in ("s1+2", "m1+2"):
             teile = z.schriftlich if inhalt[0] == "s" else z.muendlich
             werte = [t.wert for t in teile.values() if t.wert is not None]
             return _z(sum(werte) / len(werte)) if werte else "", False
         if inhalt.startswith("v:"):
             v = z.vorschlag.get(inhalt[2:])
-            return (f"{v.note.kurz} ({_z(v.wert)})" if v and v.note else ""), False
+            if not (v and v.note):
+                return "", False
+            return (v.note.kurz if self.stufe.get("kompakt") else f"{v.note.kurz} ({_z(v.wert)})"), False
         if inhalt.startswith("f:"):
             n = z.fest.get(inhalt[2:])
             return (n.kurz if n else ""), True
@@ -140,8 +175,10 @@ class Notenuebersicht(Ausgabe):
         x = x0
         for kopf, inhalt, b in self.spalten:
             s.schrift(7.5, fett=True)
-            s.text(x + 1, y, b - 2, TKOPF, kopf.replace(" Hj. ", " Hj.\n").replace(" Vorschl.", "\nVorschl."),
-                   LINKS if inhalt in ("name", "bem") else MITTE, umbruch=True)
+            text = kopf.replace(" Hj. ", " Hj.\n").replace(" Vorschl.", "\nVorschl.").replace("\n\n", "\n")
+            if text.startswith("Q") and " " in text and "\n" not in text:
+                text = text.replace(" ", "\n", 1)
+            s.text(x + 1, y, b - 2, TKOPF, text, LINKS if inhalt in ("name", "bem") else MITTE, umbruch=True)
             x += b
         y0 = y
         y += TKOPF
@@ -169,35 +206,41 @@ class Notenuebersicht(Ausgabe):
         return y
 
     def _spiegel(self, s: Seite, y: float) -> None:
-        """Notenspiegel der festgesetzten Zeugnisnoten (ganze Noten) je Halbjahr bzw. fürs Jahr."""
-        bloecke: list[tuple[str, list[Note]]] = []
+        """Notenspiegel der festgesetzten Noten je Abschnitt (Quartalsnoten nach Stufe gezählt)."""
+        arten = []
         if self.o.halbjahr in (None, 1):
-            bloecke.append(("1. Halbjahr", [z.fest["hj1"] for z in self.zeilen if "hj1" in z.fest]))
+            arten += ([("q1", "1. Quartal")] if self.o.quartale else []) + [("hj1", "1. Halbjahr")]
         if self.o.halbjahr in (None, 2):
-            bloecke.append(("Endnote" if self.gw.zp10 else "2. Halbjahr (Jahresnote)",
-                            [z.fest["hj2"] for z in self.zeilen if "hj2" in z.fest]))
-        b = 12.0
+            arten += ([("q3", "3. Quartal")] if self.o.quartale else []) + [
+                ("hj2", "Endnote" if self.gw.zp10 else "2. Halbjahr (Jahresnote)")]
+        bloecke: list[tuple[str, list[Note]]] = [(t, [z.fest[a] for z in self.zeilen if a in z.fest]) for a, t in arten]
+        abstand = 8.0
+        breite = min(7 * 12.0, (BREITE - abstand * (len(bloecke) - 1)) / len(bloecke))
+        b = breite / 7
         for i, (titel, noten) in enumerate(bloecke):
-            x0 = RAND + i * (b * 7 + 40)
+            x0 = RAND + i * (breite + abstand)
             sp = Notenspiegel.aus(noten)
             s.stift("#000000", 0.15)
             s.schrift(9, fett=True)
-            s.text(x0, y, b * 7 + 30, 5, f"Notenspiegel {titel}", LINKS)
+            s.text(x0, y, breite + abstand, 5, f"Notenspiegel {titel}", LINKS)
             y1 = y + 6
-            s.flaeche(x0, y1, b * 7, 6, "#e2e2e2")
+            s.flaeche(x0, y1, breite, 6, "#e2e2e2")
             s.schrift(8.5, fett=True)
             s.text(x0, y1, b, 6, "Note", MITTE)
             for k in range(1, 7):
                 s.text(x0 + k * b, y1, b, 6, str(k), MITTE)
             s.schrift(8.5)
-            s.text(x0, y1 + 6, b, 6, "Anzahl", MITTE)
+            s.text(x0, y1 + 6, b, 6, "Anz.", MITTE)
             for k in range(1, 7):
                 s.text(x0 + k * b, y1 + 6, b, 6, str(sp.anzahl[k]), MITTE)
-            s.kasten(x0, y1, b * 7, 12)
-            s.linie(x0, y1 + 6, x0 + 7 * b, y1 + 6)
+            s.kasten(x0, y1, breite, 12)
+            s.linie(x0, y1 + 6, x0 + breite, y1 + 6)
             for k in range(1, 7):
                 s.linie(x0 + k * b, y1, x0 + k * b, y1 + 12)
-            text = (f"Schnitt {_z(sp.schnitt)} · unter 4: {sp.anteil_unter_4:.0f} % · {sp.gesamt} Noten"
-                    if sp.gesamt else "Noch keine Zeugnisnoten festgesetzt.")
-            s.text(x0, y1 + 14, b * 7 + 40, 5, text, LINKS)
-
+            s.schrift(8)
+            if sp.gesamt:
+                s.text(x0, y1 + 13, breite + abstand, 4.5, f"Schnitt {_z(sp.schnitt)} · unter 4: {sp.anteil_unter_4:.0f} %",
+                       LINKS)
+                s.text(x0, y1 + 17.5, breite + abstand, 4.5, f"{sp.gesamt} Noten", LINKS)
+            else:
+                s.text(x0, y1 + 13, breite + abstand, 4.5, "Noch keine Noten festgesetzt.", LINKS)

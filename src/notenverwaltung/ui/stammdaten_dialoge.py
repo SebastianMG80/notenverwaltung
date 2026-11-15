@@ -94,19 +94,57 @@ class SchuljahrDialog(_Dialog):
         self.form.addRow("Beginn:", self.beginn)
         self.form.addRow("2. Halbjahr ab:", self.wechsel)
         self.form.addRow("Ende:", self.ende)
-        hinweis = QLabel("Der Halbjahreswechsel bestimmt, welche Noten zum 1. und welche zum 2. Halbjahr zählen.",
-                         objectName="leise")
+        self.quartale_auto = QCheckBox("Quartalswechsel automatisch (Mitte des Halbjahres)")
+        self.quartal2 = Datumsfeld()
+        self.quartal4 = Datumsfeld()
+        quartale = QHBoxLayout()
+        quartale.addWidget(QLabel("2. Quartal ab"))
+        quartale.addWidget(self.quartal2)
+        quartale.addWidget(QLabel("4. Quartal ab"))
+        quartale.addWidget(self.quartal4)
+        quartale.addStretch(1)
+        self.form.addRow("Quartale:", self.quartale_auto)
+        self.form.addRow("", quartale)
+        eigene = schuljahr is not None and (schuljahr.quartal2 is not None or schuljahr.quartal4 is not None)
+        self.quartale_auto.setChecked(not eigene)
+        if eigene:
+            self.quartal2.setze(schuljahr.quartal2_ab)
+            self.quartal4.setze(schuljahr.quartal4_ab)
+        self.quartale_auto.toggled.connect(self._quartale)
+        for feld in (self.beginn, self.wechsel, self.ende):
+            feld.dateChanged.connect(self._quartale)
+        self._quartale()
+        hinweis = QLabel("Der Halbjahreswechsel bestimmt, welche Noten zum 1. und welche zum 2. Halbjahr zählen, "
+                         "die Quartalswechsel das Gleiche für die Quartalsnoten (1. und 3. Quartal). "
+                         "Mündliche Zeiträume schon angelegter Lerngruppen bleiben unverändert "
+                         "(Mündlich → Zeiträume → „Auf Quartale zurücksetzen“).", objectName="leise")
         hinweis.setWordWrap(True)
         self.form.addRow(hinweis)
 
+    def _vorlaeufig(self) -> Schuljahr:
+        return Schuljahr(0, "", self.beginn.wert(), self.wechsel.wert(), self.ende.wert())
+
+    def _quartale(self, *_) -> None:
+        auto = self.quartale_auto.isChecked()
+        self.quartal2.setEnabled(not auto)
+        self.quartal4.setEnabled(not auto)
+        if auto:
+            try:
+                sj = self._vorlaeufig()
+                self.quartal2.setze(sj.quartal2_ab)
+                self.quartal4.setze(sj.quartal4_ab)
+            except ValueError:
+                pass
+
     def speichern(self) -> None:
         werte = (self.bezeichnung.text(), self.beginn.wert(), self.wechsel.wert(), self.ende.wert())
+        auto = self.quartale_auto.isChecked()
+        q2, q4 = (None, None) if auto else (self.quartal2.wert(), self.quartal4.wert())
         if self.alt:
-            neu = Schuljahr(self.alt.id, *werte)
-            self.sd.aendere_schuljahr(neu)
+            self.sd.aendere_schuljahr(Schuljahr(self.alt.id, *werte, q2, q4))
             self.ergebnis = self.sd.schuljahr(self.alt.id)
         else:
-            self.ergebnis = self.sd.lege_schuljahr_an(*werte)
+            self.ergebnis = self.sd.lege_schuljahr_an(*werte, quartal2=q2, quartal4=q4)
 
 
 # ---- Schüler:in -----------------------------------------------------------------------------------

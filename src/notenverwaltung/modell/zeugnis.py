@@ -7,6 +7,9 @@ Regeln (Lastenheft):
 - 2. Halbjahr: Die Note des 1. Halbjahres geht mit einem einstellbaren Anteil ein (Standard 10 %).
 - Deutsch, Englisch, Mathematik in Jahrgang 10 (ZP10-Fächer): Im 2. Halbjahr gibt es eine Ganzjahresnote
   (Vornote) aus allen Leistungen des Schuljahres; die Zeugnisnote ist 50 % Vornote + 50 % ZP10.
+- Quartalsnoten (1. und 3. Quartal): nur die Leistungen des Quartals, gewichtet wie das Halbjahr,
+  ohne Anteil eines anderen Zeitraums. Sie werden mit Tendenz abgegeben.
+- Eine Arbeit gehört zum Quartal ihres Datums, ein mündlicher Zeitraum zum Quartal seines Beginns.
 - Das Programm schlägt vor (nächstgelegene Note mit Tendenz), die Lehrkraft setzt fest.
 """
 
@@ -14,14 +17,17 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
+from datetime import date
 
+from notenverwaltung.modell.arbeiten import STATUS as STATUS_LANG
 from notenverwaltung.modell.arbeiten import Arbeiten
 from notenverwaltung.modell.muendlich import Muendlich
-from notenverwaltung.modell.noten import ALLE_NOTEN, Note
+from notenverwaltung.modell.noten import ALLE_NOTEN, Note, zahl_text
 from notenverwaltung.modell.stammdaten import Lerngruppe, Mitglied, Stammdaten
 
 ZP10_FAECHER = {"deutsch", "englisch", "mathematik", "d", "e", "m"}
-ARTEN = ("hj1", "hj2", "vornote", "zp10")
+ARTEN = ("q1", "hj1", "q3", "hj2", "vornote", "zp10")
+QUARTALE = ("q1", "q3")                  # werden mit Tendenz festgesetzt
 
 
 class ZeugnisFehler(ValueError):
@@ -73,8 +79,34 @@ class Zeile:
     mitglied: Mitglied
     schriftlich: dict[int, Teilnote]        # Halbjahr → Teilnote
     muendlich: dict[int, Teilnote]
-    vorschlag: dict[str, Vorschlag]         # "hj1", "hj2" bzw. bei ZP10 "vornote" und "hj2" (Endnote)
-    fest: dict[str, Note]                   # festgesetzt: "hj1", "hj2", "vornote", "zp10"
+    vorschlag: dict[str, Vorschlag]         # "q1", "hj1", "q3", "hj2" bzw. bei ZP10 zusätzlich "vornote"
+    fest: dict[str, Note]                   # festgesetzt: "q1", "hj1", "q3", "hj2", "vornote", "zp10"
+    quartal_s: dict[int, Teilnote] = field(default_factory=dict)   # Quartal (1 oder 3) → schriftlich
+    quartal_m: dict[int, Teilnote] = field(default_factory=dict)   # Quartal (1 oder 3) → mündlich
+
+
+@dataclass(frozen=True)
+class Einzelspalte:
+    """Eine einzelne Leistung: eine Arbeit oder ein mündlicher Zeitraum."""
+    art: str                 # "arbeit" oder "muendlich"
+    id: int
+    titel: str
+    von: date
+    bis: date | None         # nur bei mündlichen Zeiträumen
+    quartal: int             # 1–4 (Arbeit: Datum, Zeitraum: Beginn)
+    zaehlt: bool = True
+    gewicht: float = 1.0
+
+    @property
+    def schluessel(self) -> str:
+        return f"{self.art}:{self.id}"
+
+
+@dataclass(frozen=True)
+class Einzelnote:
+    text: str                # „2-“, „3*“ (festgesetzt), „fehlt“, „—“ (nicht in der Gruppe)
+    hinweis: str = ""        # Tooltip
+    leise: bool = False      # grau darstellen (fehlt, befreit, nicht in der Gruppe, zählt nicht)
 
 
 class Zeugnis:
@@ -134,10 +166,13 @@ class Zeugnis:
         muendlich = self.mu.noten(g.id)
         fest = self.festgesetzt(g.id)
 
-        def schriftlich(sid: int, halbjahre: tuple[int, ...]) -> Teilnote:
+        def im(datum, halbjahre: tuple[int, ...], quartal: int | None) -> bool:
+            return jahr.quartal(datum) == quartal if quartal else jahr.halbjahr(datum) in halbjahre
+
+        def schriftlich(sid: int, halbjahre: tuple[int, ...], quartal: int | None = None) -> Teilnote:
             werte, teile = [], []
             for a in arbeiten:
-                if jahr.halbjahr(a.datum) not in halbjahre:
+                if not im(a.datum, halbjahre, quartal):
                     continue
                 e = ergebnisse[a.id].get(sid)
                 if e is None or e.note is None:
@@ -149,9 +184,9 @@ class Zeugnis:
             summe_g = sum(w for _, w in werte)
             return Teilnote(sum(n * w for n, w in werte) / summe_g, len(werte), ", ".join(teile))
 
-        def muendlich_teil(sid: int, halbjahre: tuple[int, ...]) -> Teilnote:
+        def muendlich_teil(sid: int, halbjahre: tuple[int, ...], quartal: int | None = None) -> Teilnote:
             werte = [(z.bezeichnung, muendlich[(z.id, sid)][0]) for z in zeitraeume
-                     if jahr.halbjahr(z.beginn) in halbjahre and (z.id, sid) in muendlich]
+                     if im(z.beginn, halbjahre, quartal) and (z.id, sid) in muendlich]
             if not werte:
                 return Teilnote(None, 0, "keine mündlichen Noten")
             return Teilnote(sum(n.wert for _, n in werte) / len(werte), len(werte),
@@ -180,7 +215,14 @@ class Zeugnis:
             mu = {h: muendlich_teil(sid, (h,)) for h in (1, 2)}
             v1 = mische(s[1], mu[1])
             f = {art: fest[(sid, art)] for art in ARTEN if (sid, art) in fest}
-            vorschlag = {"hj1": v1}
+            qs = {q: schriftlich(sid, (), q) for q in (1, 3)}
+            qm = {q: muendlich_teil(sid, (), q) for q in (1, 3)}
+            vorschlag = {}
+            for q in (1, 3):
+                a, b = jahr.quartale()[q - 1]
+                v = mische(qs[q], qm[q])
+                vorschlag[f"q{q}"] = Vorschlag(v.wert, [f"Nur das {q}. Quartal ({a:%d.%m.}–{b:%d.%m.}):"] + v.herleitung)
+            vorschlag["hj1"] = v1
             if gw.zp10:
                 ganz = mische(schriftlich(sid, (1, 2)), muendlich_teil(sid, (1, 2)))
                 vorschlag["vornote"] = Vorschlag(ganz.wert, ["Ganzjahresnote aus allen Leistungen:"] + ganz.herleitung)
@@ -209,12 +251,57 @@ class Zeugnis:
                                                     + f" × {gw.anteil_hj1:g} %", f"= {_z(wert)}"])
                 else:
                     vorschlag["hj2"] = v2
-            zeilen.append(Zeile(m, s, mu, vorschlag, f))
+            zeilen.append(Zeile(m, s, mu, vorschlag, f, qs, qm))
         return zeilen
 
-    def uebernimm_vorschlaege(self, lerngruppe_id: int, art: str, nur_leere: bool = True, ganze: bool = True) -> int:
-        """Setzt alle (bzw. nur noch leere) Noten einer Art auf den Vorschlag – standardmäßig als ganze Note,
-        wie sie auf dem Zeugnis steht. Gibt die Anzahl zurück."""
+    def einzelnoten(self, lerngruppe_id: int) -> tuple[list[Einzelspalte], dict[tuple[str, int], Einzelnote]]:
+        """Alle einzelnen Leistungen der Lerngruppe in zeitlicher Reihenfolge: (Spalten, (Schlüssel, Schüler-ID) → Note)."""
+        g = self.sd.lerngruppe(lerngruppe_id)
+        jahr = self.sd.schuljahr(g.schuljahr_id)
+        spalten: list[Einzelspalte] = []
+        werte: dict[tuple[str, int], Einzelnote] = {}
+        status_text = {"fehlt": "fehlt", "nachschreiben": "n. s.", "befreit": "befr."}
+        for a in self.ar.arbeiten(g.id):
+            sp = Einzelspalte("arbeit", a.id, a.titel, a.datum, None, jahr.quartal(a.datum), a.zaehlt, a.gewicht)
+            spalten.append(sp)
+            hoechst = self.ar.hoechstpunkte(a.id)
+            for e in self.ar.ergebnisse(a.id):
+                sid = e.mitglied.schueler.id
+                if e.note is not None:
+                    hinweis = (f"{e.note.wort_mit_tendenz} – festgesetzt" if e.note_manuell else
+                               f"{e.note.wort_mit_tendenz} – {zahl_text(e.summe)} von {zahl_text(hoechst)} Punkten")
+                    if e.note_manuell and e.summe is not None:
+                        hinweis += f" ({zahl_text(e.summe)} von {zahl_text(hoechst)} Punkten)"
+                    if not a.zaehlt:
+                        hinweis += "\nDiese Arbeit zählt nicht für die Note."
+                    werte[(sp.schluessel, sid)] = Einzelnote(e.note.kurz + ("*" if e.note_manuell else ""),
+                                                            hinweis, not a.zaehlt)
+                elif e.status:
+                    werte[(sp.schluessel, sid)] = Einzelnote(status_text.get(e.status, e.status),
+                                                            STATUS_LANG.get(e.status, e.status), True)
+                elif not e.erwartet:
+                    werte[(sp.schluessel, sid)] = Einzelnote("—", "Zu diesem Zeitpunkt nicht in der Gruppe.", True)
+        mitglieder = self.sd.mitglieder(g.id)
+        noten = self.mu.noten(g.id)
+        for z in self.mu.zeitraeume(g.id):
+            sp = Einzelspalte("muendlich", z.id, z.bezeichnung, z.beginn, z.ende, jahr.quartal(z.beginn))
+            spalten.append(sp)
+            for m in mitglieder:
+                sid = m.schueler.id
+                if (z.id, sid) in noten:
+                    note, bem = noten[(z.id, sid)]
+                    werte[(sp.schluessel, sid)] = Einzelnote(note.kurz, note.wort_mit_tendenz + (f"\n{bem}" if bem else ""))
+                elif not z.erfasst(m):
+                    werte[(sp.schluessel, sid)] = Einzelnote("—", "In diesem Zeitraum nicht in der Gruppe.", True)
+        spalten.sort(key=lambda s: (s.von, s.art != "arbeit", s.id))
+        return spalten, werte
+
+    def uebernimm_vorschlaege(self, lerngruppe_id: int, art: str, nur_leere: bool = True,
+                              ganze: bool | None = None) -> int:
+        """Setzt alle (bzw. nur noch leere) Noten einer Art auf den Vorschlag. Standard: Zeugnisnoten als ganze
+        Note (wie auf dem Zeugnis), Quartalsnoten mit Tendenz. Gibt die Anzahl zurück."""
+        if ganze is None:
+            ganze = art not in QUARTALE
         if art == "zp10":
             raise ZeugnisFehler("ZP10-Noten werden eingetragen, nicht vorgeschlagen.")
         n = 0

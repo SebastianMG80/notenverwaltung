@@ -1,4 +1,8 @@
-"""Reiter „Noten“: schriftlicher und mündlicher Schnitt, Vorschlag mit Herleitung, festgesetzte Zeugnisnote."""
+"""Reiter „Noten“: Quartals- und Halbjahresnoten in der Reihenfolge der Abgabe (Q1 – 1. Hj. – Q3 – 2. Hj.).
+
+Je Abschnitt: schriftlicher und mündlicher Schnitt, Vorschlag mit Herleitung, festgesetzte Note.
+Ansicht „Einzelnoten“: zusätzlich jede Arbeit und jeder mündliche Zeitraum vor dem Abschnitt, zu dem sie zählen.
+"""
 
 from __future__ import annotations
 
@@ -27,11 +31,14 @@ from PySide6.QtWidgets import (
 from notenverwaltung.modell.muendlich import MuendlichFehler, note_aus_eingabe
 from notenverwaltung.modell.noten import Notenspiegel
 from notenverwaltung.modell.stammdaten import Lerngruppe, Schuljahr, Stammdaten
-from notenverwaltung.modell.zeugnis import Teilnote, Vorschlag, Zeile, Zeugnis, ZeugnisFehler
+from notenverwaltung.modell.zeugnis import QUARTALE, Einzelnote, Teilnote, Vorschlag, Zeile, Zeugnis, ZeugnisFehler
 from notenverwaltung.ui.bausteine import Hinweis, aktuelle_farben, info
 
 ROLLE_ART = Qt.ItemDataRole.UserRole + 1
 ROLLE_SID = Qt.ItemDataRole.UserRole + 2
+ROLLE_EINZEL = Qt.ItemDataRole.UserRole + 3
+BREITE_EINZEL = 72
+BREITE_ABSCHNITT = 84
 
 
 def _z(wert: float | None) -> str:
@@ -100,6 +107,8 @@ class NotenTab(QWidget):
         self.jahr: Schuljahr | None = None
         self.gruppe: Lerngruppe | None = None
         self.zeilen: list[Zeile] = []
+        self._einzel: list = []
+        self._einzelwerte: dict = {}
         self._fuellt = False
 
         self.gewichtung_text = QLabel(objectName="leise")
@@ -110,8 +119,28 @@ class NotenTab(QWidget):
         self.uebernehmen.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.uebernehmen_menue = QMenu(self)
         self.uebernehmen.setMenu(self.uebernehmen_menue)
+        self.zeitraum = QComboBox()
+        self.zeitraum.addItem("ganzes Schuljahr", None)
+        self.zeitraum.addItem("1. Halbjahr (Q1 und 1. Hj.)", 1)
+        self.zeitraum.addItem("2. Halbjahr (Q3 und 2. Hj.)", 2)
+        self.zeitraum.setToolTip("Welche Abschnitte gezeigt werden")
+        self._zeitraum_gewaehlt = False
+        self.zeitraum.activated.connect(lambda: setattr(self, "_zeitraum_gewaehlt", True))
+        self.zeitraum.currentIndexChanged.connect(lambda: self.gruppe and self._fuellen())
+        self.ansicht = QComboBox()
+        self.ansicht.addItem("zusammengefasst", False)
+        self.ansicht.addItem("mit Einzelnoten", True)
+        self.ansicht.setToolTip("Mit Einzelnoten: jede Arbeit und jeder mündliche Zeitraum als eigene Spalte, "
+                                "jeweils vor der Note, zu der sie zählen")
+        self.ansicht.currentIndexChanged.connect(lambda: self.gruppe and self._fuellen())
+        auswahl = QHBoxLayout()
+        auswahl.addWidget(QLabel("Zeitraum:"))
+        auswahl.addWidget(self.zeitraum)
+        auswahl.addWidget(QLabel("Ansicht:"))
+        auswahl.addWidget(self.ansicht)
+        auswahl.addWidget(self.gewichtung_text, 1)
         oben = QHBoxLayout()
-        oben.addWidget(self.gewichtung_text, 1)
+        oben.addStretch(1)
         oben.addWidget(gewichtung)
         oben.addWidget(self.uebernehmen)
         drucken = QPushButton("Drucken / PDF …")
@@ -135,6 +164,7 @@ class NotenTab(QWidget):
         hilfe.setWordWrap(True)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 8, 0, 0)
+        lay.addLayout(auswahl)
         lay.addLayout(oben)
         lay.addWidget(self.tabelle, 1)
         lay.addWidget(self.meldung)
@@ -147,20 +177,45 @@ class NotenTab(QWidget):
             self.sd, self.zg = sd, Zeugnis(sd.v)
         self.jahr, self.gruppe = jahr, sd.lerngruppe(gruppe.id)
         self.meldung.setze("")
+        if not self._zeitraum_gewaehlt:   # Standard: das laufende Halbjahr
+            from datetime import date
+
+            heute = date.today()
+            h = jahr.halbjahr(heute) if jahr.enthaelt(heute) else None
+            self.zeitraum.blockSignals(True)
+            self.zeitraum.setCurrentIndex(self.zeitraum.findData(h))
+            self.zeitraum.blockSignals(False)
         self._fuellen()
 
     def _spalten(self, zp10: bool) -> list[tuple[str, str, str | None]]:
-        """(Überschrift, Inhalt, Art zum Festsetzen oder None)."""
-        s = [("Nr.", "nr", None), ("Name", "name", None), ("Kl.", "klasse", None),
-             ("1. Hj.\nschriftl.", "s1", None), ("1. Hj.\nmündl.", "m1", None), ("1. Hj.\nVorschlag", "v:hj1", None),
-             ("1. Hj.\nZeugnis", "f:hj1", "hj1")]
-        if zp10:
-            s += [("Vornote\nVorschlag", "v:vornote", None), ("Vornote", "f:vornote", "vornote"),
-                  ("ZP10", "f:zp10", "zp10"), ("Endnote\nVorschlag", "v:hj2", None), ("Endnote\nZeugnis", "f:hj2", "hj2")]
-        else:
-            s += [("2. Hj.\nschriftl.", "s2", None), ("2. Hj.\nmündl.", "m2", None),
-                  ("2. Hj.\nVorschlag", "v:hj2", None), ("2. Hj.\nZeugnis", "f:hj2", "hj2")]
+        """(Überschrift, Inhalt, Art zum Festsetzen oder None) in der Reihenfolge der Abgabe."""
+        s = [("Nr.", "nr", None), ("Name", "name", None), ("Kl.", "klasse", None)]
+        halbjahre = (1, 2) if self.zeitraum.currentData() is None else (self.zeitraum.currentData(),)
+        einzeln = self.ansicht.currentData()
+        for h in halbjahre:
+            q = 2 * h - 1   # 1 bzw. 3
+            for e in self._einzel if einzeln else []:
+                if e.quartal == q:
+                    s.append(self._einzelkopf(e))
+            s += [(f"Q{q}\nschriftl.", f"sq:{q}", None), (f"Q{q}\nmündl.", f"mq:{q}", None),
+                  (f"Q{q}\nVorschlag", f"v:q{q}", None), (f"Q{q}\nNote", f"f:q{q}", f"q{q}")]
+            for e in self._einzel if einzeln else []:
+                if e.quartal == q + 1:
+                    s.append(self._einzelkopf(e))
+            if h == 2 and zp10:
+                s += [("Vornote\nVorschlag", "v:vornote", None), ("Vornote", "f:vornote", "vornote"),
+                      ("ZP10", "f:zp10", "zp10"), ("Endnote\nVorschlag", "v:hj2", None),
+                      ("Endnote\nZeugnis", "f:hj2", "hj2")]
+            else:
+                s += [(f"{h}. Hj.\nschriftl.", f"s{h}", None), (f"{h}. Hj.\nmündl.", f"m{h}", None),
+                      (f"{h}. Hj.\nVorschlag", f"v:hj{h}", None), (f"{h}. Hj.\nZeugnis", f"f:hj{h}", f"hj{h}")]
         return s
+
+    @staticmethod
+    def _einzelkopf(e) -> tuple[str, str, None]:
+        titel = e.titel if len(e.titel) <= 10 else e.titel[:9].rstrip() + "…"
+        datum = f"{e.von:%d.%m.}" if e.art == "arbeit" else f"mdl. {e.von:%d.%m.}"
+        return (f"{titel}\n{datum}", f"e:{e.schluessel}", None)
 
     def _fuellen(self) -> None:
         gw = self.zg.gewichtung(self.gruppe)
@@ -172,6 +227,9 @@ class NotenTab(QWidget):
             teile.append(f"1. Halbjahr zählt {gw.anteil_hj1:g} % zur Note des 2. Halbjahres")
         self.gewichtung_text.setText(" · ".join(teile))
         self._menue(gw.zp10)
+        self._einzel, self._einzelwerte = (self.zg.einzelnoten(self.gruppe.id) if self.ansicht.currentData()
+                                           else ([], {}))
+        titel = {f"e:{e.schluessel}": e for e in self._einzel}
 
         spalten = self._spalten(gw.zp10)
         farben = aktuelle_farben()
@@ -194,11 +252,23 @@ class NotenTab(QWidget):
                     item.setText(f"{m.schueler.nachname}, {m.schueler.vorname}")
                 elif inhalt == "klasse":
                     item.setText(m.klasse)
-                elif inhalt[0] in "sm" and inhalt[1:].isdigit():
-                    t: Teilnote = (z.schriftlich if inhalt[0] == "s" else z.muendlich)[int(inhalt[1])]
+                elif inhalt[0] in "sm" and (inhalt[1:].isdigit() or inhalt[1:3] == "q:"):
+                    if inhalt[1:3] == "q:":
+                        t: Teilnote = (z.quartal_s if inhalt[0] == "s" else z.quartal_m)[int(inhalt[3:])]
+                    else:
+                        t = (z.schriftlich if inhalt[0] == "s" else z.muendlich)[int(inhalt[1])]
                     item.setText(_z(t.wert))
                     item.setToolTip(t.herleitung)
                     item.setForeground(QBrush(QColor(farben.text_leise)))
+                elif inhalt.startswith("e:"):
+                    e: Einzelnote | None = self._einzelwerte.get((inhalt[2:], m.schueler.id))
+                    sp = titel[inhalt]
+                    if e:
+                        item.setText(e.text)
+                        item.setToolTip(f"{sp.titel}: {e.hinweis}" if e.hinweis else sp.titel)
+                        if e.leise:
+                            item.setForeground(QBrush(QColor(farben.text_leise)))
+                    item.setData(ROLLE_EINZEL, True)
                 elif inhalt.startswith("v:"):
                     v: Vorschlag | None = z.vorschlag.get(inhalt[2:])
                     if v and v.note:
@@ -225,12 +295,22 @@ class NotenTab(QWidget):
         self.tabelle.setColumnWidth(1, 190)
         self.tabelle.setColumnWidth(2, 42)
         for c in range(3, len(spalten)):
-            self.tabelle.setColumnWidth(c, 84)
+            self.tabelle.setColumnWidth(c, BREITE_EINZEL if spalten[c][1].startswith("e:") else BREITE_ABSCHNITT)
+            if spalten[c][1].startswith("e:"):
+                sp = titel[spalten[c][1]]
+                kopf = self.tabelle.horizontalHeaderItem(c)
+                kopf.setToolTip(f"{sp.titel} ({sp.von:%d.%m.%Y}" + (f"–{sp.bis:%d.%m.%Y}" if sp.bis else "") + ")"
+                                + ("" if sp.zaehlt else " – zählt nicht"))
         self._spiegel(gw.zp10)
 
     def _spiegel(self, zp10: bool) -> None:
         teile = []
-        for art, text in (("hj1", "1. Halbjahr"), ("hj2", "Endnote" if zp10 else "2. Halbjahr")):
+        arten = [("q1", "1. Quartal"), ("hj1", "1. Halbjahr"), ("q3", "3. Quartal"),
+                 ("hj2", "Endnote" if zp10 else "2. Halbjahr")]
+        h = self.zeitraum.currentData()
+        if h is not None:
+            arten = arten[:2] if h == 1 else arten[2:]
+        for art, text in arten:
             noten = [z.fest[art] for z in self.zeilen if art in z.fest]
             if noten:
                 s = Notenspiegel.aus(noten)
@@ -241,8 +321,8 @@ class NotenTab(QWidget):
 
     def _menue(self, zp10: bool) -> None:
         self.uebernehmen_menue.clear()
-        arten = [("hj1", "1. Halbjahr")] + ([("vornote", "Vornote"), ("hj2", "Endnote")] if zp10
-                                            else [("hj2", "2. Halbjahr")])
+        arten = [("q1", "1. Quartal (mit Tendenz)"), ("hj1", "1. Halbjahr"), ("q3", "3. Quartal (mit Tendenz)")] + (
+            [("vornote", "Vornote"), ("hj2", "Endnote")] if zp10 else [("hj2", "2. Halbjahr")])
         for art, text in arten:
             a = self.uebernehmen_menue.addAction(f"{text}: nur leere Felder")
             a.triggered.connect(lambda _=False, x=art: self._uebernehmen(x, True))
@@ -281,7 +361,8 @@ class NotenTab(QWidget):
         n = self.zg.uebernimm_vorschlaege(self.gruppe.id, art, nur_leere)
         self._fuellen()
         self.geaendert.emit()
-        info(self, "Vorschläge übernommen", f"{n} Note(n) als ganze Noten festgesetzt. Du kannst jede einzeln ändern.")
+        art_text = "mit Tendenz" if art in QUARTALE else "als ganze Noten"
+        info(self, "Vorschläge übernommen", f"{n} Note(n) {art_text} festgesetzt. Du kannst jede einzeln ändern.")
 
     def drucken(self) -> None:
         from notenverwaltung.ausgabe.notenuebersicht import Notenuebersicht, UebersichtOptionen
@@ -296,8 +377,9 @@ class NotenTab(QWidget):
         zeitraum.addItem("2. Halbjahr", 2)
         form.addRow("Zeitraum:", zeitraum)
         haken = {}
-        for k, text, an in (("vorschlaege", "Vorschläge zeigen", True), ("leere_ausblenden", "Leere Zeilen ausblenden",
-                                                                          False),
+        zeitraum.setCurrentIndex(zeitraum.findData(self.zeitraum.currentData()))
+        for k, text, an in (("quartale", "Quartalsnoten (Q1, Q3)", True), ("vorschlaege", "Vorschläge zeigen", True),
+                            ("leere_ausblenden", "Leere Zeilen ausblenden", False),
                             ("zebra", "Zeilen abwechselnd tönen", True), ("notenspiegel", "Notenspiegel", True)):
             c = QCheckBox(text)
             c.setChecked(an)

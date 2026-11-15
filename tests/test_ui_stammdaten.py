@@ -73,6 +73,30 @@ def test_schuljahr_dialog_prueft(fenster):
     assert d.result() != d.DialogCode.Accepted
 
 
+def test_schuljahr_dialog_quartale(fenster):
+    from notenverwaltung.ui.stammdaten_dialoge import SchuljahrDialog
+
+    jahr = _jahr_anlegen(fenster)
+    assert jahr.quartal2 is None and jahr.quartal4 is None
+    d = SchuljahrDialog(fenster.sd, jahr)
+    assert d.quartale_auto.isChecked() and not d.quartal2.isEnabled()
+    assert d.quartal2.wert() == date(2026, 11, 1) and d.quartal4.wert() == date(2027, 5, 3)
+    d.wechsel.setze(date(2027, 1, 25))                     # automatisch: Quartalswechsel wandern mit
+    assert d.quartal2.wert() == jahr.__class__(0, "", jahr.beginn, date(2027, 1, 25), jahr.ende).quartal2_ab
+    d.wechsel.setze(date(2027, 2, 1))
+    d.quartale_auto.setChecked(False)
+    d.quartal2.setze(date(2026, 10, 26))
+    d._ok()
+    assert d.result() == d.DialogCode.Accepted, d.meldung.text()
+    neu = fenster.sd.schuljahr(jahr.id)
+    assert neu.quartal2 == date(2026, 10, 26) and neu.quartal4 == date(2027, 5, 3)
+    d = SchuljahrDialog(fenster.sd, neu)
+    assert not d.quartale_auto.isChecked() and d.quartal2.wert() == date(2026, 10, 26)
+    d.quartal2.setze(date(2027, 3, 1))                     # nicht im 1. Halbjahr
+    d._ok()
+    assert "2. Quartal" in d.meldung.text() and d.result() != d.DialogCode.Accepted
+
+
 def test_ablauf_jahr_schueler_lerngruppe(fenster):
     from notenverwaltung.ui.stammdaten_dialoge import LerngruppeDialog, MitgliederDialog
 

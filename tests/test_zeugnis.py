@@ -163,3 +163,84 @@ def test_vorschlaege_uebernehmen(db):
     assert zg.uebernimm_vorschlaege(g.id, "hj1", nur_leere=False) == 1
     with pytest.raises(ZeugnisFehler):
         zg.uebernimm_vorschlaege(g.id, "zp10")
+
+
+def test_quartale_des_schuljahres(db):
+    from dataclasses import replace
+
+    from notenverwaltung.modell.stammdaten import StammdatenFehler
+
+    g, sid = gruppe(db)
+    sd = Stammdaten(db.verbindung)
+    jahr = sd.schuljahr(g.schuljahr_id)
+    assert (jahr.quartal2_ab, jahr.quartal4_ab) == (date(2026, 11, 1), date(2027, 5, 3))   # Mitte der Halbjahre
+    assert [jahr.quartal(d) for d in (date(2026, 10, 31), date(2026, 11, 1), date(2027, 2, 1), date(2027, 5, 3))] \
+        == [1, 2, 3, 4]
+    # Standard-Zeiträume der mündlichen Noten = Quartale
+    assert [(z.beginn, z.ende) for z in Muendlich(db.verbindung).zeitraeume(g.id)] == jahr.quartale()
+    sd.aendere_schuljahr(replace(jahr, quartal2=date(2026, 10, 1)))
+    jahr = sd.schuljahr(jahr.id)
+    assert jahr.quartal2 == date(2026, 10, 1) and jahr.quartal4 is None and jahr.quartal(date(2026, 10, 1)) == 2
+    for falsch in (dict(quartal2=date(2027, 2, 1)), dict(quartal2=date(2026, 8, 1)), dict(quartal4=date(2027, 2, 1))):
+        with pytest.raises(StammdatenFehler):
+            sd.aendere_schuljahr(replace(jahr, **falsch))
+
+
+def test_quartalsnoten(db):
+    from dataclasses import replace
+
+    g, sid = gruppe(db)
+    ar = Arbeiten(db.verbindung)
+    k1 = arbeit(db, g, sid, date(2026, 10, 1), 92, "KA 1")     # 1. Quartal
+    k2 = arbeit(db, g, sid, date(2026, 12, 1), 40, "KA 2")     # 2. Quartal
+    k3 = arbeit(db, g, sid, date(2027, 3, 1), 70, "KA 3")      # 3. Quartal
+    n = {a.id: ar.ergebnisse(a.id)[0].note.wert for a in (k1, k2, k3)}
+    muendlich(db, g, sid, 0, "2")
+    muendlich(db, g, sid, 1, "4")
+    muendlich(db, g, sid, 2, "1-")
+    zg = Zeugnis(db.verbindung)
+    z = zg.zeilen(g.id)[0]
+    assert z.vorschlag["q1"].wert == pytest.approx(0.5 * n[k1.id] + 0.5 * 2.0)
+    assert z.vorschlag["hj1"].wert == pytest.approx(0.5 * (n[k1.id] + n[k2.id]) / 2 + 0.5 * 3.0)
+    assert z.vorschlag["q3"].wert == pytest.approx(0.5 * n[k3.id] + 0.5 * 1.3)   # ohne Anteil des 1. Halbjahres
+    assert "Nur das 3. Quartal (01.02.–02.05.)" in z.vorschlag["q3"].herleitung[0]
+    assert (z.quartal_s[1].anzahl, z.quartal_m[1].anzahl, z.quartal_s[3].anzahl) == (1, 1, 1)
+    # Quartalsnoten werden mit Tendenz übernommen, Zeugnisnoten ganz
+    assert zg.uebernimm_vorschlaege(g.id, "q1") == 1 and zg.uebernimm_vorschlaege(g.id, "hj1") == 1
+    z = zg.zeilen(g.id)[0]
+    assert z.fest["q1"] == naechste_note(z.vorschlag["q1"].wert) and z.fest["hj1"].tendenz == 0
+    zg.setze(g.id, sid, "q3", N("2-"))
+    assert zg.zeilen(g.id)[0].fest["q3"] == N("2-")
+    # Quartalswechsel verschieben: KA 1 (1.10.) zählt dann zum 2. Quartal, das 1. Quartal nur mündlich
+    sd = Stammdaten(db.verbindung)
+    sd.aendere_schuljahr(replace(sd.schuljahr(g.schuljahr_id), quartal2=date(2026, 9, 15)))
+    z = zg.zeilen(g.id)[0]
+    assert z.quartal_s[1].wert is None and z.vorschlag["q1"].wert == pytest.approx(2.0)
+
+
+def test_einzelnoten(db):
+    from dataclasses import replace
+
+    g, sid = gruppe(db)
+    sd = Stammdaten(db.verbindung)
+    sid2 = sd.lege_schueler_an(g.schuljahr_id, "Zweite", "Zoe", "9.1").id
+    sd.fuege_hinzu(g.id, [sid2], von=date(2026, 12, 1))
+    ar = Arbeiten(db.verbindung)
+    k1 = arbeit(db, g, sid, date(2026, 10, 1), 92, "KA 1")
+    k2 = arbeit(db, g, sid, date(2027, 3, 1), 40, "KA 2")
+    ar.aendere_arbeit(replace(ar.arbeit(k2.id), zaehlt=False))
+    ar.setze_teilnahme(k2.id, sid2, status="nachschreiben")
+    muendlich(db, g, sid, 0, "2+")
+    Muendlich(db.verbindung).setze_note(Muendlich(db.verbindung).zeitraeume(g.id)[0].id, sid, N("2+"), "Referat")
+    spalten, werte = Zeugnis(db.verbindung).einzelnoten(g.id)
+    assert [(s.art, s.titel, s.quartal) for s in spalten] == [
+        ("muendlich", "1. Quartal", 1), ("arbeit", "KA 1", 1), ("muendlich", "2. Quartal", 2),
+        ("muendlich", "3. Quartal", 3), ("arbeit", "KA 2", 3), ("muendlich", "4. Quartal", 4)]
+    ka1, ka2, q1 = spalten[1], spalten[4], spalten[0]
+    assert werte[(ka1.schluessel, sid)].text == ar.ergebnisse(k1.id)[0].note.kurz
+    assert "von 100 Punkten" in werte[(ka1.schluessel, sid)].hinweis
+    assert werte[(ka1.schluessel, sid2)] .text == "—"                   # erst ab Dezember in der Gruppe
+    assert werte[(ka2.schluessel, sid)].leise and "zählt nicht" in werte[(ka2.schluessel, sid)].hinweis
+    assert werte[(ka2.schluessel, sid2)].text == "n. s."
+    assert werte[(q1.schluessel, sid)].text == "2+" and "Referat" in werte[(q1.schluessel, sid)].hinweis
+    assert werte[(q1.schluessel, sid2)].text == "—"
