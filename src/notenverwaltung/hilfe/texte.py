@@ -223,8 +223,24 @@ daraus folgt (z. B. „2,4 → 2-“). In der Oberstufe wird umgerechnet: Punkte
 <li>Der Durchschnitt ist nur ein <b>Vorschlag</b>: Im Reiter <a href="#muendlich">Mündlich</a> steht er grau in
 Klammern in leeren Feldern; Rechtsklick → übernehmen. Oder hier „Ø als mündliche Note übernehmen …“ für alle
 ohne Note. Vorhandene Noten bleiben immer unverändert.</li>
-<li>Schneller per Sitzplan: Platz antippen, Bewertung wählen.</li>
+<li>Schneller per <a href="#sitzplan">Sitzplan</a>: Platz antippen, Bewertung wählen.</li>
 </ul>
+"""),
+    Thema("sitzplan", "Sitzplan", """
+<h2>Sitzplan</h2>
+<p>Im Reiter <b>Sitzplan</b> legst du einen oder mehrere Pläne je Lerngruppe an (z. B. je Raum). Die Tafel ist
+oben; „Sicht vom Pult“ dreht den Plan so, wie du vorne stehend auf die Klasse schaust.</p>
+<ol>
+<li><b>Tische:</b> Vorlage wählen (Reihen mit 2er-Tischen, Gruppentische, U-Form) und anwenden; dann einzelne
+Plätze per Klick setzen oder entfernen – Ziehen mit gedrückter Maus geht über mehrere Felder. Breite und Reihen
+bis 12 × 12.</li>
+<li><b>Personen:</b> Namen aus der Liste „Ohne Platz“ auf einen Platz ziehen – oder Namen anklicken, dann den
+Platz. Von Platz zu Platz ziehen tauscht die beiden. Doppelklick macht einen Platz frei. „Alphabetisch“ oder
+„Zufällig verteilen“ füllt die freien Plätze von vorne.</li>
+<li><b>Bewerten:</b> Tag wählen, Platz antippen, ++ + o – –– wählen. Das landet in der
+<a href="#schnellerfassung">Schnellerfassung</a>; die Marke auf dem Platz zeigt die Bewertung des Tages.</li>
+</ol>
+<p><b>Drucken / PDF …</b> gibt den Plan im Querformat aus – nur Namen, ohne Noten, z. B. für Vertretungskräfte.</p>
 """),
     Thema("uebersichten", "Schnellsuche und offene Punkte", """
 <h2>Schnellsuche und offene Punkte</h2>
@@ -488,6 +504,7 @@ JE_KLASSE: dict[str, str] = {
     "EinstellungenDialog": "einstellungen", "SchluesselDialog": "schluessel",
     "DruckDialog": "drucken",
     "MuendlichTab": "muendlich", "ZeitraeumeDialog": "muendlich", "StundenTab": "schnellerfassung",
+    "SitzplanTab": "sitzplan",
     "NotenTab": "noten", "GewichtungDialog": "noten",
     "ImportAssistent": "import", "JahreswechselAssistent": "jahreswechsel", "KiDialog": "ki",
     "StartDialog": "datenbank", "NeueDatenbankAssistent": "datenbank",

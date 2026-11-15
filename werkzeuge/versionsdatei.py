@@ -191,6 +191,28 @@ def erzeuge(ziel: Path) -> None:
         liste.append((None, "beleg", "Belege deine Deutung mit Zitaten (Zeilenangabe).", "Deutsch"))
         tb.setze(liste)
 
+    # --- ab 0.9: Schnellerfassung je Stunde und Sitzplan (Erdkunde 9.4)
+    try:
+        from notenverwaltung.modell.sitzplan import Sitzplaene
+        from notenverwaltung.modell.stunden import Stunden
+    except ImportError:          # ältere Programmstände
+        Sitzplaene = Stunden = None
+    if Stunden is not None:
+        st = Stunden(v)
+        ek_mitglieder = [m for m in sd.mitglieder(ek.id) if m.aktiv_am(date(2026, 9, 10))]
+        for i, m in enumerate(ek_mitglieder):
+            for k, tag in enumerate((date(2026, 9, 3), date(2026, 9, 10), date(2026, 11, 12))):
+                if (i + k) % 3 != 2:
+                    st.setze(ek.id, m.schueler.id, tag, 1 + (i + 2 * k) % 5,
+                             "Kartenarbeit vorgestellt" if (i, k) == (0, 1) else None)
+        sp = Sitzplaene(v)
+        raum = sp.lege_an(ek.id, "Raum 112", spalten=8, zeilen=4)
+        sp.setze_platz(raum.id, 2, 0, True)                                    # Einzelplatz vorne im Gang
+        sp.verteile(raum.id, ek_mitglieder)
+        sp.setze_person(raum.id, 2, 0, ek_mitglieder[-1].schueler.id)
+        gruppen = sp.lege_an(ek.id, "Gruppenarbeit", spalten=8, zeilen=6, vorlage="gruppen")
+        sp.verteile(gruppen.id, ek_mitglieder, "zufall", __import__("random").Random(7))
+
     db.setze_meta("versionsdatei", __version__)
     db.schliessen()
     ziel.with_suffix(".json").write_text(json.dumps(inhalt(pfad), ensure_ascii=False, indent=1, sort_keys=True),

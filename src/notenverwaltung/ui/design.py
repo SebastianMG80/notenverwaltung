@@ -135,6 +135,7 @@ def _stylesheet(f: Farben) -> str:
     }}
     QPushButton:hover {{ border-color: {f.akzent}; }}
     QPushButton#primaer {{ background: {f.akzent}; color: {f.akzent_text}; border-color: {f.akzent}; }}
+    QPushButton:checked {{ background: {f.akzent}; color: {f.akzent_text}; border-color: {f.akzent}; }}
     QPushButton#link {{ background: transparent; border: none; color: {f.akzent}; padding: 2px 4px; }}
     QPushButton#link:hover {{ text-decoration: underline; }}
     QPushButton:disabled, QPushButton#primaer:disabled {{

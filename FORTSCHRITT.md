@@ -38,11 +38,11 @@ Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte 
 - [x] 22 Automatisch sperren, zweiter Sicherungsort (15.11.2026)
 - [x] 23 Schnellsuche, Übersicht „Offene Punkte“ → Version 0.8.0 (15.11.2026)
 - [x] 24 Schnellerfassung je Stunde (15.11.2026) – Schema 10: Tabelle beobachtung
-- [ ] 25 Sitzplan → Version 0.9.0
+- [x] 25 Sitzplan → Version 0.9.0 (15.11.2026) – Schema 11: Tabellen sitzplan, sitzplatz
 - [ ] 26 Schüler:innen-Bogen → Version 1.0.0
 
 ## Nächster Schritt
-Etappe 25: Sitzplan (Format 11): Tisch-Raster, Personen setzen, Schnellerfassung per Tippen, Ausdruck für Vertretung → Version 0.9.0 (Versionsdatei!).
+Etappe 26: Schüler:innen-Bogen (alles zu einer Person aus allen eigenen Gruppen, Verlauf über die Jahre, Weglass-Häkchen) → Version 1.0.0.
 Später: freier Layout-Editor.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
@@ -109,6 +109,7 @@ Bestätigt (15.11.2026, Runde 3): Schnellerfassung ++ = 1 … –– = 5 als Vor
 | Schnellsuche | Strg+F: Personen (mit allen Lerngruppen), Lerngruppen, Arbeiten (Titel/Thema) im aktuellen Schuljahr; ohne Akzente und Groß/klein (casefold, ß = ss); Person+Gruppe öffnet die Gruppe im aktuellen Reiter und markiert die Zeile |
 | Offene Punkte | Auf der Schuljahrsseite (Startansicht): geschriebene Arbeiten mit Lücken, Nachschreiben (eine Zeile), vorbeie mündliche Zeiträume ohne Note (solange die Quartals-/Halbjahresnote fehlt), Q1/HJ1/Q3/HJ2 ab 21 Tagen vor dem Stichtag (Ende des Zeitraums), ⚠ ab 7 Tagen/überfällig; HJ2 nicht bei ZP10-Gruppen; Personen zählen, wenn sie am Stichtag (bzw. heute) da sind |
 | Schnellerfassung | Reiter „Schnellerfassung“ je Lerngruppe; eine Bewertung je Person und Tag (Format 10, PK Gruppe/Person/Datum); Eingabe ++ + o - -- oder 1–5; Spalten = Tage im gewählten mündlichen Zeitraum, „Stunde hinzufügen“ legt eine leere Spalte an; Ø → Note (Sek I nächste mit Tendenz, Gleichstand besser; Sek II 17 − 3·Ø); Vorschlag grau in Klammern in leeren Feldern des Reiters Mündlich, übernehmen per Rechtsklick oder „Ø als mündliche Note übernehmen“ (nur ohne Note); keine Abwesenheit (Sebastian) |
+| Sitzplan | Mehrere Pläne je Lerngruppe (Format 11), Raster bis 12 × 12 (Standard 8 × 6: drei 2er-Tische je Reihe), Koordinaten aus Sicht der Klasse, „Sicht vom Pult“ dreht; Modi Tische (Klick/Ziehen, Vorlagen; Besetzte bleiben), Personen (Ziehen aus der Liste, Platz→Platz tauscht, Klick-Name-dann-Platz, Doppelklick macht frei, alphabetisch/zufällig verteilen), Bewerten (Platz antippen → Schnellerfassung am gewählten Tag); Ausdruck quer, nur Namen; gelöschte Person → Platz frei (ON DELETE SET NULL) |
 | Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |

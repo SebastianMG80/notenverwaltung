@@ -208,6 +208,24 @@ MIGRATIONEN: list[str] = [
         PRIMARY KEY (lerngruppe_id, schueler_id, datum)
     );
     """,
+    # 11 (Version 0.9): Sitzpläne – Raster aus Plätzen, auf denen Schüler:innen sitzen
+    """
+    CREATE TABLE sitzplan (
+        id              INTEGER PRIMARY KEY,
+        lerngruppe_id   INTEGER NOT NULL REFERENCES lerngruppe(id) ON DELETE CASCADE,
+        name            TEXT NOT NULL DEFAULT 'Sitzplan',
+        spalten         INTEGER NOT NULL DEFAULT 8 CHECK (spalten BETWEEN 1 AND 12),
+        zeilen          INTEGER NOT NULL DEFAULT 6 CHECK (zeilen BETWEEN 1 AND 12),
+        position        INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE sitzplatz (
+        sitzplan_id     INTEGER NOT NULL REFERENCES sitzplan(id) ON DELETE CASCADE,
+        x               INTEGER NOT NULL,                  -- Spalte von links (aus Sicht der Klasse)
+        y               INTEGER NOT NULL,                  -- Reihe von vorne (Tafel)
+        schueler_id     INTEGER REFERENCES schueler(id) ON DELETE SET NULL,
+        PRIMARY KEY (sitzplan_id, x, y)
+    );
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)

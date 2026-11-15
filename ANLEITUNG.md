@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.8.0)
+# Notenverwaltung – Kurzanleitung (Stand 0.9.0)
 
 ## Starten
 
@@ -50,6 +50,10 @@ Häufige Fragen. Die Hilfe ist im Programm enthalten und funktioniert ohne Inter
      **Rückmeldungen …:** Person für Person schreiben (Strg+Bild auf/ab), Textbausteine per Doppelklick oder
      Kürzel + Strg+Leertaste, Platzhalter wie {Vorname}, {Stärken}, {Übungsbedarf}. Optional (Bearbeiten →
      Einstellungen): Vorschlag aus den Punkten und Aufgabenanalyse (Lösungsquote je Aufgabe, auch als Ausdruck).
+   - **Schnellerfassung:** je Stunde ++ + o - -- (oder 1–5), sporadisch. Ø je Zeitraum → Vorschlag, der im
+     Reiter Mündlich grau in leeren Feldern steht (Rechtsklick → übernehmen).
+   - **Sitzplan:** 1 Tische (Vorlagen Reihen/Gruppen/U, Klicken oder Ziehen), 2 Personen (ziehen, tauschen,
+     verteilen), 3 Bewerten (Platz antippen → Schnellerfassung). Ausdruck ohne Noten für Vertretungskräfte.
    - **Mündlich:** Noten je Quartal (feiner unterteilbar unter „Zeiträume …“), Eingabe 2, 2+, 2- oder 1,7.
      „Drucken / PDF …“: Liste der mündlichen Noten (mit/ohne Tendenz, Halbjahresmittel, Bemerkungen)
      oder leere Liste zum Eintragen von Hand. Bei vielen Zeiträumen automatisch im Querformat.
