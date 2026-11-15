@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.5.0)
+# Notenverwaltung – Kurzanleitung (Stand 0.6.0)
 
 ## Starten
 
@@ -14,6 +14,9 @@
 Beide Fassungen öffnen dieselben `.nvdb`-Dateien. Neue Versionen öffnen auch alle älteren Dateien und stellen sie
 um; vorher bleibt die alte Datei im Ordner `<Name>-Sicherungen` erhalten („…_vor-Umstellung-…“). Eine umgestellte
 Datei lässt sich mit älteren Programmversionen nicht mehr öffnen.
+
+**Hilfe im Programm:** F1 öffnet überall die Seite zur aktuellen Ansicht; Menü Hilfe → Inhalt, Tastenkürzel,
+Häufige Fragen. Die Hilfe ist im Programm enthalten und funktioniert ohne Internet.
 
 ## Erste Schritte
 

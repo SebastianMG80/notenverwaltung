@@ -18,6 +18,9 @@ def erzeuge_anwendung(argv: list[str] | None = None) -> QApplication:
     app.setApplicationVersion(__version__)
     app.setDesktopFileName("notenverwaltung")
     wende_design_an(app, design_name())
+    from notenverwaltung.hilfe.fenster import installiere_f1
+
+    installiere_f1(app)
     if app.property("systemschrift") is None:
         app.setProperty("systemschrift", app.font().toString())
     schrift = ui_schrift()

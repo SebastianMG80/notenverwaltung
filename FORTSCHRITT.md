@@ -26,10 +26,11 @@ Runde 2 (15.11.2026, nach Sebastians Linux-Test; „Ja, starten“ für Etappen 
 - [x] 15 Quartalsnoten (15.11.2026) – Schema 7: Quartalswechsel je Schuljahr, Notenarten q1/q3
 - [x] 16 Einzelnoten im Reiter „Noten“ → Version 0.4.0 (15.11.2026)
 - [x] 17 Sek II → Version 0.5.0 (15.11.2026) – Schema 8: Kursart GK/LK, Klausurschlüssel Sek II; Punkte als „11P“
-- [ ] 18 Hilfe im Programm → Version 0.6.0
+- [x] 18 Hilfe im Programm → Version 0.6.0 (15.11.2026)
 
 ## Nächster Schritt
-Etappe 18: Hilfe im Programm (Menü Hilfe, F1 je Ansicht, offline). Danach Testrunde Sebastian.
+Runde 2 ist abgeschlossen (Etappen 13–18, Version 0.6.0). Warten auf Sebastians Testrunde.
+Später: freier Layout-Editor.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
 tests/daten/version_X_Y_Z` ausführen und die beiden Dateien committen – aber nur, wenn sich das Dateiformat
@@ -81,6 +82,8 @@ Bestätigt (15.11.2026): Sek II mit NRW-Klausurschlüssel, nur Kursführung (ohn
 | Sek II – Notenspiegel | Anzahl je Punktzahl 15–0, Schnitt in Punkten, „unter 5 P.“ = Defizite (0–4 Punkte); Notenübersicht bündelt 15–13/12–10/…/0 |
 | Sek II – Wechsel | Klassen 10.x → EF, EF → Q1 → Q2; Q2 standardmäßig „endet“ (Abitur); übernommene Lerngruppen mit Jahrgang ≥ 11 werden zu Punkte-Gruppen (ohne E/G, Anteil 1. Hj. 0) |
 | Schlüssel-Vorlagen | je Notensystem eigener Standard; Vorlage „Standard Sek II (NRW)“ per Migration 8 |
+| Hilfe | Texte als HTML im Python-Modul `hilfe/texte.py` (kein Datei-Nachladen, PyInstaller-sicher, offline); Fenster mit Themenliste, Volltextsuche, internen Verweisen (externe werden ignoriert); F1 anwendungsweit per Ereignisfilter, Thema vom Fokus-Widget aufwärts (`JE_KLASSE`, `hilfe_thema()`); bei modalem Dialog gehört das Hilfefenster zum Dialog; Test: jede Dialog-/Assistentenklasse hat ein Thema, alle Verweise gültig, alle Seiten erreichbar |
+| Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |
 | Gewichtung | je Lerngruppe: Anteil schriftlich (automatisch 50 %/0 %), Anteil 1. Hj. an 2. Hj. (Standard 10 %), ZP10 automatisch für D/E/M Jahrgang 10 (abschaltbar) |

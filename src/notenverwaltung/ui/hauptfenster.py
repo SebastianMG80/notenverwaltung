@@ -40,6 +40,8 @@ from notenverwaltung.ui.neue_datenbank import NeueDatenbankAssistent
 from notenverwaltung.ui.notfall import NotfallDialog
 from notenverwaltung.ui.seiten.stammdaten_seiten import LerngruppeSeite, SchuelerSeite, SchuljahrSeite
 from notenverwaltung.ui.sicherheit import PasswortAendernDialog
+from notenverwaltung.hilfe.fenster import zeige_hilfe
+from notenverwaltung.hilfe.texte import JE_KLASSE
 from notenverwaltung.ui.stammdaten_dialoge import LerngruppeDialog, SchuljahrDialog
 from notenverwaltung.ui.startdialog import StartDialog
 
@@ -242,7 +244,20 @@ class Hauptfenster(QMainWindow):
         ansicht.addAction(self._aktion("Standardschrift", self.schrift_standard))
 
         hilfe = self.menuBar().addMenu("&Hilfe")
+        # F1 selbst fängt die Anwendung ab (hilfe.fenster.F1Filter); hier steht es nur zur Information
+        hilfe.addAction(self._aktion("&Hilfe zu dieser Ansicht\tF1", lambda: zeige_hilfe(self.hilfe_thema())))
+        hilfe.addAction(self._aktion("&Inhalt", lambda: zeige_hilfe("start")))
+        hilfe.addAction(self._aktion("&Tastenkürzel", lambda: zeige_hilfe("tasten")))
+        hilfe.addAction(self._aktion("Häufige &Fragen", lambda: zeige_hilfe("probleme")))
+        hilfe.addSeparator()
         hilfe.addAction(self._aktion("Ü&ber …", self._ueber))
+
+    def hilfe_thema(self) -> str:
+        """Hilfeseite zur gerade sichtbaren Ansicht (auch wenn der Fokus in der Navigation liegt)."""
+        seite = self.stapel.currentWidget()
+        if seite is self.seite_gruppe:
+            seite = self.seite_gruppe.reiter.currentWidget() or seite
+        return JE_KLASSE.get(type(seite).__name__, "start")
 
     def _zustand_aktualisieren(self) -> None:
         offen = self.db is not None
@@ -577,7 +592,9 @@ class Hauptfenster(QMainWindow):
             f"<b>{APP_NAME}</b> {__version__}<br><br>"
             "Notenverwaltung für Lehrer:innen.<br>"
             "Alle Daten bleiben auf diesem Rechner. Das Programm stellt keine "
-            "Verbindung ins Internet her.",
+            "Verbindung ins Internet her.<br><br>"
+            "Verwendet: Qt for Python (PySide6, LGPL v3), cryptography (Apache 2.0/BSD), "
+            "segno (BSD) und Python (PSF-Lizenz).<br>F1 öffnet die Hilfe.",
         )
 
     # ---- Fenster ------------------------------------------------------------------------------
