@@ -527,6 +527,10 @@ class ArbeitenTab(QWidget):
         self.raster.nach_rechts = self.richtung.currentData()
         einstellungen().setValue("eingabe/arbeiten_nach_rechts", self.raster.nach_rechts)
 
+    def aktuelle_person(self) -> int | None:
+        r = self.raster.currentIndex().row()
+        return self.modell.ergebnisse[r].mitglied.schueler.id if self.modell and self.modell.ist_schuelerzeile(r) else None
+
     def markiere_person(self, sid: int) -> None:
         ids = [e.mitglied.schueler.id for e in self.modell.ergebnisse] if self.modell else []
         if sid in ids:

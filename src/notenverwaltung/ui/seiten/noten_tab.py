@@ -172,6 +172,10 @@ class NotenTab(QWidget):
         lay.addWidget(hilfe)
 
     # ---- Anzeige ---------------------------------------------------------------------------------
+    def aktuelle_person(self) -> int | None:
+        r = self.tabelle.currentRow()
+        return self.zeilen[r].mitglied.schueler.id if 0 <= r < len(self.zeilen) else None
+
     def markiere_person(self, sid: int) -> None:
         ids = [z.mitglied.schueler.id for z in self.zeilen]
         if sid in ids:

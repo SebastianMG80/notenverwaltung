@@ -533,6 +533,9 @@ class SitzplanTab(QWidget):
         self._laden()
         self.geaendert.emit()
 
+    def aktuelle_person(self) -> int | None:
+        return self.feld.gewaehlt
+
     def markiere_person(self, sid: int) -> None:
         self.feld.gewaehlt = sid
         self.feld.update()

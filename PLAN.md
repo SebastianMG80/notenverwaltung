@@ -59,17 +59,17 @@ Reihenfolge: Erst die Absicherung, weil Etappe 15 das Dateiformat ändert. Dann 
 
 | # | Etappe | Inhalt |
 |---|--------|--------|
-| 19 | Rückgängig / Wiederholen | Strg+Z / Strg+Y für alle Änderungen der Sitzung, an der Datenbank angesetzt (gilt automatisch für alle späteren Eingaben); kein neues Dateiformat |
-| 20 | Korrektur-Komfort | Aufgabenweise korrigieren (Enter springt nach unten, umschaltbar); Nachschreibliste (alle mit „fehlt“ über alle Gruppen, druckbar) |
-| 21 | Rückmeldungen | Textbausteine mit Platzhaltern ({Vorname} …), in der Datei gespeichert (Format 9); Rückmeldungs-Vorschlag aus den Aufgabenergebnissen (opt-in); Aufgabenanalyse mit Lösungsquote je Aufgabe (opt-in) |
+| 19 ✔ | Rückgängig / Wiederholen | Strg+Z / Strg+Y für alle Änderungen der Sitzung, an der Datenbank angesetzt (gilt automatisch für alle späteren Eingaben); kein neues Dateiformat |
+| 20 ✔ | Korrektur-Komfort | Aufgabenweise korrigieren (Enter springt nach unten, umschaltbar); Nachschreibliste (alle mit „fehlt“ über alle Gruppen, druckbar) |
+| 21 ✔ | Rückmeldungen | Textbausteine mit Platzhaltern ({Vorname} …), in der Datei gespeichert (Format 9); Rückmeldungs-Vorschlag aus den Aufgabenergebnissen (opt-in); Aufgabenanalyse mit Lösungsquote je Aufgabe (opt-in) |
 | | **Version 0.7.0** | |
-| 22 | Sicherheit | Automatisch sperren nach 15 Minuten ohne Eingabe (einstellbar, abschaltbar, Passwort zum Entsperren); zweiter Sicherungsort (z. B. USB-Stick) |
-| 23 | Überblick | Schnellsuche Strg+F nach Namen über alle Gruppen; Übersicht „Offene Punkte“ (Lücken in Arbeiten, fehlende Quartals-/Halbjahresnoten vor dem Stichtag, Nachschreiber:innen) |
+| 22 ✔ | Sicherheit | Automatisch sperren nach 15 Minuten ohne Eingabe (einstellbar, abschaltbar, Passwort zum Entsperren); zweiter Sicherungsort (z. B. USB-Stick) |
+| 23 ✔ | Überblick | Schnellsuche Strg+F nach Namen über alle Gruppen; Übersicht „Offene Punkte“ (Lücken in Arbeiten, fehlende Quartals-/Halbjahresnoten vor dem Stichtag, Nachschreiber:innen) |
 | | **Version 0.8.0** | |
-| 24 | Schnellerfassung je Stunde | ++ / + / o / – / –– je Person und Stunde, sporadisch; Durchschnitt (++ = 1 … –– = 5) als Vorschlag neben der mündlichen Note, übernehmen per Klick (Format 10) |
-| 25 | Sitzplan | Raster, um Tische schnell zu platzieren; danach Schüler:innen auf Plätze setzen; mehrere Pläne je Lerngruppe; Schnellerfassung per Tippen auf den Platz; Ausdruck für Vertretungskräfte |
+| 24 ✔ | Schnellerfassung je Stunde | ++ / + / o / – / –– je Person und Stunde, sporadisch; Durchschnitt (++ = 1 … –– = 5) als Vorschlag neben der mündlichen Note, übernehmen per Klick (Format 10) |
+| 25 ✔ | Sitzplan | Raster, um Tische schnell zu platzieren; danach Schüler:innen auf Plätze setzen; mehrere Pläne je Lerngruppe; Schnellerfassung per Tippen auf den Platz; Ausdruck für Vertretungskräfte |
 | | **Version 0.9.0** | |
-| 26 | Schüler:innen-Bogen | Alles zu einer Person aus allen eigenen Gruppen: Arbeiten, Rückmeldungen, mündliche Noten, Beobachtungen, Zeugnisnoten, Verlauf über die Jahre; Häkchen zum Weglassen für die Weitergabe an Eltern |
+| 26 ✔ | Schüler:innen-Bogen | Alles zu einer Person aus allen eigenen Gruppen: Arbeiten, Rückmeldungen, mündliche Noten, Beobachtungen, Zeugnisnoten, Verlauf über die Jahre; Häkchen zum Weglassen für die Weitergabe an Eltern |
 | | **Version 1.0.0** | **für den produktiven Einsatz** |
 
 Reihenfolge: Rückgängig zuerst, damit alle späteren Eingaben es automatisch bekommen. Die Korrektur-Funktionen

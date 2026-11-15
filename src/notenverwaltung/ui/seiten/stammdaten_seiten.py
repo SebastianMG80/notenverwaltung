@@ -157,6 +157,8 @@ class SchuelerSeite(Seite):
         self.k_bearbeiten = self.knopf("Bearbeiten …", self.bearbeiten)
         self.k_abgang = self.knopf("Abgang …", self.abgang)
         self.k_loeschen = self.knopf("Löschen", self.loeschen)
+        self.k_bogen = self.knopf("Schüler:innen-Bogen …", self.bogen)
+        self.k_bogen.setToolTip("Alle Noten dieser Person aus allen deinen Gruppen, mit Verlauf (Strg+B)")
         self.tabelle = Tabelle(["Nachname", "Vorname", "Klasse", "Jahrgang", "Status", "Bemerkung"])
         self.tabelle.itemDoubleClicked.connect(lambda _: self.bearbeiten())
         self.tabelle.itemSelectionChanged.connect(self._knoepfe)
@@ -200,8 +202,20 @@ class SchuelerSeite(Seite):
 
     def _knoepfe(self) -> None:
         da = self._aktuell() is not None
-        for k in (self.k_bearbeiten, self.k_abgang, self.k_loeschen):
+        for k in (self.k_bearbeiten, self.k_abgang, self.k_loeschen, self.k_bogen):
             k.setEnabled(da)
+
+    def aktuelle_person(self) -> int | None:
+        return self.tabelle.aktuelle_daten()
+
+    def bogen(self) -> None:
+        from notenverwaltung.ui.personenbogen_dialog import personenbogen_dialog
+
+        sid = self.aktuelle_person()
+        if sid is not None:
+            d = personenbogen_dialog(self.sd.v, sid, self)
+            self._bogendialog = d          # für Tests
+            d.exec()
 
     def markiere_person(self, sid: int) -> None:
         """Für die Schnellsuche: Filter zurücksetzen und die Person auswählen."""
@@ -307,6 +321,9 @@ class MitgliederTab(QWidget):
         if sid in self.tabelle.zeilen_daten:
             self.tabelle.selectRow(self.tabelle.zeilen_daten.index(sid))
             self.tabelle.setFocus()
+
+    def aktuelle_person(self) -> int | None:
+        return self.tabelle.aktuelle_daten()
 
     def zeige(self, sd: Stammdaten, jahr: Schuljahr, gruppe: Lerngruppe) -> None:
         self.sd, self.jahr, self.gruppe = sd, jahr, gruppe
@@ -451,6 +468,10 @@ class LerngruppeSeite(Seite):
         if neu:  # beim Wechsel der Lerngruppe den ersten sichtbaren Reiter zeigen
             erster = next(i for i in range(self.reiter.count()) if self.reiter.isTabVisible(i))
             self.reiter.setCurrentIndex(erster)
+
+    def aktuelle_person(self) -> int | None:
+        reiter = self.reiter.currentWidget()
+        return reiter.aktuelle_person() if hasattr(reiter, "aktuelle_person") else None
 
     def markiere_person(self, sid: int) -> None:
         """Markiert die Person im gerade sichtbaren Reiter (Schnellsuche)."""

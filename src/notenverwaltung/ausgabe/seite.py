@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from PySide6.QtCore import QMarginsF, QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPageLayout, QPageSize, QPainter, QPdfWriter, QPen
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QImage, QPageLayout, QPageSize, QPainter, QPdfWriter, QPen
 
 A4 = QPageSize(QPageSize.PageSizeId.A4)
 
@@ -101,6 +101,34 @@ class Seite:
 
     def flaeche(self, x: float, y: float, b: float, h: float, farbe: str) -> None:
         self.p.fillRect(self.rechteck(x, y, b, h), QColor(farbe))
+
+
+class Messung:
+    """Misst Texte so, wie sie im PDF (600 dpi) gesetzt werden – unabhängig vom späteren Gerät."""
+
+    def __init__(self, schrift: str | None) -> None:
+        self.bild = QImage(8, 8, QImage.Format.Format_RGB32)
+        self.bild.setDotsPerMeterX(int(600 / 0.0254))
+        self.bild.setDotsPerMeterY(int(600 / 0.0254))
+        self.bild.fill(QColor("#ffffff"))
+        self.p = QPainter(self.bild)
+        self.s = Seite(self.p)
+        self.s.schriftfamilie = schrift
+        self._cache: dict[tuple, float] = {}
+
+    def hoehe(self, text: str, breite: float, pt: float, fett: bool = False, kursiv: bool = False) -> float:
+        k = ("h", text, breite, pt, fett, kursiv)
+        if k not in self._cache:
+            self.s.schrift(pt, fett, kursiv=kursiv)
+            self._cache[k] = self.s.texthoehe_mm(breite, text)
+        return self._cache[k]
+
+    def breite(self, text: str, pt: float, fett: bool = False) -> float:
+        self.s.schrift(pt, fett)
+        return self.s.textbreite_mm(text)
+
+    def ende(self) -> None:
+        self.p.end()
 
 
 def neues_pdf(pfad: Path, titel: str, quer: bool = False) -> QPdfWriter:

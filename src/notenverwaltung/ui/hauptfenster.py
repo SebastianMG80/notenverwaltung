@@ -305,7 +305,8 @@ class Hauptfenster(QMainWindow):
         self.a_suche = self._aktion("&Schnellsuche …", self.schnellsuche, QKeySequence.StandardKey.Find)
         self.a_offen = self._aktion("&Offene Punkte", self.offene_punkte)
         self.a_nachschreiben = self._aktion("&Nachschreibliste …", self.nachschreibliste)
-        for a in (self.a_suche, self.a_offen, self.a_nachschreiben):
+        self.a_bogen = self._aktion("Schüler:innen-&Bogen …", self.personenbogen, QKeySequence("Ctrl+B"))
+        for a in (self.a_suche, self.a_offen, self.a_nachschreiben, self.a_bogen):
             self.m_uebersichten.addAction(a)
 
         ansicht = self.menuBar().addMenu("&Ansicht")
@@ -492,6 +493,26 @@ class Hauptfenster(QMainWindow):
             self.oeffne_gruppe(t.gruppe_id, "arbeiten", t.arbeit_id)
         else:
             self.oeffne_gruppe(t.gruppe_id)
+
+    def personenbogen(self) -> None:
+        """Bogen der gerade gewählten Person – sonst erst eine Person suchen."""
+        if self.db is None or self.jahr is None:
+            return
+        seite = self.stapel.currentWidget()
+        sid = seite.aktuelle_person() if hasattr(seite, "aktuelle_person") else None
+        if sid is None:
+            from notenverwaltung.ui.schnellsuche import SchnellsucheDialog
+
+            d = SchnellsucheDialog(self.sd, self.jahr, self)
+            d.setWindowTitle("Schüler:innen-Bogen – Person wählen")
+            if not d.exec() or d.gewaehlt is None or d.gewaehlt.schueler_id is None:
+                return
+            sid = d.gewaehlt.schueler_id
+        from notenverwaltung.ui.personenbogen_dialog import personenbogen_dialog
+
+        d = personenbogen_dialog(self.db.verbindung, sid, self)
+        self._bogendialog = d              # für Tests
+        d.exec()
 
     def offene_punkte(self) -> None:
         if self.db is not None and self.jahr is not None:

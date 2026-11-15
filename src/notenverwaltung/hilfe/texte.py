@@ -29,9 +29,14 @@ festlegen und das <b>Notfallblatt drucken</b>. → <a href="#datenbank">Datenban
 <a href="#import">Listen importieren</a></li>
 <li><b>Lerngruppen</b> anlegen (Strg+L): eine Klasse in einem Fach oder einen Kurs.
 → <a href="#lerngruppen">Lerngruppen</a></li>
-<li>In der Lerngruppe: <a href="#arbeiten">Klassenarbeiten</a>, <a href="#muendlich">mündliche Noten</a> und
+<li>In der Lerngruppe: <a href="#arbeiten">Klassenarbeiten</a>, <a href="#muendlich">mündliche Noten</a>,
+<a href="#schnellerfassung">Schnellerfassung</a>, <a href="#sitzplan">Sitzplan</a> und
 <a href="#noten">Noten fürs Zeugnis</a>.</li>
 </ol>
+<p><b>Im Alltag:</b> <b>Strg + Z</b> nimmt jede Änderung zurück. <b>Strg + F</b> findet Namen, Gruppen und
+Arbeiten, die Seite Schuljahr zeigt die <a href="#uebersichten">offenen Punkte</a>, <b>Strg + B</b> öffnet den
+<a href="#personenbogen">Schüler:innen-Bogen</a>. Rückmeldungen mit <a href="#rueckmeldungen">Textbausteinen</a>,
+Sperre und zweiter Sicherungsort unter <a href="#einstellungen">Einstellungen</a>.</p>
 <p>Links in der Leiste wählst du Schuljahr, Schüler:innen oder eine Lerngruppe. Das Programm speichert
 automatisch (alle 2 Minuten und beim Schließen).</p>
 <p><b>Tipp:</b> <b>F1</b> öffnet überall die Hilfe zu der Ansicht, in der du gerade bist.
@@ -260,6 +265,21 @@ was in der nächsten Woche fällig oder schon überfällig ist.</li>
 </ul>
 <p>Doppelklick oder Enter springt direkt zur Stelle.</p>
 """),
+    Thema("personenbogen", "Schüler:innen-Bogen", """
+<h2>Schüler:innen-Bogen</h2>
+<p>Alles zu einer Person auf einem Bogen – für Elternsprechtag, Zeugniskonferenz oder Beratung: aus allen deinen
+Lerngruppen die Zeugnisnoten (Q1, 1. Hj., Q3, 2. Hj., ZP10), Klassenarbeiten mit Punkten, Note, Vermerk und
+Rückmeldung, mündliche Noten mit Bemerkungen und die Schnellerfassung mit Notizen. Frühere Schuljahre folgen
+darunter – so siehst du den Verlauf.</p>
+<ul>
+<li><b>Öffnen:</b> Person in einer Tabelle auswählen und <b>Strg + B</b> (Übersichten → Schüler:innen-Bogen), oder
+in der Liste der Schüler:innen „Schüler:innen-Bogen …“. Ist niemand gewählt, fragt das Programm nach einem
+Namen.</li>
+<li><b>Weglassen:</b> Links stehen Häkchen für Tendenzen, Punkte, Rückmeldungen, Bemerkungen, Schnellerfassung
+und frühere Schuljahre. „Für die Weitergabe an Eltern“ nimmt Tendenzen, Bemerkungen und Schnellerfassung heraus.</li>
+<li>Drucken oder als PDF speichern wie jeder Ausdruck. Der Bogen enthält Noten – nicht offen liegen lassen.</li>
+</ul>
+"""),
     Thema("einstellungen", "Einstellungen", """
 <h2>Einstellungen</h2>
 <p>Menü <b>Bearbeiten → Einstellungen</b>. Sie gelten für diesen Rechner und enthalten keine Notendaten.</p>
@@ -448,6 +468,7 @@ stehen in der (verschlüsselten) Datenbank.</li>
 <tr><td><b>Strg + Z</b></td><td>Rückgängig (jede Änderung seit dem Öffnen, bis zu 200 Schritte)</td></tr>
 <tr><td><b>Strg + Y / Strg + Umschalt + Z</b></td><td>Wiederholen</td></tr>
 <tr><td><b>Strg + F</b></td><td>Schnellsuche: Namen, Lerngruppen, Arbeiten</td></tr>
+<tr><td><b>Strg + B</b></td><td>Schüler:innen-Bogen der gewählten Person</td></tr>
 <tr><td><b>Strg + Umschalt + L</b></td><td>Programm sofort sperren</td></tr>
 <tr><td><b>Strg + Leertaste</b></td><td>im Rückmeldungsfenster: Kürzel durch Textbaustein ersetzen</td></tr>
 <tr><td><b>Strg + Bild auf / ab</b></td><td>im Rückmeldungsfenster: vorige / nächste Person</td></tr>

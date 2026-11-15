@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.9.0)
+# Notenverwaltung – Kurzanleitung (Stand 1.0.0)
 
 ## Starten
 
@@ -34,6 +34,8 @@ Häufige Fragen. Die Hilfe ist im Programm enthalten und funktioniert ohne Inter
    ab drei Wochen vor dem Stichtag). **Sicherheit:** nach 15 Minuten ohne Eingabe sperrt das Programm
    (Strg+Umschalt+L sofort); ein zweiter Sicherungsort (USB-Stick) bekommt beim Schließen eine Kopie –
    beides unter Bearbeiten → Einstellungen.
+   **Strg+B** öffnet den **Schüler:innen-Bogen** der gewählten Person: alle Noten aus allen deinen Gruppen mit
+   Verlauf über die Schuljahre; Häkchen zum Weglassen, Knopf „Für die Weitergabe an Eltern“.
 6. In der Lerngruppe:
    - **Klassenarbeiten:** „Neue Arbeit …“ (Aufgaben wie 1, 2, 3a, b, c), Punkte eintippen – Enter springt weiter,
      Summe und Note erscheinen sofort. Rechtsklick: fehlt / schreibt nach / Note festsetzen / Rückmeldung.

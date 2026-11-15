@@ -434,6 +434,10 @@ class MuendlichTab(QWidget):
         self._druckdialog = d  # für Tests erreichbar
         d.exec()
 
+    def aktuelle_person(self) -> int | None:
+        r = self.raster.currentIndex().row()
+        return self.modell.mitglieder[r].schueler.id if self.modell and 0 <= r < len(self.modell.mitglieder) else None
+
     def markiere_person(self, sid: int) -> None:
         ids = [m.schueler.id for m in self.modell.mitglieder] if self.modell else []
         if sid in ids:
