@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from notenverwaltung.ausgabe.abschnitte import AVERY_3424, AVERY_3425, Notenabschnitte, freies_format
+from notenverwaltung.ausgabe.abschnitte import AVERY_3424, AVERY_3425, BLATTRAND, Notenabschnitte, freies_format
 from notenverwaltung.ausgabe.punkteliste import ListenOptionen, Punkteliste
 from notenverwaltung.ausgabe.rueckmeldebogen import Rueckmeldebogen
 from notenverwaltung.ausgabe.seite import Ausgabe, als_pdf, drucke, kopfzeile_aus, vorschau
@@ -131,6 +131,13 @@ class DruckDialog(QDialog):
             sp.setSingleStep(0.5)
             sp.setSuffix(" mm")
             sp.setValue(_wert(schluessel, 0.0))
+        self.blattrand = QDoubleSpinBox()
+        self.blattrand.setRange(0, 15)
+        self.blattrand.setSingleStep(0.5)
+        self.blattrand.setSuffix(" mm")
+        self.blattrand.setValue(_wert("druck/blattrand", BLATTRAND))
+        self.blattrand.setToolTip("So weit bleibt der Text mindestens vom Papierrand entfernt. Wird rechts oder links "
+                                  "etwas abgeschnitten, diesen Wert erhöhen.")
         versatz = QHBoxLayout()
         versatz.addWidget(QLabel("→"))
         versatz.addWidget(self.versatz_x)
@@ -143,13 +150,15 @@ class DruckDialog(QDialog):
         fa.addRow(self.rahmen)
         fa.addRow("Datum:", self.datum)
         fa.addRow("Druckversatz:", versatz)
+        fa.addRow("Abstand zum Blattrand:", self.blattrand)
         hinweis = QLabel("Druckversatz: verschiebt den Druck, falls dein Drucker die Etiketten nicht genau trifft "
-                         "(positiv = nach rechts bzw. unten).", objectName="leise")
+                         "(positiv = nach rechts bzw. unten). Abstand zum Blattrand: erhöhen, wenn am Rand etwas "
+                         "abgeschnitten wird.", objectName="leise")
         hinweis.setWordWrap(True)
         fa.addRow(hinweis)
         self.format.currentIndexChanged.connect(self._aktualisieren)
         self.startplatz.valueChanged.connect(self._aktualisieren)
-        for w in (self.frei_b, self.frei_h, self.versatz_x, self.versatz_y):
+        for w in (self.frei_b, self.frei_h, self.versatz_x, self.versatz_y, self.blattrand):
             w.valueChanged.connect(self._aktualisieren)
         for w in (self.nur_mit_note, self.rahmen, self.datum.an):
             w.toggled.connect(self._aktualisieren)
@@ -245,7 +254,7 @@ class DruckDialog(QDialog):
         fmt = {"3424": AVERY_3424, "3425": AVERY_3425}.get(art) or freies_format(self.frei_b.value(), self.frei_h.value())
         a = Notenabschnitte(self.ar, self.arbeit, fmt, startplatz=self.startplatz.value() - 1,
                             nur_mit_note=self.nur_mit_note.isChecked(), rahmen=self.rahmen.isChecked(),
-                            datum=self.datum.wert())
+                            datum=self.datum.wert(), blattrand=self.blattrand.value())
         a.versatz_x, a.versatz_y = self.versatz_x.value(), self.versatz_y.value()
         return a
 
@@ -302,6 +311,7 @@ class DruckDialog(QDialog):
         s.setValue("druck/frei_h", self.frei_h.value())
         s.setValue("druck/versatz_x", self.versatz_x.value())
         s.setValue("druck/versatz_y", self.versatz_y.value())
+        s.setValue("druck/blattrand", self.blattrand.value())
         setze_druck_schrift(self.schrift.currentFont().family() if self._schrift_gesetzt else "")
 
     def _vorschau(self) -> None:

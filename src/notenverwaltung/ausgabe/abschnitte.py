@@ -6,7 +6,9 @@ Jeder Abschnitt zeigt Name, Aufgaben mit Höchst- und erreichten Punkten, Summe,
 Avery Zweckform (A4, 210 × 297 mm):
 - 3424: 105 × 48 mm, 2 × 6 = 12 je Bogen → seitlich randlos, oben/unten je 4,5 mm
 - 3425: 105 × 57 mm, 2 × 5 = 10 je Bogen → seitlich randlos, oben/unten je 6 mm
-Druckerabweichungen gleicht der einstellbare Druckversatz aus.
+Druckerabweichungen gleicht der einstellbare Druckversatz aus. Weil die Etiketten seitlich bis an den
+Papierrand reichen, die meisten Drucker dort aber 4–6 mm nicht bedrucken, hält der Inhalt einen einstellbaren
+Mindestabstand zum Blattrand (Standard 7 mm); zur Mitte hin bleibt es beim Innenrand von 4 mm.
 """
 
 from __future__ import annotations
@@ -26,6 +28,8 @@ LINKS = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 RECHTS = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 MITTE = Qt.AlignmentFlag.AlignCenter
 MIN_PT = 6.0
+INNENRAND = 4.0        # Abstand des Inhalts zum Rand des Abschnitts
+BLATTRAND = 7.0        # Standard: so weit bleibt der Inhalt mindestens vom Papierrand weg
 MAX_PT = 9.0
 
 
@@ -71,8 +75,10 @@ def freies_format(breite: float, hoehe: float, rand: float = 5.0) -> Format:
 
 class Notenabschnitte(Ausgabe):
     def __init__(self, ar: Arbeiten, arbeit: Arbeit, fmt: Format, startplatz: int = 0, nur_mit_note: bool = True,
-                 rahmen: bool | None = None, datum: date | None = None, schueler_ids: list[int] | None = None) -> None:
+                 rahmen: bool | None = None, datum: date | None = None, schueler_ids: list[int] | None = None,
+                 blattrand: float = BLATTRAND) -> None:
         self.ar = ar
+        self.blattrand = blattrand
         self.arbeit = arbeit
         self.fmt = fmt
         self.startplatz = max(0, min(startplatz, fmt.je_seite - 1))
@@ -113,6 +119,13 @@ class Notenabschnitte(Ausgabe):
             pt -= 0.5
         return None
 
+    def innenraender(self, x: float, y: float, b: float, h: float) -> tuple[float, float, float, float]:
+        """(links, rechts, oben, unten): mindestens INNENRAND, am Papierrand mindestens `blattrand`.
+        Der Druckversatz verschiebt den Abschnitt auf dem Papier und wird mitgerechnet."""
+        px, py = x + self.versatz_x, y + self.versatz_y
+        return (max(INNENRAND, self.blattrand - px), max(INNENRAND, self.blattrand - (210 - px - b)),
+                max(INNENRAND, self.blattrand - py), max(INNENRAND, self.blattrand - (297 - py - h)))
+
     def zeichne_abschnitt(self, s: Seite, x: float, y: float, b: float, h: float, e: Ergebnis) -> None:
         if self.rahmen:
             s.stift("#999999", 0.15)
@@ -122,8 +135,8 @@ class Notenabschnitte(Ausgabe):
             s.p.setPen(stift)
             s.kasten(x, y, b, h)
             s.p.restore()
-        rand = 4.0
-        ix, iy, ib, ih = x + rand, y + rand, b - 2 * rand, h - 2 * rand
+        links, rechts, oben, unten = self.innenraender(x, y, b, h)
+        ix, iy, ib, ih = x + links, y + oben, b - links - rechts, h - oben - unten
 
         # Kopf: Name links, Lerngruppe/Arbeit rechts
         s.stift("#000000")
@@ -134,6 +147,17 @@ class Notenabschnitte(Ausgabe):
         s.stift("#333333")
         s.text(ix + ib * 0.4, iy, ib * 0.6, 5, f"{self.gruppe.bezeichnung} · {self.arbeit.titel}", RECHTS)
 
+        if e.summe is None and e.note is not None:
+            # Note ohne Punkte festgesetzt (z. B. Nachschreibarbeit): keine leere Punktetabelle
+            s.stift("#444444")
+            s.schrift(8, kursiv=True)
+            s.text(ix, iy + 9, ib, 5, "Bewertet ohne Einzelpunkte.", LINKS)
+            self.schrift_pt, self.zweizeilig = None, False
+        else:
+            self._tabellen(s, ix, iy, ib, e)
+        self._fuss(s, ix, iy, ib, ih, e)
+
+    def _tabellen(self, s: Seite, ix: float, iy: float, ib: float, e: Ergebnis) -> None:
         # Tabelle Aufgabe / max / erreicht; bei Platzmangel zweizeilig
         beschriftung = 17.0
         summe_b = 11.0
@@ -154,6 +178,7 @@ class Notenabschnitte(Ausgabe):
             self._tabelle(s, ix, ty, beschriftung, spalte, summe_b, zeile, pt, block, e, letzter)
             ty += 3 * zeile + 1.5
 
+    def _fuss(self, s: Seite, ix: float, iy: float, ib: float, ih: float, e: Ergebnis) -> None:
         # Fuß: Datum links, Note rechts (ohne Tendenz)
         fy = iy + ih - 6.5
         s.stift("#000000")

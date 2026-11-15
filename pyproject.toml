@@ -1,6 +1,6 @@
 [project]
 name = "notenverwaltung"
-version = "0.3.2"
+version = "0.3.3"
 description = "Offline-Notenverwaltung für Lehrer:innen"
 requires-python = ">=3.12"
 

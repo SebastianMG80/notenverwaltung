@@ -187,3 +187,54 @@ def test_druckdialog_rueckmeldebogen(arbeit):
     assert d.box_bogen.isVisibleTo(d) and not d.box_liste.isVisibleTo(d)
     d.bogen_nur_note.setChecked(False)
     assert d.ausgabe.seitenzahl() == 40
+
+
+def _tinte_spalten(bild) -> list[int]:
+    """x-Positionen (Pixel), in denen etwas Nicht-Weißes gezeichnet ist."""
+    from PySide6.QtGui import QColor
+
+    weiss = QColor("#ffffff").rgb()
+    return [x for x in range(bild.width()) if any(bild.pixel(x, y) != weiss for y in range(0, bild.height(), 2))]
+
+
+def test_blattrand_etiketten(arbeit):
+    """Am Papierrand bleibt der Inhalt mindestens `blattrand` weg (Drucker bedrucken die äußersten mm nicht)."""
+    from notenverwaltung.ausgabe.abschnitte import BLATTRAND, INNENRAND
+
+    ar, a, ids = arbeit
+    n = Notenabschnitte(ar, a, AVERY_3424)
+    assert n.blattrand == BLATTRAND == 7.0
+    links = n.innenraender(0, 4.5, 105, 48)
+    rechts = n.innenraender(105, 4.5, 105, 48)
+    assert links == (7.0, INNENRAND, INNENRAND, INNENRAND)       # zur Mitte hin bleibt der Innenrand
+    assert rechts == (INNENRAND, 7.0, INNENRAND, INNENRAND)
+    n.versatz_x = 1.5                                            # Versatz nach rechts → rechts mehr Abstand nötig
+    assert n.innenraender(105, 4.5, 105, 48)[1] == pytest.approx(8.5)
+    assert n.innenraender(0, 4.5, 105, 48)[0] == pytest.approx(5.5)
+    n.versatz_x = 0
+    dpi = 100
+    mm = dpi / 25.4
+    spalten = _tinte_spalten(vorschau(n, 0, dpi=dpi))
+    assert spalten and min(spalten) >= 6.6 * mm and max(spalten) <= (210 - 6.6) * mm   # Kantenglättung: ±1 Pixel
+    # ohne Mindestabstand reicht der Inhalt näher an den Rand (so war es bis 0.3.2)
+    alt = Notenabschnitte(ar, a, AVERY_3424, blattrand=0)
+    spalten = _tinte_spalten(vorschau(alt, 0, dpi=dpi))
+    assert max(spalten) > (210 - 6.0) * mm
+
+
+@pytest.mark.skipif(not PDFTEXT, reason="pdftotext fehlt")
+def test_note_ohne_punkte_im_ausdruck(arbeit, tmp_path):
+    """Nachschreiber:in mit festgesetzter Note, aber ohne Punkte: keine leere Tabelle, nur die Note."""
+    from notenverwaltung.ausgabe.rueckmeldebogen import Rueckmeldebogen
+
+    ar, a, ids = arbeit
+    ar.setze_teilnahme(a.id, ids[35], note_manuell=Note.aus_kurz("2-"))
+    a = ar.arbeit(a.id)
+    n = Notenabschnitte(ar, a, AVERY_3424, schueler_ids=[ids[0], ids[35]])
+    t = text(als_pdf(n, tmp_path / "a.pdf"))
+    assert t.count("Bewertet ohne Einzelpunkte.") == 1 and "gut" in t and "max. Punkte" in t   # eine mit, eine ohne
+    b = Rueckmeldebogen(ar, a)
+    seite = next(i for i, e in enumerate(b.ergebnisse) if e.mitglied.schueler.id == ids[35])
+    t = text(als_pdf(b, tmp_path / "b.pdf"))
+    assert "Diese Arbeit wurde ohne Einzelpunkte bewertet." in t
+    assert seite >= 0 and t.count("Diese Arbeit wurde ohne Einzelpunkte bewertet.") == 1

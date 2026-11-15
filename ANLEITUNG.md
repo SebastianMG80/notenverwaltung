@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.3.2)
+# Notenverwaltung – Kurzanleitung (Stand 0.3.3)
 
 ## Starten
 
@@ -24,7 +24,11 @@ Beide Fassungen öffnen dieselben `.nvdb`-Dateien.
 5. In der Lerngruppe:
    - **Klassenarbeiten:** „Neue Arbeit …“ (Aufgaben wie 1, 2, 3a, b, c), Punkte eintippen – Enter springt weiter,
      Summe und Note erscheinen sofort. Rechtsklick: fehlt / schreibt nach / Note festsetzen / Rückmeldung.
+     **Note ohne Punkte** (z. B. Nachschreiber:innen): Note direkt in die Spalte „Note“ tippen (2, 3+, 4-);
+     * markiert eine festgesetzte Note, Entf hebt die Festsetzung auf. Abschnitt und Rückmeldebogen zeigen
+     dann nur die Note.
      „Drucken / PDF …“: Punkteliste, Notenabschnitte (Avery 3424/3425 oder frei), Rückmeldebögen.
+     Wird bei Etiketten am Rand etwas abgeschnitten: „Abstand zum Blattrand“ erhöhen (Standard 7 mm).
      „KI-Vorlage …“: Prompt kopieren, Antwort der KI einfügen → Aufgaben, Punkte, Erwartungshorizont, Musterlösung.
    - **Mündlich:** Noten je Quartal (feiner unterteilbar unter „Zeiträume …“), Eingabe 2, 2+, 2- oder 1,7.
      „Drucken / PDF …“: Liste der mündlichen Noten (mit/ohne Tendenz, Halbjahresmittel, Bemerkungen)

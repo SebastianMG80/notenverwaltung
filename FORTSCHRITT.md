@@ -22,14 +22,14 @@ Rückfragen sind geklärt (Abschnitt „Klärungen“ im Lastenheft) – ab jetz
 
 Runde 2 (15.11.2026, nach Sebastians Linux-Test; „Ja, starten“ für Etappen 13 und 14):
 - [x] 13 Absicherung der Dateien (15.11.2026) – `tests/daten/version_0_3_2.nvdb/.json`, dauerhafte Sicherung vor Format-Umstellung; nebenbei Fehler im Schuljahreswechsel behoben (Klassengruppe „D 8.4“ bekam keine Mitglieder)
-- [ ] 14 Etiketten-Rand, Note ohne Punkte → Version 0.3.3
+- [x] 14 Etiketten-Rand, Note ohne Punkte → Version 0.3.3 (15.11.2026)
 - [ ] 15 Quartalsnoten (braucht Antworten auf Fragen 1–3)
 - [ ] 16 Einzelnoten im Reiter „Noten“ → Version 0.4.0
 - [ ] 17 Sek II (braucht Antworten auf Fragen 4–6) → Version 0.5.0
 - [ ] 18 Hilfe im Programm → Version 0.6.0
 
 ## Nächster Schritt
-Etappe 14. Danach auf Antworten zu den Fragen warten (Quartalsnoten, Kompatibilität, Sek II).
+Auf Sebastians Antworten zu den Fragen warten (Quartalsnoten, Kompatibilität, Sek II), dann Etappe 15.
 
 **Bei jeder Freigabe (Tag vX.Y.Z):** mit genau diesem Stand `python werkzeuge/versionsdatei.py erzeuge
 tests/daten/version_X_Y_Z` ausführen und die beiden Dateien committen – aber nur, wenn sich das Dateiformat
@@ -71,6 +71,9 @@ Bestätigt von Sebastian (12.11.2026): Standard Anteil 1. Halbjahr 10 %; beim Ü
 | Import | ohne Zusatzbibliotheken (XLSX/ODS per ZIP+XML), Synonyme für Spaltennamen, Abgleich ID → Name+Klasse → früheres Jahr; gleichnamig in anderer Klasse wird nicht geraten; alles oder nichts über Speicher-Schnappschuss |
 | Mündliche Noten | Zeiträume je Lerngruppe, Standard vier Quartale (Halbjahre in der Mitte geteilt), teilbar, nie über den Halbjahreswechsel; Noten mit Tendenz, Zahl wird zur nächsten Stufe (Gleichstand → bessere); gesperrt außerhalb der Mitgliedschaft |
 | Druck mündlich | Hochformat, solange Spalten ≥ 16 mm breit sind, sonst quer; Restbreite ≥ 20 mm wird Spalte „Notizen“; Bemerkungen mit * markiert und unter der Tabelle (Umbruch über Seiten); „Liste zum Eintragen“ ohne Noten mit 8-mm-Zeilen |
+| Etiketten-Rand | Inhalt hält am Papierrand mindestens 7 mm Abstand (einstellbar 0–15 mm, Druckversatz eingerechnet), zur Etikettenmitte weiter 4 mm Innenrand; Grund: Etiketten reichen seitlich bis an den Blattrand, Drucker bedrucken dort 4–6 mm nicht |
+| Note ohne Punkte | Note direkt in die Notenspalte tippen = Festsetzung (*); gleich der berechneten Note → keine Festsetzung; eingetippte Note löscht den Vermerk fehlt/schreibt nach/befreit; Entf hebt Festsetzung auf; Abschnitt/Bogen ohne Punkte zeigen „ohne Einzelpunkte bewertet“ statt leerer Tabelle |
+| Versionsdateien | Pro Freigabe mit geändertem Format eine Testdatenbank `tests/daten/version_X_Y_Z` (+ JSON); nie neu erzeugen; vor jeder Format-Umstellung bleibt die alte Datei als dauerhafte Sicherung („_vor-Umstellung-Format-a-auf-b“), die nicht rotiert |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |
 | Gewichtung | je Lerngruppe: Anteil schriftlich (automatisch 50 %/0 %), Anteil 1. Hj. an 2. Hj. (Standard 10 %), ZP10 automatisch für D/E/M Jahrgang 10 (abschaltbar) |

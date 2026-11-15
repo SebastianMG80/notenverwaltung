@@ -134,6 +134,42 @@ def test_notenspiegel_und_vermerke(umgebung):
     assert "Unter 4: <b>0 %" in t.zusammenfassung.text()
 
 
+def test_note_direkt_eintippen(umgebung):
+    """Nachschreiber:innen: Note ohne Punkte direkt in die Notenspalte tippen."""
+    from notenverwaltung.ui.seiten.arbeiten_tab import SP_NOTE
+
+    db, sd, jahr, g, ids = umgebung
+    ar = Arbeiten(db.verbindung)
+    a = ar.lege_arbeit_an(g.id, "KA", date(2026, 11, 10), [("1", 10)])
+    ar.setze_punkte(ar.aufgaben(a.id)[0].id, ids[0], 10)
+    ar.setze_teilnahme(a.id, ids[1], status="nachschreiben")
+    t = _tab(umgebung)
+    r, m = t.raster, t.modell
+    assert m.flags(m.index(1, SP_NOTE)) & Qt.ItemFlag.ItemIsEditable
+    assert not m.flags(m.index(len(m.ergebnisse), SP_NOTE)) & Qt.ItemFlag.ItemIsEditable   # Durchschnittszeile
+    r.setCurrentIndex(m.index(1, SP_NOTE))
+    tippe(r, "3-")
+    e = ar.ergebnisse(a.id)[1]
+    assert e.summe is None and e.note == Note.aus_kurz("3-") and e.status == ""   # Vermerk erledigt
+    assert m.data(m.index(1, SP_NOTE)) == "3-*"
+    assert (r.currentIndex().row(), r.currentIndex().column()) == (2, SP_NOTE)   # Enter: eine Zeile tiefer
+    tippe(r, "gut")
+    assert "keine Note" in t.meldung.text() and ar.ergebnisse(a.id)[2].note is None
+    # gleiche Note wie berechnet → keine Festsetzung; andere → Festsetzung mit *
+    r.setCurrentIndex(m.index(0, SP_NOTE))
+    tippe(r, "1")
+    assert ar.ergebnisse(a.id)[0].note_manuell is None and m.data(m.index(0, SP_NOTE)) == "1"
+    r.setCurrentIndex(m.index(0, SP_NOTE))
+    tippe(r, "2")
+    assert m.data(m.index(0, SP_NOTE)) == "2*"
+    assert m.data(m.index(0, SP_NOTE), Qt.ItemDataRole.EditRole) == "2"
+    # Entf hebt die Festsetzung auf, die Punkte bleiben
+    r.setCurrentIndex(m.index(0, SP_NOTE))
+    QTest.keyClick(r, Qt.Key.Key_Delete)
+    e = ar.ergebnisse(a.id)[0]
+    assert e.note_manuell is None and e.summe == 10 and m.data(m.index(0, SP_NOTE)) == "1"
+
+
 def test_ausgetretene_ausgeblendet(umgebung):
     db, sd, jahr, g, ids = umgebung
     sd.setze_zeitraum(g.id, ids[2], None, date(2026, 10, 1))

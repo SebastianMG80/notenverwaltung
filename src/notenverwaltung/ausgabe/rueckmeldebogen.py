@@ -68,7 +68,38 @@ class Rueckmeldebogen(Ausgabe):
         s.text(RAND + BREITE * 0.6, y, BREITE * 0.4, 7, f"Klasse {e.mitglied.klasse}", RECHTS)
         y += 11
 
-        # Aufgabentabelle
+        if e.summe is None and e.note is not None:
+            # Note ohne Punkte festgesetzt (z. B. Nachschreibarbeit): keine leere Punktetabelle
+            s.schrift(10, kursiv=True)
+            s.stift("#444444")
+            s.text(RAND, y, BREITE, 6, "Diese Arbeit wurde ohne Einzelpunkte bewertet.", LINKS)
+            y += 12
+        else:
+            y = self._aufgabentabelle(s, y, e)
+
+        # Note ohne Tendenz
+        s.stift("#000000", 0.4)
+        s.kasten(RAND, y, BREITE, 14, radius_mm=2)
+        s.schrift(11)
+        s.text(RAND + 5, y, 30, 14, "Note:", LINKS)
+        s.schrift(16, fett=True)
+        note = e.note.wort if e.note else (STATUS.get(e.status) or "–")
+        s.text(RAND + 25, y, BREITE - 30, 14, note, LINKS)
+        y += 22
+
+        # Rückmeldung
+        if e.kommentar:
+            s.schrift(11, fett=True)
+            s.text(RAND, y, BREITE, 6, "Rückmeldung", LINKS)
+            y += 7
+            s.schrift(10.5)
+            h = s.texthoehe_mm(BREITE, e.kommentar)
+            s.text(RAND, y, BREITE, h, e.kommentar, OBEN_LINKS, umbruch=True)
+            y += h + 8
+
+        self._unterschriften(s)
+
+    def _aufgabentabelle(self, s: Seite, y: float, e: Ergebnis) -> float:
         sp = [(RAND, 18), (RAND + 18, BREITE - 18 - 3 * 22), (RAND + BREITE - 66, 22), (RAND + BREITE - 44, 22),
               (RAND + BREITE - 22, 22)]
         zeile = 7.0
@@ -115,29 +146,9 @@ class Rueckmeldebogen(Ausgabe):
         y += zeile + 1
         s.stift("#555555", 0.2)
         s.kasten(RAND, y0, BREITE, y - y0)
-        y += 8
+        return y + 8
 
-        # Note ohne Tendenz
-        s.stift("#000000", 0.4)
-        s.kasten(RAND, y, BREITE, 14, radius_mm=2)
-        s.schrift(11)
-        s.text(RAND + 5, y, 30, 14, "Note:", LINKS)
-        s.schrift(16, fett=True)
-        note = e.note.wort if e.note else (STATUS.get(e.status) or "–")
-        s.text(RAND + 25, y, BREITE - 30, 14, note, LINKS)
-        y += 22
-
-        # Rückmeldung
-        if e.kommentar:
-            s.schrift(11, fett=True)
-            s.text(RAND, y, BREITE, 6, "Rückmeldung", LINKS)
-            y += 7
-            s.schrift(10.5)
-            h = s.texthoehe_mm(BREITE, e.kommentar)
-            s.text(RAND, y, BREITE, h, e.kommentar, OBEN_LINKS, umbruch=True)
-            y += h + 8
-
-        # Unterschriften
+    def _unterschriften(self, s: Seite) -> None:
         if self.unterschrift:
             uy = 297 - RAND - 22
             s.schrift(9)

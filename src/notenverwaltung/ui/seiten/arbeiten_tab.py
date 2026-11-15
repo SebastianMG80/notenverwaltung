@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from notenverwaltung.modell.arbeiten import STATUS, Arbeit, ArbeitFehler, Arbeiten, Ergebnis
-from notenverwaltung.modell.noten import ALLE_NOTEN, zahl, zahl_text
+from notenverwaltung.modell.noten import ALLE_NOTEN, Note, zahl, zahl_text
 from notenverwaltung.modell.stammdaten import Lerngruppe, Schuljahr, Stammdaten
 from notenverwaltung.ui.arbeit_dialoge import ArbeitDialog
 from notenverwaltung.ui.bausteine import Hinweis, aktuelle_farben, frage
@@ -103,6 +103,9 @@ class PunkteModell(QAbstractTableModel):
                 a = self.aufgaben[abschnitt - FESTE_SPALTEN]
                 return f"{a.bezeichnung}\n({zahl_text(a.max_punkte)})"
             return "Vermerk"
+        if rolle == Qt.ItemDataRole.ToolTipRole and abschnitt == SP_NOTE:
+            return ("Note direkt eintippen (z. B. 2, 3+ oder 4-) – auch ohne Punkte, etwa bei Nachschreiber:innen.\n"
+                    "* = festgesetzt statt aus den Punkten berechnet. Entf hebt die Festsetzung auf.")
         if rolle == Qt.ItemDataRole.ToolTipRole and self.ist_punktespalte(abschnitt):
             a = self.aufgaben[abschnitt - FESTE_SPALTEN]
             return f"Aufgabe {a.bezeichnung}: höchstens {zahl_text(a.max_punkte)} Punkte" + (
@@ -111,7 +114,7 @@ class PunkteModell(QAbstractTableModel):
 
     def flags(self, index):
         f = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
-        if self.ist_schuelerzeile(index.row()) and self.ist_punktespalte(index.column()):
+        if self.ist_schuelerzeile(index.row()) and (self.ist_punktespalte(index.column()) or index.column() == SP_NOTE):
             f |= Qt.ItemFlag.ItemIsEditable
         return f
 
@@ -135,6 +138,8 @@ class PunkteModell(QAbstractTableModel):
             if s == SP_SUMME:
                 return zahl_text(e.summe)
             if s == SP_NOTE:
+                if rolle == Qt.ItemDataRole.EditRole:
+                    return e.note_manuell.kurz if e.note_manuell else ""
                 return (e.note.kurz + ("*" if e.note_manuell else "")) if e.note else ""
             if s == self.spalte_vermerk:
                 teile = [STATUS[e.status]] if e.status else []
@@ -196,6 +201,8 @@ class PunkteModell(QAbstractTableModel):
         if rolle != Qt.ItemDataRole.EditRole or not (self.flags(index) & Qt.ItemFlag.ItemIsEditable):
             return False
         e = self.ergebnisse[index.row()]
+        if index.column() == SP_NOTE:
+            return self._setze_note(e, str(wert))
         aufgabe = self.aufgaben[index.column() - FESTE_SPALTEN]
         try:
             punkte = zahl(str(wert))
@@ -207,10 +214,33 @@ class PunkteModell(QAbstractTableModel):
         self.aktualisiere()
         return True
 
+    def _setze_note(self, e: Ergebnis, text: str) -> bool:
+        """Note direkt eintragen: setzt sie fest (auch ohne Punkte). Leer hebt die Festsetzung auf.
+        Eine eingetragene Note ersetzt den Vermerk „fehlt“/„schreibt nach“/„befreit“."""
+        t = text.strip().replace("*", "")
+        try:
+            note = Note.aus_kurz(t) if t else None
+        except ValueError:
+            self.fehler.emit(f"„{text}“ ist keine Note. Beispiele: 2, 3+, 4-")
+            return False
+        werte: dict = {"note_manuell": note}
+        if note is not None and e.note_berechnet == note:
+            werte["note_manuell"] = None          # gleich der berechneten Note: keine Festsetzung nötig
+        if note is not None and e.status:
+            werte["status"] = ""
+        self.ar.setze_teilnahme(self.arbeit.id, e.mitglied.schueler.id, **werte)
+        self.fehler.emit("")
+        self.aktualisiere()
+        return True
+
     def leere(self, indizes) -> None:
         for i in indizes:
             if self.flags(i) & Qt.ItemFlag.ItemIsEditable:
                 e = self.ergebnisse[i.row()]
+                if i.column() == SP_NOTE:
+                    if e.note_manuell is not None:
+                        self.ar.setze_teilnahme(self.arbeit.id, e.mitglied.schueler.id, note_manuell=None)
+                    continue
                 self.ar.setze_punkte(self.aufgaben[i.column() - FESTE_SPALTEN].id, e.mitglied.schueler.id, None)
         self.aktualisiere()
 
@@ -245,6 +275,8 @@ class EingabeRaster(QTableView):
         m = self.model()
         erste, letzte, anzahl = m.eingabe_bereich()
         z, s = index.row(), index.column()
+        if not erste <= s <= letzte:   # Sonderspalte (z. B. Note): Enter/Tab geht in derselben Spalte nach unten
+            return m.index(max(0, min(anzahl - 1, z + schritt)), s)
         if seitlich:
             s += schritt
             if s > letzte:
@@ -524,7 +556,7 @@ class ArbeitenTab(QWidget):
         menue.addSeparator()
         kommentar = menue.addAction("Rückmeldung an die Person …")
         kommentar.triggered.connect(lambda: self._kommentar(e))
-        leeren = menue.addAction("Markierte Punkte leeren")
+        leeren = menue.addAction("Markierte Felder leeren")
         leeren.triggered.connect(lambda: self.modell.leere(self.raster.selectedIndexes()))
         menue.exec(self.raster.viewport().mapToGlobal(pos))
 
