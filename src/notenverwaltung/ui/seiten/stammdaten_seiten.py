@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from datetime import date
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QTabWidget,
     QVBoxLayout,
@@ -17,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from notenverwaltung.modell.stammdaten import SORTIERUNGEN, Lerngruppe, Schuljahr, Stammdaten
-from notenverwaltung.ui.bausteine import Tabelle, frage, info
+from notenverwaltung.ui.bausteine import Tabelle, aktuelle_farben, frage, info
 from notenverwaltung.ui.stammdaten_dialoge import (
     AbgangDialog,
     LerngruppeDialog,
@@ -67,6 +70,8 @@ class Seite(QWidget):
 # ---- Schuljahr -------------------------------------------------------------------------------------
 
 class SchuljahrSeite(Seite):
+    offen_gewaehlt = Signal(object)          # OffenerPunkt – das Hauptfenster springt dorthin
+
     def __init__(self) -> None:
         super().__init__()
         self.sd: Stammdaten | None = None
@@ -76,7 +81,18 @@ class SchuljahrSeite(Seite):
         self.angaben.setWordWrap(True)
         self.lay.addWidget(self.angaben)
         self.leiste.addStretch(1)
-        self.lay.addStretch(1)
+        self.lay.addSpacing(16)
+        self.offen_titel = QLabel("<b>Offene Punkte</b>")
+        self.offen = QListWidget()
+        self.offen.setWordWrap(True)
+        self.offen.itemActivated.connect(self._offen_gewaehlt)
+        self.offen.itemDoubleClicked.connect(self._offen_gewaehlt)
+        self.offen_hinweis = QLabel("Doppelklick oder Enter springt zur Stelle. Quartals- und Halbjahresnoten "
+                                    "erscheinen drei Wochen vor dem Ende des Zeitraums.", objectName="leise")
+        self.offen_hinweis.setWordWrap(True)
+        self.lay.addWidget(self.offen_titel)
+        self.lay.addWidget(self.offen, 1)
+        self.lay.addWidget(self.offen_hinweis)
 
     def zeige(self, sd: Stammdaten, jahr: Schuljahr) -> None:
         self.sd, self.jahr = sd, jahr
@@ -92,6 +108,30 @@ class SchuljahrSeite(Seite):
         elif not gruppen:
             zeilen.append("<br>Als Nächstes: Lerngruppen anlegen (Datei-Menü oder links „Neue Lerngruppe …“).")
         self.angaben.setText("<br>".join(zeilen))
+        self.offene_punkte_laden()
+
+    def offene_punkte_laden(self, heute: date | None = None) -> None:
+        from notenverwaltung.modell.offen import offene_punkte
+
+        self.offen.clear()
+        punkte = offene_punkte(self.sd.v, self.jahr, heute) if self.sd and self.jahr else []
+        f = aktuelle_farben()
+        for p in punkte:
+            item = QListWidgetItem(("⚠ " if p.dringend else "• ") + p.text)
+            item.setData(Qt.ItemDataRole.UserRole, p)
+            if p.dringend:
+                item.setForeground(QColor(f.warnung))
+            self.offen.addItem(item)
+        if not punkte:
+            item = QListWidgetItem("✓ Nichts offen.")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.offen.addItem(item)
+        self.offen_titel.setText(f"<b>Offene Punkte</b> ({len(punkte)})" if punkte else "<b>Offene Punkte</b>")
+
+    def _offen_gewaehlt(self, item: QListWidgetItem) -> None:
+        p = item.data(Qt.ItemDataRole.UserRole)
+        if p is not None:
+            self.offen_gewaehlt.emit(p)
 
     def _bearbeiten(self) -> None:
         if self.sd and self.jahr and SchuljahrDialog(self.sd, self.jahr, self).exec():
@@ -162,6 +202,15 @@ class SchuelerSeite(Seite):
         da = self._aktuell() is not None
         for k in (self.k_bearbeiten, self.k_abgang, self.k_loeschen):
             k.setEnabled(da)
+
+    def markiere_person(self, sid: int) -> None:
+        """Für die Schnellsuche: Filter zurücksetzen und die Person auswählen."""
+        self.filter_klasse.setCurrentIndex(0)
+        self.suche.clear()
+        self._fuellen()
+        if sid in self.tabelle.zeilen_daten:
+            self.tabelle.selectRow(self.tabelle.zeilen_daten.index(sid))
+            self.tabelle.setFocus()
 
     def _aktuell(self):
         sid = self.tabelle.aktuelle_daten()
@@ -253,6 +302,11 @@ class MitgliederTab(QWidget):
         lay.addWidget(self.tabelle, 1)
         self.zusammenfassung = QLabel(objectName="leise")
         lay.addWidget(self.zusammenfassung)
+
+    def markiere_person(self, sid: int) -> None:
+        if sid in self.tabelle.zeilen_daten:
+            self.tabelle.selectRow(self.tabelle.zeilen_daten.index(sid))
+            self.tabelle.setFocus()
 
     def zeige(self, sd: Stammdaten, jahr: Schuljahr, gruppe: Lerngruppe) -> None:
         self.sd, self.jahr, self.gruppe = sd, jahr, gruppe
@@ -387,6 +441,12 @@ class LerngruppeSeite(Seite):
         if neu:  # beim Wechsel der Lerngruppe den ersten sichtbaren Reiter zeigen
             erster = next(i for i in range(self.reiter.count()) if self.reiter.isTabVisible(i))
             self.reiter.setCurrentIndex(erster)
+
+    def markiere_person(self, sid: int) -> None:
+        """Markiert die Person im gerade sichtbaren Reiter (Schnellsuche)."""
+        reiter = self.reiter.currentWidget()
+        if hasattr(reiter, "markiere_person"):
+            reiter.markiere_person(sid)
 
     def _bearbeiten(self) -> None:
         if self.gruppe and LerngruppeDialog(self.sd, self.jahr, self.gruppe, self).exec():

@@ -172,6 +172,13 @@ class NotenTab(QWidget):
         lay.addWidget(hilfe)
 
     # ---- Anzeige ---------------------------------------------------------------------------------
+    def markiere_person(self, sid: int) -> None:
+        ids = [z.mitglied.schueler.id for z in self.zeilen]
+        if sid in ids:
+            self.tabelle.setCurrentCell(ids.index(sid), 1)
+            self.tabelle.scrollToItem(self.tabelle.item(ids.index(sid), 1))
+            self.tabelle.setFocus()
+
     def zeige(self, sd: Stammdaten, jahr: Schuljahr, gruppe: Lerngruppe) -> None:
         if self.sd is not sd or self.zg is None:
             self.sd, self.zg = sd, Zeugnis(sd.v)

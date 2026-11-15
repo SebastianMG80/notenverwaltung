@@ -205,6 +205,7 @@ class Hauptfenster(QMainWindow):
         for s in (self.seite_jahr, self.seite_schueler, self.seite_gruppe):
             s.geaendert.connect(self._nach_aenderung)
         self.seite_gruppe.geloescht.connect(self._gruppe_geloescht)
+        self.seite_jahr.offen_gewaehlt.connect(self.offenen_punkt_oeffnen)
         self.stapel = QStackedWidget()
         for w in (self.willkommen, self.uebersicht, self.seite_jahr, self.seite_schueler, self.seite_gruppe):
             self.stapel.addWidget(w)
@@ -301,8 +302,11 @@ class Hauptfenster(QMainWindow):
         self.m_bearbeiten.aboutToShow.connect(self._bearbeiten_menue)
 
         self.m_uebersichten = self.menuBar().addMenu("Ü&bersichten")
+        self.a_suche = self._aktion("&Schnellsuche …", self.schnellsuche, QKeySequence.StandardKey.Find)
+        self.a_offen = self._aktion("&Offene Punkte", self.offene_punkte)
         self.a_nachschreiben = self._aktion("&Nachschreibliste …", self.nachschreibliste)
-        self.m_uebersichten.addAction(self.a_nachschreiben)
+        for a in (self.a_suche, self.a_offen, self.a_nachschreiben):
+            self.m_uebersichten.addAction(a)
 
         ansicht = self.menuBar().addMenu("&Ansicht")
         design_menue = ansicht.addMenu("&Design")
@@ -455,10 +459,50 @@ class Hauptfenster(QMainWindow):
 
     def oeffne_arbeit(self, gruppe_id: int, arbeit_id: int) -> None:
         """Springt zur Lerngruppe, Reiter Klassenarbeiten, und wählt die Arbeit."""
+        self.oeffne_gruppe(gruppe_id, "arbeiten", arbeit_id)
+
+    def oeffne_gruppe(self, gruppe_id: int, reiter: str | None = None, arbeit_id: int | None = None,
+                      schueler_id: int | None = None) -> None:
         self._navigation_fuellen(("gruppe", gruppe_id))
         seite = self.seite_gruppe
-        seite.reiter.setCurrentWidget(seite.arbeiten)
-        seite.arbeiten.zeige(self.sd, self.jahr, seite.gruppe, arbeit_id)
+        ziel = {"arbeiten": seite.arbeiten, "muendlich": seite.muendlich, "noten": seite.noten,
+                "mitglieder": seite.mitglieder}.get(reiter or "")
+        if ziel is not None and seite.reiter.isTabVisible(seite.reiter.indexOf(ziel)):
+            seite.reiter.setCurrentWidget(ziel)
+        if arbeit_id is not None:
+            seite.arbeiten.zeige(self.sd, self.jahr, seite.gruppe, arbeit_id)
+        if schueler_id is not None:
+            seite.markiere_person(schueler_id)
+
+    def schnellsuche(self) -> None:
+        if self.db is None or self.jahr is None:
+            return
+        from notenverwaltung.ui.schnellsuche import SchnellsucheDialog
+
+        d = SchnellsucheDialog(self.sd, self.jahr, self)
+        if not d.exec() or d.gewaehlt is None:
+            return
+        t = d.gewaehlt
+        if t.art == "person":
+            self._navigation_fuellen(("schueler", None))
+            self.seite_schueler.markiere_person(t.schueler_id)
+        elif t.art == "person_gruppe":
+            self.oeffne_gruppe(t.gruppe_id, schueler_id=t.schueler_id)
+        elif t.art == "arbeit":
+            self.oeffne_gruppe(t.gruppe_id, "arbeiten", t.arbeit_id)
+        else:
+            self.oeffne_gruppe(t.gruppe_id)
+
+    def offene_punkte(self) -> None:
+        if self.db is not None and self.jahr is not None:
+            self._navigation_fuellen(("jahr", None))
+            self.seite_jahr.offen.setFocus()
+
+    def offenen_punkt_oeffnen(self, p) -> None:
+        if p.art == "nachschreiben":
+            self.nachschreibliste()
+        elif p.gruppe_id is not None:
+            self.oeffne_gruppe(p.gruppe_id, p.reiter, p.arbeit_id)
 
     # ---- Sperre und zweiter Sicherungsort -----------------------------------------------------
     def sperre_pruefen(self) -> None:

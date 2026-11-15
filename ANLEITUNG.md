@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 0.7.0)
+# Notenverwaltung – Kurzanleitung (Stand 0.8.0)
 
 ## Starten
 
@@ -29,6 +29,11 @@ Häufige Fragen. Die Hilfe ist im Programm enthalten und funktioniert ohne Inter
    E/G-Vermerk, schriftlich oder mündlich.
 5. **Strg+Z** nimmt jede Änderung zurück (eine Zelle, ein Dialog, auch Löschen oder den Schuljahreswechsel),
    Strg+Y stellt sie wieder her. **Übersichten → Nachschreibliste:** alle mit „fehlt“/„schreibt nach“.
+   **Strg+F** sucht Namen, Lerngruppen und Arbeiten und springt hin. Die Seite **Schuljahr** zeigt die
+   **offenen Punkte** (Lücken in Arbeiten, Nachschreiber:innen, fehlende mündliche, Quartals- und Halbjahresnoten
+   ab drei Wochen vor dem Stichtag). **Sicherheit:** nach 15 Minuten ohne Eingabe sperrt das Programm
+   (Strg+Umschalt+L sofort); ein zweiter Sicherungsort (USB-Stick) bekommt beim Schließen eine Kopie –
+   beides unter Bearbeiten → Einstellungen.
 6. In der Lerngruppe:
    - **Klassenarbeiten:** „Neue Arbeit …“ (Aufgaben wie 1, 2, 3a, b, c), Punkte eintippen – Enter springt weiter,
      Summe und Note erscheinen sofort. Rechtsklick: fehlt / schreibt nach / Note festsetzen / Rückmeldung.

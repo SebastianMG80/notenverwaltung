@@ -527,6 +527,17 @@ class ArbeitenTab(QWidget):
         self.raster.nach_rechts = self.richtung.currentData()
         einstellungen().setValue("eingabe/arbeiten_nach_rechts", self.raster.nach_rechts)
 
+    def markiere_person(self, sid: int) -> None:
+        ids = [e.mitglied.schueler.id for e in self.modell.ergebnisse] if self.modell else []
+        if sid in ids:
+            spalte = self.raster.currentIndex().column()
+            if not self.modell.ist_punktespalte(spalte):
+                spalte = FESTE_SPALTEN
+            index = self.modell.index(ids.index(sid), spalte)
+            self.raster.setCurrentIndex(index)
+            self.raster.scrollTo(index)
+            self.raster.setFocus()
+
     def _fortschritt(self, *_) -> None:
         """„Aufgabe 3a: 17 von 28 eingetragen“ – hilft beim aufgabenweisen Korrigieren."""
         m = self.modell

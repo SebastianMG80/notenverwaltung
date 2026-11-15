@@ -406,6 +406,15 @@ class MuendlichTab(QWidget):
         self._druckdialog = d  # für Tests erreichbar
         d.exec()
 
+    def markiere_person(self, sid: int) -> None:
+        ids = [m.schueler.id for m in self.modell.mitglieder] if self.modell else []
+        if sid in ids:
+            spalte = max(FEST, self.raster.currentIndex().column())
+            index = self.modell.index(ids.index(sid), spalte)
+            self.raster.setCurrentIndex(index)
+            self.raster.scrollTo(index)
+            self.raster.setFocus()
+
     def _richtung(self, *_) -> None:
         self.raster.nach_rechts = self.richtung.currentData()
         einstellungen().setValue("eingabe/muendlich_nach_rechts", self.raster.nach_rechts)

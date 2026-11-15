@@ -207,6 +207,24 @@ einmal: Volladdierer.“ Das ist nur ein Vorschlag zum Weiterschreiben.</p>
 Anteil der Höchstpunkte), wie viele die volle Punktzahl und wie viele 0 Punkte haben. Niedrige Quoten sind rot.
 Im Druckdialog gibt es sie als eigenen Ausdruck – ohne Namen, z. B. für die Fachkonferenz.</p>
 """),
+    Thema("uebersichten", "Schnellsuche und offene Punkte", """
+<h2>Schnellsuche und offene Punkte</h2>
+<h3>Schnellsuche (Strg + F)</h3>
+<p>Einen Teil des Namens tippen – auch ohne Akzente („oztu“ findet „Öztürk“), mehrere Wörter grenzen ein. Die Liste
+zeigt die Person mit allen ihren Lerngruppen, dazu passende Lerngruppen und Arbeiten. <b>↑ ↓</b> wählen,
+<b>Enter</b> öffnet: eine Person in einer Lerngruppe öffnet die Gruppe im aktuellen Reiter und markiert ihre
+Zeile; die Person allein öffnet die Liste der Schüler:innen.</p>
+<h3>Offene Punkte</h3>
+<p>Auf der Seite <b>Schuljahr</b> (links ganz oben; Menü Übersichten → Offene Punkte) steht, was noch zu tun ist:</p>
+<ul>
+<li>Arbeiten, die schon geschrieben sind, aber noch Lücken haben (ohne „fehlt“, „schreibt nach“, „befreit“),</li>
+<li>Nachschreiber:innen ohne Ergebnis (öffnet die <a href="#arbeiten">Nachschreibliste</a>),</li>
+<li>mündliche Zeiträume, die vorbei sind, ohne Note – solange die Note des Quartals noch nicht steht,</li>
+<li>fehlende Quartals- und Halbjahresnoten ab drei Wochen vor dem Ende des Zeitraums. Mit ⚠ markiert ist,
+was in der nächsten Woche fällig oder schon überfällig ist.</li>
+</ul>
+<p>Doppelklick oder Enter springt direkt zur Stelle.</p>
+"""),
     Thema("einstellungen", "Einstellungen", """
 <h2>Einstellungen</h2>
 <p>Menü <b>Bearbeiten → Einstellungen</b>. Sie gelten für diesen Rechner und enthalten keine Notendaten.</p>
@@ -394,6 +412,7 @@ stehen in der (verschlüsselten) Datenbank.</li>
 <tr><td><b>Strg + L</b></td><td>Neue Lerngruppe</td></tr>
 <tr><td><b>Strg + Z</b></td><td>Rückgängig (jede Änderung seit dem Öffnen, bis zu 200 Schritte)</td></tr>
 <tr><td><b>Strg + Y / Strg + Umschalt + Z</b></td><td>Wiederholen</td></tr>
+<tr><td><b>Strg + F</b></td><td>Schnellsuche: Namen, Lerngruppen, Arbeiten</td></tr>
 <tr><td><b>Strg + Umschalt + L</b></td><td>Programm sofort sperren</td></tr>
 <tr><td><b>Strg + Leertaste</b></td><td>im Rückmeldungsfenster: Kürzel durch Textbaustein ersetzen</td></tr>
 <tr><td><b>Strg + Bild auf / ab</b></td><td>im Rückmeldungsfenster: vorige / nächste Person</td></tr>
@@ -445,6 +464,7 @@ JE_KLASSE: dict[str, str] = {
     "LerngruppeDialog": "lerngruppen", "MitgliederDialog": "lerngruppen", "ZeitraumDialog": "lerngruppen",
     "MitgliederTab": "lerngruppen",
     "ArbeitenTab": "arbeiten", "ArbeitDialog": "arbeiten", "NachschreibDialog": "arbeiten",
+    "SchnellsucheDialog": "uebersichten",
     "RueckmeldungDialog": "rueckmeldungen", "TextbausteineDialog": "rueckmeldungen",
     "EinstellungenDialog": "einstellungen", "SchluesselDialog": "schluessel",
     "DruckDialog": "drucken",
