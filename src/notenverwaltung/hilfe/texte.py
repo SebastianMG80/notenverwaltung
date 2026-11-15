@@ -207,6 +207,25 @@ einmal: Volladdierer.“ Das ist nur ein Vorschlag zum Weiterschreiben.</p>
 Anteil der Höchstpunkte), wie viele die volle Punktzahl und wie viele 0 Punkte haben. Niedrige Quoten sind rot.
 Im Druckdialog gibt es sie als eigenen Ausdruck – ohne Namen, z. B. für die Fachkonferenz.</p>
 """),
+    Thema("schnellerfassung", "Schnellerfassung je Stunde", """
+<h2>Schnellerfassung je Stunde</h2>
+<p>Im Reiter <b>Schnellerfassung</b> notierst du nebenbei, wie jemand in einer Stunde mitgearbeitet hat – so oft
+oder selten du willst:</p>
+<table cellpadding="3">
+<tr><td><b>++</b></td><td>sehr gut (1)</td><td><b>+</b></td><td>gut (2)</td><td><b>o</b></td><td>befriedigend (3)</td></tr>
+<tr><td><b>–</b></td><td>schwach (4)</td><td><b>––</b></td><td>sehr schwach (5)</td><td></td><td></td></tr>
+</table>
+<ul>
+<li>Datum wählen, <b>Stunde hinzufügen</b>, dann tippen: <b>++ + o - --</b> oder <b>1</b> bis <b>5</b>. Enter springt
+nach unten. Entf löscht, Rechtsklick: Auswahl per Maus und eine Notiz (✎).</li>
+<li>Oben wählst du den mündlichen <b>Zeitraum</b>; die Spalte <b>Ø</b> zeigt den Durchschnitt und die Note, die
+daraus folgt (z. B. „2,4 → 2-“). In der Oberstufe wird umgerechnet: Punkte = 17 − 3 × Ø (++ = 14, o = 8, –– = 2).</li>
+<li>Der Durchschnitt ist nur ein <b>Vorschlag</b>: Im Reiter <a href="#muendlich">Mündlich</a> steht er grau in
+Klammern in leeren Feldern; Rechtsklick → übernehmen. Oder hier „Ø als mündliche Note übernehmen …“ für alle
+ohne Note. Vorhandene Noten bleiben immer unverändert.</li>
+<li>Schneller per Sitzplan: Platz antippen, Bewertung wählen.</li>
+</ul>
+"""),
     Thema("uebersichten", "Schnellsuche und offene Punkte", """
 <h2>Schnellsuche und offene Punkte</h2>
 <h3>Schnellsuche (Strg + F)</h3>
@@ -468,7 +487,7 @@ JE_KLASSE: dict[str, str] = {
     "RueckmeldungDialog": "rueckmeldungen", "TextbausteineDialog": "rueckmeldungen",
     "EinstellungenDialog": "einstellungen", "SchluesselDialog": "schluessel",
     "DruckDialog": "drucken",
-    "MuendlichTab": "muendlich", "ZeitraeumeDialog": "muendlich",
+    "MuendlichTab": "muendlich", "ZeitraeumeDialog": "muendlich", "StundenTab": "schnellerfassung",
     "NotenTab": "noten", "GewichtungDialog": "noten",
     "ImportAssistent": "import", "JahreswechselAssistent": "jahreswechsel", "KiDialog": "ki",
     "StartDialog": "datenbank", "NeueDatenbankAssistent": "datenbank",

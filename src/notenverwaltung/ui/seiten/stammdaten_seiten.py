@@ -417,12 +417,17 @@ class LerngruppeSeite(Seite):
 
         self.muendlich = MuendlichTab()
         self.muendlich.geaendert.connect(self.geaendert)
+        from notenverwaltung.ui.seiten.stunden_tab import StundenTab
+
+        self.stunden = StundenTab()
+        self.stunden.geaendert.connect(self.geaendert)
         from notenverwaltung.ui.seiten.noten_tab import NotenTab
 
         self.noten = NotenTab()
         self.noten.geaendert.connect(self.geaendert)
         self.reiter.addTab(self.arbeiten, "Klassenarbeiten")
         self.reiter.addTab(self.muendlich, "Mündlich")
+        self.reiter.addTab(self.stunden, "Schnellerfassung")
         self.reiter.addTab(self.noten, "Noten")
         self.reiter.addTab(self.mitglieder, "Schüler:innen")
         self.lay.addWidget(self.reiter, 1)

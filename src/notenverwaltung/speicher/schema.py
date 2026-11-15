@@ -197,6 +197,17 @@ MIGRATIONEN: list[str] = [
         ('zeit', 'Teile dir die Zeit besser ein, damit du alle Aufgaben bearbeiten kannst.', 5),
         ('gespräch', 'Lass uns gemeinsam besprechen, wie du dich verbessern kannst.', 6);
     """,
+    # 10 (Version 0.9): Schnellerfassung je Stunde – ++ = 1, + = 2, o = 3, – = 4, –– = 5
+    """
+    CREATE TABLE beobachtung (
+        lerngruppe_id   INTEGER NOT NULL REFERENCES lerngruppe(id) ON DELETE CASCADE,
+        schueler_id     INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+        datum           TEXT NOT NULL,                     -- eine Bewertung je Person und Tag
+        wert            INTEGER NOT NULL CHECK (wert BETWEEN 1 AND 5),
+        notiz           TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (lerngruppe_id, schueler_id, datum)
+    );
+    """,
 ]
 
 SCHEMA_VERSION = len(MIGRATIONEN)

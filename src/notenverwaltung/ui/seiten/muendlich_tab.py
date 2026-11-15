@@ -25,6 +25,9 @@ from PySide6.QtWidgets import (
 
 from notenverwaltung.einstellungen import einstellungen
 from notenverwaltung.modell.muendlich import Muendlich, MuendlichFehler, Zeitraum, note_aus_eingabe
+from notenverwaltung.modell.noten import Notensystem
+from notenverwaltung.modell.stunden import Stunden
+from notenverwaltung.modell.stunden import vorschlag as stunden_vorschlag
 from notenverwaltung.modell.stammdaten import Lerngruppe, Mitglied, Schuljahr, Stammdaten
 from notenverwaltung.ui.bausteine import Datumsfeld, Hinweis, aktuelle_farben, frage
 from notenverwaltung.ui.seiten.arbeiten_tab import EingabeRaster
@@ -49,6 +52,14 @@ class MuendlichModell(QAbstractTableModel):
         self.mitglieder: list[Mitglied] = []
         self.noten: dict = {}
         self.alle_zeigen = False
+        self.st = Stunden(mu.v)
+        self.beobachtungen: dict = {}
+
+    def vorschlag(self, z: Zeitraum, m: Mitglied):
+        """(Note, Text) aus der Schnellerfassung – oder (None, "")."""
+        sch = self.st.schnitt(self.gruppe.id, m.schueler.id, z.beginn, z.ende, self.beobachtungen)
+        note = stunden_vorschlag(sch, Notensystem.von(self.gruppe.notensystem))
+        return (note, sch.text()) if note is not None else (None, "")
 
     def lade(self, jahr: Schuljahr, gruppe: Lerngruppe) -> None:
         self.beginResetModel()
@@ -58,11 +69,13 @@ class MuendlichModell(QAbstractTableModel):
         self.mitglieder = [m for m in alle if self.alle_zeigen or any(z.erfasst(m) for z in self.zeitraeume)
                            and (m.ende is None or m.ende >= self.jahr.beginn)]
         self.noten = self.mu.noten(gruppe.id)
+        self.beobachtungen = self.st.eintraege(gruppe.id)
         self.endResetModel()
         self.neu_berechnet.emit()
 
     def aktualisiere(self) -> None:
         self.noten = self.mu.noten(self.gruppe.id)
+        self.beobachtungen = self.st.eintraege(self.gruppe.id)
         self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount() - 1, self.columnCount() - 1))
         self.neu_berechnet.emit()
 
@@ -126,12 +139,22 @@ class MuendlichModell(QAbstractTableModel):
             if self.ist_zeitraum(s):
                 if eintrag:
                     return eintrag[0].kurz + (" ✎" if eintrag[1] and rolle == Qt.ItemDataRole.DisplayRole else "")
-                return "" if self._erlaubt(index) or rolle == Qt.ItemDataRole.EditRole else "—"
+                if rolle == Qt.ItemDataRole.EditRole:
+                    return ""
+                if not self._erlaubt(index):
+                    return "—"
+                note, _ = self.vorschlag(self.zeitraeume[s - FEST], m) if self.beobachtungen else (None, "")
+                return f"({note.kurz})" if note is not None else ""
             return _schnitt_text(self.schnitt(m, s - FEST - len(self.zeitraeume) + 1))
         if rolle == Qt.ItemDataRole.TextAlignmentRole and s != 1:
             return int(Qt.AlignmentFlag.AlignCenter)
-        if rolle == Qt.ItemDataRole.ForegroundRole and self.ist_zeitraum(s) and not self._erlaubt(index):
+        if rolle == Qt.ItemDataRole.ForegroundRole and self.ist_zeitraum(s) and (not self._erlaubt(index)
+                                                                                 or not eintrag):
             return QBrush(QColor(farben.text_leise))
+        if rolle == Qt.ItemDataRole.FontRole and self.ist_zeitraum(s) and not eintrag and self._erlaubt(index):
+            f = QFont()
+            f.setItalic(True)
+            return f
         if rolle == Qt.ItemDataRole.BackgroundRole:
             if s >= FEST + len(self.zeitraeume):
                 return QBrush(QColor(farben.flaeche_hoch))
@@ -148,6 +171,10 @@ class MuendlichModell(QAbstractTableModel):
                 return "In diesem Zeitraum nicht in der Lerngruppe – keine Note nötig."
             if eintrag:
                 return eintrag[0].wort_mit_tendenz + (f"\n{eintrag[1]}" if eintrag[1] else "")
+            note, text = self.vorschlag(self.zeitraeume[s - FEST], m) if self.beobachtungen else (None, "")
+            if note is not None:
+                return (f"Vorschlag aus der Schnellerfassung: {note.kurz}\n{text}\n"
+                        "Rechtsklick → übernehmen, oder selbst eine Note eintippen.")
         return None
 
     def setData(self, index, wert, rolle=Qt.ItemDataRole.EditRole):  # noqa: N802
@@ -334,7 +361,8 @@ class MuendlichTab(QWidget):
         self.meldung.setze("")
         eingabe = ("Eingabe: Punkte 0–15 (10,5 → 11)" if gruppe.sek2
                    else "Eingabe: 2, 2+, 2- oder als Zahl (1,7 → 2+)")
-        self.hilfe.setText(f"{eingabe}. Graue Felder: in diesem Zeitraum nicht in der Gruppe. Rechtsklick: Bemerkung.")
+        self.hilfe.setText(f"{eingabe}. Graue Felder: in diesem Zeitraum nicht in der Gruppe. Rechtsklick: Bemerkung. "
+                           "(2-) in einem leeren Feld: Vorschlag aus der Schnellerfassung.")
         self.modell.lade(jahr, gruppe)
         k = self.raster.horizontalHeader()
         k.setMinimumHeight(44)
@@ -415,6 +443,12 @@ class MuendlichTab(QWidget):
             self.raster.scrollTo(index)
             self.raster.setFocus()
 
+    def _vorschlag_setzen(self, liste) -> None:
+        for z, m, note in liste:
+            self.mu.setze_note(z.id, m.schueler.id, note)
+        self.modell.aktualisiere()
+        self.geaendert.emit()
+
     def _richtung(self, *_) -> None:
         self.raster.nach_rechts = self.richtung.currentData()
         einstellungen().setValue("eingabe/muendlich_nach_rechts", self.raster.nach_rechts)
@@ -427,6 +461,19 @@ class MuendlichTab(QWidget):
         z = self.modell.zeitraeume[index.column() - FEST]
         eintrag = self.modell.noten.get((z.id, m.schueler.id))
         menue = QMenu(self)
+        vorschlag, text = self.modell.vorschlag(z, m)
+        if vorschlag is not None and eintrag is None:
+            uebernehmen = menue.addAction(f"Vorschlag aus der Schnellerfassung übernehmen ({vorschlag.kurz})")
+            uebernehmen.setToolTip(text)
+            uebernehmen.triggered.connect(lambda: self._vorschlag_setzen([(z, m, vorschlag)]))
+        offen = [(z, x, n) for x in self.modell.mitglieder if z.erfasst(x)
+                 and (z.id, x.schueler.id) not in self.modell.noten
+                 for n in [self.modell.vorschlag(z, x)[0]] if n is not None]
+        if len(offen) > 1:
+            alle = menue.addAction(f"Alle Vorschläge in „{z.bezeichnung}“ übernehmen ({len(offen)})")
+            alle.triggered.connect(lambda: self._vorschlag_setzen(offen))
+        if not menue.isEmpty():
+            menue.addSeparator()
         bem = menue.addAction("Bemerkung …")
         bem.setEnabled(eintrag is not None)
         if eintrag is None:
