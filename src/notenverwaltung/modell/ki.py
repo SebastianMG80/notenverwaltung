@@ -142,6 +142,8 @@ def lies_antwort(text: str) -> KiArbeit:
         daten = json.loads(_json_ausschnitt(text))
     except json.JSONDecodeError as e:
         raise KiFehler(f"Die Antwort ist kein gültiges JSON (Zeile {e.lineno}, Spalte {e.colno}).") from None
+    except RecursionError:
+        raise KiFehler("Die Antwort ist zu tief verschachtelt.") from None
     if not isinstance(daten, dict):
         raise KiFehler("Die Antwort ist kein JSON-Objekt.")
     if daten.get("format") not in (FORMAT, None):

@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import shutil
@@ -86,9 +87,27 @@ def _sperre_ist_verwaist(info: SperrInfo) -> bool:
     return info.rechner == _rechnername() and (info.pid == os.getpid() or not _prozess_laeuft(info.pid))
 
 
+def nur_eigentuemer(pfad: Path, ordner: bool = False) -> None:
+    """Beschränkt die Dateirechte auf den eigenen Benutzer (Linux/macOS: 600 bzw. 700 für Ordner).
+
+    Unter Windows regeln das die Rechte des Benutzerordners; dort bewirkt der Aufruf nichts Schädliches.
+    Fehler (z. B. FAT-Stick ohne Dateirechte) werden übergangen – die Datei selbst ist ohnehin verschlüsselt.
+    """
+    if os.name != "posix":
+        return
+    try:
+        os.chmod(pfad, 0o700 if ordner else 0o600)
+    except OSError:
+        pass
+
+
 def _schreibe_atomar(ziel: Path, daten: bytes) -> None:
     zwischen = ziel.with_name(ziel.name + ".neu")
-    with open(zwischen, "wb") as f:
+    # Von Anfang an nur für den eigenen Benutzer lesbar (wichtig für Schlüsseldateien); eine liegengebliebene
+    # Zwischendatei wird ersetzt, nicht weiterbeschrieben
+    fd = os.open(zwischen, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600)
+    with os.fdopen(fd, "wb") as f:
+        nur_eigentuemer(zwischen)
         f.write(daten)
         f.flush()
         os.fsync(f.fileno())
@@ -121,8 +140,10 @@ def sichere_nach(pfad: Path, ordner: Path, anzahl: int = 10) -> Path:
     ziel = ordner / f"{pfad.stem}_{stempel}{ENDUNG}"
     teil = ziel.with_name(ziel.name + ".teil")
     shutil.copyfile(pfad, teil)
+    nur_eigentuemer(teil)
     os.replace(teil, ziel)
-    alte = sorted(ordner.glob(f"{pfad.stem}_????-??-??_??-??-??{ENDUNG}"), reverse=True)
+    # glob.escape: Namen wie „Noten [2026]“ enthalten Zeichen, die sonst als Muster gelten würden
+    alte = sorted(ordner.glob(f"{glob.escape(pfad.stem)}_????-??-??_??-??-??{ENDUNG}"), reverse=True)
     for alt in alte[max(1, anzahl):]:
         alt.unlink(missing_ok=True)
     return ziel
@@ -217,6 +238,9 @@ class Datenbank:
     def _neue_verbindung() -> sqlite3.Connection:
         v = sqlite3.connect(":memory:", check_same_thread=False)
         v.execute("PRAGMA foreign_keys = ON")
+        # Zwischenspeicher (Rückgängig-Protokoll, große Sortierungen) nie als Datei im Temp-Ordner anlegen:
+        # Dort stünden sonst Namen, Noten und Rückmeldungen unverschlüsselt auf der Platte.
+        v.execute("PRAGMA temp_store = MEMORY")
         return v
 
     @staticmethod
@@ -257,9 +281,13 @@ class Datenbank:
         """
         if self.pfad.exists():
             ordner = sicherungsordner(self.pfad)
-            ordner.mkdir(exist_ok=True)
+            if not ordner.is_dir():
+                ordner.mkdir()
+                nur_eigentuemer(ordner, ordner=True)
             stempel = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            shutil.copy2(self.pfad, ordner / f"{self.pfad.stem}_{stempel}{zusatz}{ENDUNG}")
+            kopie = ordner / f"{self.pfad.stem}_{stempel}{zusatz}{ENDUNG}"
+            shutil.copy2(self.pfad, kopie)
+            nur_eigentuemer(kopie)
             gewoehnlich = [s for s in self.sicherungen() if DAUERHAFT not in s.name]
             for alt in gewoehnlich[MAX_SICHERUNGEN:]:
                 alt.unlink(missing_ok=True)
@@ -270,7 +298,7 @@ class Datenbank:
         ordner = sicherungsordner(self.pfad)
         if not ordner.is_dir():
             return []
-        return sorted(ordner.glob(f"{self.pfad.stem}_*{ENDUNG}"), reverse=True)
+        return sorted(ordner.glob(f"{glob.escape(self.pfad.stem)}_*{ENDUNG}"), reverse=True)
 
     def _sicherungen_neu_verpacken(self) -> None:
         """Nach Änderung der Zugänge: Sicherungen auf die neuen Zugänge umstellen.
@@ -313,12 +341,12 @@ class Datenbank:
         self._sicherungen_neu_verpacken()
 
     def pruefe_passwort(self, passwort: str) -> bool:
-        """Prüft das aktuelle Passwort (z. B. vor einem Passwortwechsel)."""
-        try:
-            Tresor.oeffne(self.pfad.read_bytes(), PASSWORT, passwort)
-            return True
-        except Exception:
-            return False
+        """Prüft das aktuelle Passwort (z. B. vor einem Passwortwechsel oder zum Entsperren).
+
+        Maßgeblich ist der geöffnete Tresor im Arbeitsspeicher, nicht die Datei auf der Platte: Die könnte
+        inzwischen jemand gegen eine eigene Datenbank mit eigenem Passwort ausgetauscht haben.
+        """
+        return self.tresor.pruefe_zugang(PASSWORT, passwort)
 
     # ---- Sperre / Schließen ------------------------------------------------------------------
     def _sperren(self) -> None:
@@ -326,6 +354,7 @@ class Datenbank:
                   "seit": datetime.now().strftime("%d.%m.%Y %H:%M")}
         try:
             sperrdatei(self.pfad).write_text(json.dumps(inhalt), encoding="utf-8")
+            nur_eigentuemer(sperrdatei(self.pfad))
             self._sperre_gesetzt = True
         except OSError:
             self._sperre_gesetzt = False  # z. B. schreibgeschützter Stick – Öffnen trotzdem erlauben

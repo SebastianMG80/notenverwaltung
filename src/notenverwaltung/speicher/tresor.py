@@ -16,6 +16,7 @@ nur plattformunabhängige Bausteine nutzt, ist eine Datei unter Linux und Window
 from __future__ import annotations
 
 import base64
+import hmac
 import json
 import struct
 import zlib
@@ -63,9 +64,16 @@ class Zugang:
 
     @staticmethod
     def aus_dict(d: dict) -> "Zugang":
+        if not isinstance(d, dict):
+            raise FormatFehler("Die Datei ist beschädigt (Kopf).")
         if d.get("art") not in ARTEN:
             raise FormatFehler(f"Unbekannte Zugangsart {d.get('art')!r}")
-        return Zugang(d["art"], _unb64(d["salz"]), _unb64(d["nonce"]), _unb64(d["verpackt"]))
+        z = Zugang(d["art"], _unb64(d["salz"]), _unb64(d["nonce"]), _unb64(d["verpackt"]))
+        # Feste Längen: Ein veränderter Kopf soll als „beschädigt“ gemeldet werden, nicht als Programmfehler
+        if (len(z.salz) != krypto.SALZ_LAENGE or len(z.nonce) != krypto.NONCE_LAENGE
+                or len(z.verpackt) != krypto.SCHLUESSEL_LAENGE + 16):
+            raise FormatFehler("Die Datei ist beschädigt (Kopf).")
+        return z
 
 
 def _verpackungs_ad(art: str, salz: bytes) -> bytes:
@@ -170,8 +178,10 @@ class Tresor:
         kopf_bytes = daten[_PRAEFIX.size:_PRAEFIX.size + laenge]
         try:
             kopf = json.loads(kopf_bytes.decode("ascii"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        except (UnicodeDecodeError, ValueError, RecursionError) as e:
             raise FormatFehler("Die Datei ist beschädigt (Kopf).") from e
+        if not isinstance(kopf, dict):
+            raise FormatFehler("Die Datei ist beschädigt (Kopf).")
         return kopf, daten[:_PRAEFIX.size + laenge], daten[_PRAEFIX.size + laenge:]
 
     def entpacke_eigene(self, daten: bytes) -> bytes:
@@ -181,6 +191,8 @@ class Tresor:
             nonce = _unb64(kopf["daten"]["nonce"])
         except (KeyError, TypeError, ValueError) as e:
             raise FormatFehler("Die Datei ist beschädigt (Kopf).") from e
+        if len(nonce) != krypto.NONCE_LAENGE:
+            raise FormatFehler("Die Datei ist beschädigt (Kopf).")
         try:
             return zlib.decompress(krypto.entschluesseln(self.hauptschluessel, nonce, geheim, zusatz))
         except zlib.error as e:
@@ -189,7 +201,27 @@ class Tresor:
     @staticmethod
     def vorhandene_zugaenge(daten: bytes) -> list[str]:
         kopf, _, _ = Tresor.lies_kopf(daten)
-        return [z.get("art") for z in kopf.get("zugaenge", [])]
+        zugaenge = kopf.get("zugaenge", [])
+        if not isinstance(zugaenge, list):
+            raise FormatFehler("Die Datei ist beschädigt (Kopf).")
+        return [z.get("art") for z in zugaenge if isinstance(z, dict)]
+
+    def pruefe_zugang(self, art: str, wert: str | bytes) -> bool:
+        """Passt dieser Zugang (z. B. das Passwort) zum geöffneten Tresor?
+
+        Geprüft wird gegen den Zugang im Arbeitsspeicher – nicht gegen die Datei auf der Platte. Sonst könnte
+        jemand die Datei gegen eine eigene austauschen und die Sperre mit dem eigenen Passwort aufheben.
+        """
+        zugang = self.zugaenge.get(art)
+        if zugang is None:
+            return False
+        try:
+            schluessel = _verpackungsschluessel(art, _geheimnis(art, wert), zugang.salz, self.kdf)
+            entpackt = krypto.entschluesseln(schluessel, zugang.nonce, zugang.verpackt,
+                                             _verpackungs_ad(art, zugang.salz))
+        except (EntschluesselungsFehler, ValueError, TypeError):
+            return False
+        return hmac.compare_digest(entpackt, self.hauptschluessel)
 
     @staticmethod
     def oeffne(daten: bytes, art: str, wert: str | bytes) -> tuple["Tresor", bytes]:
@@ -204,8 +236,10 @@ class Tresor:
             nonce = _unb64(kopf["daten"]["nonce"])
             if kopf["daten"].get("packung") != "zlib":
                 raise FormatFehler("Unbekannte Packung der Daten.")
-        except (KeyError, TypeError, ValueError) as e:
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
             raise FormatFehler("Die Datei ist beschädigt (Kopf).") from e
+        if len(nonce) != krypto.NONCE_LAENGE:
+            raise FormatFehler("Die Datei ist beschädigt (Kopf).")
 
         zugang = zugaenge.get(art)
         if zugang is None:

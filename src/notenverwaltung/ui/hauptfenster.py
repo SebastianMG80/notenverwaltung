@@ -55,6 +55,22 @@ from notenverwaltung.ui.startdialog import StartDialog
 OFFLINE_HINWEIS = "Offline – dieses Programm sendet keine Daten."
 
 
+def betriebszeit() -> float:
+    """Sekunden seit dem Systemstart – einschließlich der Zeit im Ruhezustand.
+
+    `time.monotonic()` bleibt unter Linux stehen, solange der Rechner schläft: Ein zugeklappter Laptop wäre
+    nach dem Aufwachen sonst noch stundenlang entsperrt. Wo es die Uhr `CLOCK_BOOTTIME` nicht gibt (Windows,
+    dort zählt `monotonic` den Ruhezustand mit), bleibt es bei `time.monotonic()`.
+    """
+    uhr = getattr(time, "CLOCK_BOOTTIME", None)
+    if uhr is not None:
+        try:
+            return time.clock_gettime(uhr)
+        except OSError:
+            pass
+    return time.monotonic()
+
+
 class EingabeGrenze(QObject):
     """Sieht jede Eingabe der Anwendung:
 
@@ -85,7 +101,7 @@ class EingabeGrenze(QObject):
                 ereignis.accept()                  # kein Tastenkürzel löst etwas aus
             return not sperre.erlaubt(objekt)
         if art in (QEvent.Type.KeyPress, QEvent.Type.MouseButtonPress, QEvent.Type.Wheel):
-            self.fenster.letzte_eingabe = time.monotonic()
+            self.fenster.letzte_eingabe = betriebszeit()
         if art in self.ARTEN and self.fenster.db is not None:
             self.fenster.db.verlauf.abschliessen()
         return False
@@ -227,7 +243,7 @@ class Hauptfenster(QMainWindow):
         self.sperre = Sperre(self)
         self.sperre.pruefe = lambda pw: self.db is not None and self.db.pruefe_passwort(pw)
         self.sperre.entsperrt.connect(lambda: self.statusBar().showMessage(f"Entsperrt. {OFFLINE_HINWEIS}", 5000))
-        self.letzte_eingabe = time.monotonic()
+        self.letzte_eingabe = betriebszeit()
         self.sperruhr = QTimer(self)
         self.sperruhr.setInterval(10_000)
         self.sperruhr.timeout.connect(self.sperre_pruefen)
@@ -382,7 +398,7 @@ class Hauptfenster(QMainWindow):
             db.schliessen(speichern=False)
             return
         self.db = db
-        self.letzte_eingabe = time.monotonic()
+        self.letzte_eingabe = betriebszeit()
         self.sd = Stammdaten(db.verbindung)
         self.jahr = self.sd.aktuelles_schuljahr()
         self._zustand_aktualisieren()
@@ -393,11 +409,14 @@ class Hauptfenster(QMainWindow):
         """Speichert und schließt. Gibt False zurück, wenn das Schließen abgebrochen wurde."""
         if self.db is None:
             return True
-        self.sperre.aufheben()
         pfad = self.db.pfad
         try:
             self.db.schliessen(speichern=True)
         except OSError as e:
+            if self.sperre.aktiv:
+                # Gesperrt bleibt gesperrt: Sonst läge nach „Abbrechen“ die offene Datenbank ohne Passwort da.
+                self.statusBar().showMessage(f"Speichern fehlgeschlagen: {e} – bitte erst entsperren.")
+                return False
             if not frage(self, "Speichern fehlgeschlagen",
                          f"Die Datenbank konnte nicht gespeichert werden:\n{e}\n\n"
                          "Ohne Speichern schließen? Ungespeicherte Änderungen gehen verloren.",
@@ -406,6 +425,7 @@ class Hauptfenster(QMainWindow):
             self.db.schliessen(speichern=False)
         else:
             self._zweiter_ort(pfad, still=True)
+        self.sperre.aufheben()
         self.db = None
         self.sd = None
         self.jahr = None
@@ -529,7 +549,7 @@ class Hauptfenster(QMainWindow):
     def sperre_pruefen(self) -> None:
         minuten = sperre_minuten()
         if (self.db is not None and minuten and not self.sperre.aktiv
-                and time.monotonic() - self.letzte_eingabe >= minuten * 60):
+                and betriebszeit() - self.letzte_eingabe >= minuten * 60):
             self.sperren(f"Nach {minuten} Minuten ohne Eingabe automatisch gesperrt.")
 
     def sperren(self, grund: str) -> None:

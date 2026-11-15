@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication
 from notenverwaltung.modell.arbeiten import Arbeiten
 from notenverwaltung.modell.stammdaten import Lerngruppe
 from notenverwaltung.speicher.datenbank import Datenbank, sichere_nach
+from notenverwaltung.ui.hauptfenster import betriebszeit
 
 
 @pytest.fixture
@@ -43,7 +44,7 @@ def test_sperrt_nach_einer_weile_und_entsperrt_mit_passwort(fenster):
     tab = f.seite_gruppe.arbeiten
     tab.modell.setData(tab.modell.index(0, 5), "4")                 # ungespeichert
     assert f.db.geaendert
-    f.letzte_eingabe = time.monotonic() - 15 * 60 - 1
+    f.letzte_eingabe = betriebszeit() - 15 * 60 - 1
     f.sperre_pruefen()
     assert f.sperre.aktiv and not f.db.geaendert                    # vorher gespeichert
     schirm = f.sperre.eingabe
@@ -65,7 +66,7 @@ def test_sperrt_nach_einer_weile_und_entsperrt_mit_passwort(fenster):
     QApplication.processEvents()
     # 0 = nie
     setze_sicherheit(0, "", 10)
-    f.letzte_eingabe = time.monotonic() - 10_000
+    f.letzte_eingabe = betriebszeit() - 10_000
     f.sperre_pruefen()
     assert not f.sperre.aktiv
 

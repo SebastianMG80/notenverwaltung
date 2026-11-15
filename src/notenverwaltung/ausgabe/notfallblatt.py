@@ -10,6 +10,7 @@ from PySide6.QtGui import QPainter
 
 from notenverwaltung import texte
 from notenverwaltung.ausgabe.seite import Seite, zeichne_pdf
+from notenverwaltung.speicher.datenbank import nur_eigentuemer
 
 MONO = "Monospace"
 LINKS = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
@@ -112,4 +113,5 @@ def als_pdf(pfad: Path, datenbankname: str, code: str, erstellt: datetime | None
     pfad = Path(pfad)
     with zeichne_pdf(pfad, f"Notfallblatt {datenbankname}") as (painter, _):
         zeichne(painter, datenbankname, code, erstellt)
+    nur_eigentuemer(pfad)      # die Datei enthält den Wiederherstellungscode
     return pfad

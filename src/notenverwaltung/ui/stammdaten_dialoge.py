@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from dataclasses import replace
 from datetime import date
 
@@ -212,7 +213,8 @@ class AbgangDialog(_Dialog):
         super().__init__("Abgang", "Speichern", parent)
         self.sd, self.jahr, self.eintrag = sd, schuljahr, eintrag
         erklaerung = QLabel(
-            f"<b>{eintrag.schueler.vorname} {eintrag.schueler.nachname}</b> ({eintrag.klasse}) verlässt die Schule. "
+            f"<b>{html.escape(eintrag.schueler.vorname)} {html.escape(eintrag.schueler.nachname)}</b> "
+            f"({html.escape(eintrag.klasse)}) verlässt die Schule. "
             "Alle Noten bleiben erhalten; für Leistungen nach dem Abgangstag wird keine Eingabe mehr erwartet.")
         erklaerung.setWordWrap(True)
         self.form.addRow(erklaerung)
@@ -428,7 +430,8 @@ class ZeitraumDialog(_Dialog):
         super().__init__("Eintritt / Austritt", "Speichern", parent)
         self.sd, self.gruppe, self.mitglied = sd, gruppe, mitglied
         s = mitglied.schueler
-        text = QLabel(f"<b>{s.vorname} {s.nachname}</b> in „{gruppe.bezeichnung}“. Nach dem Austritt bleiben alle "
+        text = QLabel(f"<b>{html.escape(s.vorname)} {html.escape(s.nachname)}</b> in "
+                      f"„{html.escape(gruppe.bezeichnung)}“. Nach dem Austritt bleiben alle "
                       "Noten erhalten; für spätere Leistungen wird keine Eingabe mehr erwartet.")
         text.setWordWrap(True)
         self.form.addRow(text)

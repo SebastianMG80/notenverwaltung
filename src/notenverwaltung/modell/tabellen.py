@@ -10,12 +10,15 @@ import csv
 import io
 import re
 import zipfile
+import zlib
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 MAX_GROESSE = 20 * 1024 * 1024
+MAX_ENTPACKT = 100 * 1024 * 1024    # je Teil einer .xlsx/.ods – Schutz vor „Zip-Bomben“
 MAX_ZEILEN = 20000
+MAX_SPALTEN = 16384                 # so viele Spalten kennt Excel höchstens (XFD)
 
 
 class TabellenFehler(ValueError):
@@ -36,7 +39,14 @@ def lies_tabelle(pfad: Path, blatt: int = 0) -> list[list[str]]:
             raise TabellenFehler("Das alte Excel-Format .xls wird nicht unterstützt. Bitte als .xlsx oder .csv speichern.")
         else:
             zeilen = _lies_text(pfad.read_bytes())
-    except (zipfile.BadZipFile, ET.ParseError, KeyError) as e:
+    except TabellenFehler:
+        raise
+    except MemoryError as e:
+        raise TabellenFehler("Die Datei ist zu groß für eine Schülerliste.") from e
+    except (zipfile.BadZipFile, ET.ParseError, csv.Error, KeyError, ValueError, IndexError, TypeError,
+            AttributeError, StopIteration, RecursionError, zlib.error, EOFError, NotImplementedError,
+            RuntimeError) as e:
+        # Beschädigte oder ungewöhnlich aufgebaute Dateien: verständlich melden statt abzustürzen
         raise TabellenFehler(f"Die Datei kann nicht gelesen werden ({e.__class__.__name__}).") from e
     # Leere Zeilen und Leerraum am Rand entfernen, Zeilen auf gleiche Länge bringen
     zeilen = [[z.strip() for z in zeile] for zeile in zeilen[:MAX_ZEILEN]]
@@ -47,18 +57,27 @@ def lies_tabelle(pfad: Path, blatt: int = 0) -> list[list[str]]:
     return [(z + [""] * breite)[:breite] for z in zeilen]
 
 
+def _teil(z: zipfile.ZipFile, name: str) -> bytes:
+    """Liest einen Teil des Archivs – aber nur, wenn er entpackt nicht übermäßig groß ist."""
+    if z.getinfo(name).file_size > MAX_ENTPACKT:
+        raise TabellenFehler("Die Datei ist zu groß für eine Schülerliste.")
+    return z.read(name)
+
+
 def blaetter(pfad: Path) -> list[str]:
     pfad = Path(pfad)
     try:
+        if pfad.stat().st_size > MAX_GROESSE:
+            return []
         if pfad.suffix.lower() == ".xlsx":
             with zipfile.ZipFile(pfad) as z:
-                wb = ET.fromstring(z.read("xl/workbook.xml"))
+                wb = ET.fromstring(_teil(z, "xl/workbook.xml"))
             return [s.get("name", "") for s in wb.iter(f"{{{_X}}}sheet")]
         if pfad.suffix.lower() == ".ods":
             with zipfile.ZipFile(pfad) as z:
-                inhalt = ET.fromstring(z.read("content.xml"))
+                inhalt = ET.fromstring(_teil(z, "content.xml"))
             return [t.get(f"{{{_TABLE}}}name", "") for t in inhalt.iter(f"{{{_TABLE}}}table")]
-    except (zipfile.BadZipFile, ET.ParseError, KeyError):
+    except Exception:  # noqa: BLE001 – die eigentliche Fehlermeldung kommt gleich darauf von lies_tabelle
         return []
     return []
 
@@ -89,10 +108,14 @@ _R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
 
 def _spaltennummer(zelle: str) -> int:
-    buchstaben = re.match(r"[A-Z]+", zelle).group(0)
+    m = re.match(r"[A-Za-z]{1,3}(?=\d|$)", zelle)
+    if m is None:
+        raise TabellenFehler(f"Die Datei enthält einen ungültigen Zellbezug („{zelle[:20]}“).")
     n = 0
-    for b in buchstaben:
+    for b in m.group(0).upper():
         n = n * 26 + ord(b) - 64
+    if n > MAX_SPALTEN:
+        raise TabellenFehler(f"Die Datei enthält einen ungültigen Zellbezug („{zelle[:20]}“).")
     return n - 1
 
 
@@ -101,19 +124,19 @@ def _lies_xlsx(pfad: Path, blatt: int) -> list[list[str]]:
         namen = set(z.namelist())
         geteilt = []
         if "xl/sharedStrings.xml" in namen:
-            for si in ET.fromstring(z.read("xl/sharedStrings.xml")).iter(f"{{{_X}}}si"):
+            for si in ET.fromstring(_teil(z, "xl/sharedStrings.xml")).iter(f"{{{_X}}}si"):
                 geteilt.append("".join(t.text or "" for t in si.iter(f"{{{_X}}}t")))
         datumsformate = _xlsx_datumsstile(z) if "xl/styles.xml" in namen else set()
-        wb = ET.fromstring(z.read("xl/workbook.xml"))
+        wb = ET.fromstring(_teil(z, "xl/workbook.xml"))
         blaetter_ = list(wb.iter(f"{{{_X}}}sheet"))
         if not blaetter_:
             return []
         rid = blaetter_[min(blatt, len(blaetter_) - 1)].get(f"{{{_R}}}id")
-        rels = ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))
+        rels = ET.fromstring(_teil(z, "xl/_rels/workbook.xml.rels"))
         ziel = next(r.get("Target") for r in rels if r.get("Id") == rid)
         ziel = ziel.lstrip("/")
         ziel = ziel if ziel.startswith("xl/") else "xl/" + ziel
-        tabelle = ET.fromstring(z.read(ziel))
+        tabelle = ET.fromstring(_teil(z, ziel))
     zeilen: list[list[str]] = []
     for row in tabelle.iter(f"{{{_X}}}row"):
         werte: dict[int, str] = {}
@@ -144,7 +167,7 @@ def _lies_xlsx(pfad: Path, blatt: int) -> list[list[str]]:
 
 
 def _xlsx_datumsstile(z: zipfile.ZipFile) -> set[int]:
-    styles = ET.fromstring(z.read("xl/styles.xml"))
+    styles = ET.fromstring(_teil(z, "xl/styles.xml"))
     eigene = {int(f.get("numFmtId")): f.get("formatCode", "") for f in styles.iter(f"{{{_X}}}numFmt")}
     datum_ids = set(range(14, 23)) | {i for i, code in eigene.items()
                                       if re.search(r"[dy]", re.sub(r"\[.*?\]|\".*?\"", "", code.lower()))}
@@ -177,7 +200,7 @@ def _ods_text(zelle) -> str:
 
 def _lies_ods(pfad: Path, blatt: int) -> list[list[str]]:
     with zipfile.ZipFile(pfad) as z:
-        inhalt = ET.fromstring(z.read("content.xml"))
+        inhalt = ET.fromstring(_teil(z, "content.xml"))
     tabellen = list(inhalt.iter(f"{{{_TABLE}}}table"))
     if not tabellen:
         return []

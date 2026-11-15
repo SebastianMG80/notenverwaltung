@@ -41,6 +41,12 @@ Runde 3 (15.11.2026, Plan in PLAN.md; Sebastian: alle Etappen am Stück, letzte 
 - [x] 25 Sitzplan → Version 0.9.0 (15.11.2026) – Schema 11: Tabellen sitzplan, sitzplatz
 - [x] 26 Schüler:innen-Bogen → Version 1.0.0 (15.11.2026)
 
+## Prüfung auf Bugs und Sicherheit (15.11.2026)
+Bericht: `pruefung/BERICHT.md`, Stand der Prüfung: `pruefung/FORTSCHRITT.md`. Zwei schwere Lücken (Sperre per
+Dateitausch umgehbar, Klartext im Temp-Ordner) und weitere Funde sind behoben, Tests in `tests/test_pruefung.py`.
+**Die Korrekturen sind lokal committet, aber noch nicht gepusht** (unter Windows liefen sie daher noch nicht). Offene Entscheidungen stehen in
+Abschnitt 6 des Berichts (u. a. Hauptschlüssel beim Passwortwechsel erneuern, Notenschlüssel unter 10 Punkten).
+
 ## Nächster Schritt
 Runde 3 ist abgeschlossen (Etappen 19–26, Version 1.0.0). Warten auf Sebastians Testrunde.
 Später: freier Layout-Editor.

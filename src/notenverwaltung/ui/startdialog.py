@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -230,7 +231,7 @@ class WiederherstellenDialog(QDialog):
         except (OSError, FormatFehler):
             vorhanden = [WIEDERHERSTELLUNG]
 
-        einleitung = QLabel(f"Datenbank <b>{self.pfad.stem}</b> mit dem Notfallblatt oder einer Schlüsseldatei "
+        einleitung = QLabel(f"Datenbank <b>{html.escape(self.pfad.stem)}</b> mit dem Notfallblatt oder einer Schlüsseldatei "
                             "entsperren und ein neues Passwort festlegen.")
         einleitung.setWordWrap(True)
 

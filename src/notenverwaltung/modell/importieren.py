@@ -163,7 +163,9 @@ def datensaetze(zeilen: list[list[str]], z: Zuordnung) -> list[Datensatz]:
         nach, vor = nach.strip(), vor.strip()
         klasse = wert(r, "klasse") or z.feste_klasse.strip()
         jg_text = wert(r, "jahrgang")
-        jahrgang = int(jg_text) if jg_text.isdigit() else jahrgang_aus_klasse(klasse)
+        # isascii: „²“ gilt für Python als Ziffer, lässt sich aber nicht in eine Zahl umwandeln
+        jahrgang = (int(jg_text) if jg_text.isascii() and jg_text.isdigit() and len(jg_text) <= 9
+                    else jahrgang_aus_klasse(klasse))
         geb_text = wert(r, "geburtsdatum")
         geb = lies_datum(geb_text)
         fehler = ""
