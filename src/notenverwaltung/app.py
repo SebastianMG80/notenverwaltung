@@ -33,6 +33,31 @@ def erzeuge_anwendung(argv: list[str] | None = None) -> QApplication:
     return app
 
 
+def abbauen(app: QApplication) -> None:
+    """Baut alle Fenster geordnet ab, solange Qt und Python noch vollständig laufen.
+
+    Hintergrund: Ohne diesen Schritt löscht PySide beim Beenden von Python (`destroyQCoreApplication`) alle
+    Objekte, die es noch Python zuordnet – auch Widgets, die längst ein Elternobjekt in Qt haben, etwa einen
+    Dialog unter einem Reiter. Ist das Elternobjekt in diesem Moment schon gelöscht, wird das Kind ein zweites
+    Mal freigegeben: Absturz beim Schließen (SIGABRT/SIGSEGV), je nach Reihenfolge nur manchmal. Löschen wir
+    die Fenster vorher selbst, räumt Qt die Kinder normal auf und PySide hat am Ende nichts mehr zu tun.
+    """
+    import gc
+
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    for _ in range(3):                 # Fenster, die beim Löschen eines anderen erst sichtbar „frei“ werden
+        fenster = QApplication.topLevelWidgets()
+        if not fenster:
+            break
+        for w in fenster:
+            w.hide()
+            w.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        gc.collect()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
 def main(argv: list[str] | None = None) -> int:
     argumente = sys.argv if argv is None else argv
     if "--selbsttest" in argumente:
@@ -43,4 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     fenster = Hauptfenster()
     fenster.show()
     QTimer.singleShot(0, fenster.zeige_startdialog)  # Lastenheft: beim Start Auswahl der Datenbank
-    return app.exec()
+    code = app.exec()
+    del fenster
+    abbauen(app)
+    return code

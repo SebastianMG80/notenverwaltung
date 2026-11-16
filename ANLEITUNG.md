@@ -1,4 +1,4 @@
-# Notenverwaltung – Kurzanleitung (Stand 1.1.0)
+# Notenverwaltung – Kurzanleitung (Stand 1.1.1)
 
 ## Starten
 

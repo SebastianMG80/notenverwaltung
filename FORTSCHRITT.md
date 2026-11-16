@@ -50,6 +50,7 @@ Abschnitt 6 des Berichts (u. a. Hauptschlüssel beim Passwortwechsel erneuern, N
 
 ## Nächster Schritt
 Runde 3 ist abgeschlossen (Etappen 19–26, Version 1.0.0), danach Sicherheitsprüfung → Version 1.1.0.
+16.11.2026: Absturz beim Schließen behoben → Version 1.1.1 (siehe Entscheidungstabelle „Absturz beim Beenden“).
 Warten auf Sebastians Testrunde und seine Entscheidungen zu Abschnitt 6 des Prüfberichts.
 Später: freier Layout-Editor.
 
@@ -121,6 +122,7 @@ Bestätigt (15.11.2026, Runde 3): Schnellerfassung ++ = 1 … –– = 5 als Vor
 | Schüler:innen-Bogen | Je Person über alle Schuljahre (neueste zuerst) und alle eigenen Lerngruppen: Zeugnisnoten, Arbeiten (Punkte/Note/Vermerk/Rückmeldung), mündliche Noten mit Bemerkung, Schnellerfassung mit Notizen; Ausdruck fließend über Seiten, Überschriften bleiben beim Inhalt; Häkchen: Tendenzen, Punkte, Rückmeldungen, Bemerkungen, Schnellerfassung, frühere Jahre; „Für Eltern“ = ohne Tendenzen, Bemerkungen, Schnellerfassung; Strg+B nimmt die gewählte Person (jeder Reiter kennt `aktuelle_person`), sonst Suche |
 | Version 1.0.0 | Sebastian: letzte Version der Runde 3 heißt 1.0 (produktiv einsetzbar); keine neue Versionsdatei, Format seit 0.9.0 (11) unverändert |
 | Version 1.1.0 | Sebastian (15.11.2026): Korrekturen der Sicherheitsprüfung als 1.1.0 freigeben; keine neue Versionsdatei, Format (11) unverändert; Dateien bekommen unter Linux die Rechte 600, Sperre prüft das Passwort im Arbeitsspeicher |
+| Absturz beim Beenden | Ursache: PySide löscht beim Beenden von Python (`destroyQCoreApplication`) alle Objekte, die es Python zuordnet – auch Widgets mit Qt-Eltern (z. B. Druckdialog unter dem Reiter). War das Elternobjekt schon weg, doppelte Freigabe (SIGABRT/SIGSEGV, je nach Reihenfolge). Nachgestellt (4/6 Läufe), Core-Dump passt (gleiche Stelle `QtWidgets.abi3.so+0x256852`). Lösung: `app.abbauen()` löscht nach `app.exec()` alle Fenster selbst (deleteLater + DeferredDelete + gc), danach 0/10; Hauptfenster schließt beim Beenden offene Nebenfenster (Hilfe hielt das Programm unsichtbar am Laufen). Test in eigenem Prozess (`tests/test_beenden.py`) |
 | Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |

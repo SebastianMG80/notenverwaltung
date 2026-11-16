@@ -915,3 +915,7 @@ class Hauptfenster(QMainWindow):
         s.setValue("fenster/geometrie", self.saveGeometry())
         s.sync()
         super().closeEvent(ereignis)
+        # Offene Nebenfenster (z. B. die Hilfe) halten das Programm sonst unsichtbar am Laufen
+        for w in QApplication.topLevelWidgets():
+            if w is not self and w.isVisible():
+                w.close()
