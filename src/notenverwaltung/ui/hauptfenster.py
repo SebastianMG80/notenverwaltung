@@ -913,8 +913,11 @@ class Hauptfenster(QMainWindow):
             "Notenverwaltung für Lehrer:innen.<br>"
             "Alle Daten bleiben auf diesem Rechner. Das Programm stellt keine "
             "Verbindung ins Internet her.<br><br>"
+            "Freie Software unter der GNU GPL, Version 3 oder später – ohne jede Gewährleistung.<br>"
+            "Quelltext: github.com/SebastianMG80/notenverwaltung<br><br>"
             "Verwendet: Qt for Python (PySide6, LGPL v3), cryptography (Apache 2.0/BSD), "
-            "segno (BSD) und Python (PSF-Lizenz).<br>F1 öffnet die Hilfe.",
+            "segno (BSD) und Python (PSF-Lizenz). Die Lizenztexte liegen im Ordner „lizenzen“ "
+            "neben dem Programm.<br>F1 öffnet die Hilfe.",
         )
 
     # ---- Fenster ------------------------------------------------------------------------------
