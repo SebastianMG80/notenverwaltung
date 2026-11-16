@@ -769,8 +769,26 @@ class Hauptfenster(QMainWindow):
 
     # ---- Sicherheit ---------------------------------------------------------------------------
     def passwort_aendern(self) -> None:
-        if self.db and PasswortAendernDialog(self.db, self).exec():
-            info(self, "Passwort ändern", "Das Passwort wurde geändert.")
+        if self.db is None:
+            return
+        d = PasswortAendernDialog(self.db, self, [zweiter_ort()] if zweiter_ort() else [])
+        if d.exec() and d.ergebnis is not None:
+            self.nach_passwortwechsel(self.db.name, d.ergebnis, self)
+            self._zustand_aktualisieren()
+        d.deleteLater()
+
+    @staticmethod
+    def nach_passwortwechsel(name: str, ergebnis, parent: QWidget) -> None:
+        """Neues Notfallblatt zeigen und sagen, was sich sonst geändert hat."""
+        NotfallDialog(name, ergebnis.code, parent).exec()
+        zeilen = ["Das Passwort wurde geändert, die Datenbank hat einen neuen Schlüssel."]
+        if ergebnis.schluesseldatei_verfallen:
+            zeilen.append("Die bisherige Schlüsseldatei gilt nicht mehr – bei Bedarf unter Datei → Sicherheit eine "
+                          "neue anlegen.")
+        if ergebnis.nicht_umgestellt:
+            zeilen.append("Nicht umgestellt (öffnen sich weiter mit dem alten Passwort – am besten löschen oder "
+                          "später erneut das Passwort ändern):\n" + "\n".join(ergebnis.nicht_umgestellt[:8]))
+        info(parent, "Passwort ändern", "\n\n".join(zeilen))
 
     def neues_notfallblatt(self) -> None:
         if self.db is None:

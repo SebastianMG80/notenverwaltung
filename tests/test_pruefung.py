@@ -65,10 +65,11 @@ def test_s1_ausgetauschte_datei_entsperrt_nicht(db, tmp_path):
 
 
 def test_s1_pruefung_folgt_dem_passwortwechsel(db):
-    db.aendere_passwort("Neues Passwort 2027")
+    wechsel = db.aendere_passwort("Neues Passwort 2027")
     assert db.pruefe_passwort("Neues Passwort 2027")
     assert not db.pruefe_passwort(PW)
-    assert db.tresor.pruefe_zugang(WIEDERHERSTELLUNG, db.code)
+    assert not db.tresor.pruefe_zugang(WIEDERHERSTELLUNG, db.code)          # O1: neuer Schlüssel, neuer Code
+    assert db.tresor.pruefe_zugang(WIEDERHERSTELLUNG, wechsel.code)
     assert not db.tresor.pruefe_zugang(WIEDERHERSTELLUNG, "0000-0000-0000-0000-0000-0000")
     assert not db.tresor.pruefe_zugang(WIEDERHERSTELLUNG, "kein Code")
 
@@ -395,3 +396,84 @@ def test_abgeschnittene_und_leere_datei(db):
         db.pfad.write_bytes(inhalt)
         with pytest.raises(FormatFehler):
             Datenbank.oeffnen(db.pfad, PASSWORT, PW)
+
+
+# ---- O1: Passwortwechsel erneuert den Hauptschlüssel --------------------------------------------------
+
+def test_o1_altes_passwort_und_alte_kopie_oeffnen_neue_fassung_nicht(tmp_path):
+    from notenverwaltung.speicher.datenbank import sichere_nach
+
+    d, alter_code = Datenbank.neu(tmp_path / "Noten", PW, SCHNELL)
+    datei = tmp_path / "Noten.nvdb"
+    try:
+        d.setze_meta("x", "vorher")
+        d._gesichert = False
+        d.speichern()                                       # legt eine Sicherung an
+        alte_kopie = datei.read_bytes()                     # z. B. Cloud-Verlauf, USB-Stick
+        stick = tmp_path / "stick"
+        stick.mkdir()
+        sichere_nach(datei, stick)
+        d.neue_schluesseldatei(tmp_path / "zugang")
+        wechsel = d.aendere_passwort("Neues Passwort 2027", [stick, tmp_path / "fehlt"])
+        d.setze_meta("x", "nachher")
+        d.speichern()
+    finally:
+        d.schliessen(speichern=False)
+    # Angriff: alten Hauptschlüssel aus alter Kopie + altem Passwort, damit die neue Fassung lesen
+    alt, _ = Tresor.oeffne(alte_kopie, PASSWORT, PW)
+    with pytest.raises((FormatFehler, EntschluesselungsFehler)):
+        alt.entpacke_eigene(datei.read_bytes())
+    # neue Zugänge gelten, alte nicht
+    Datenbank.oeffnen(datei, PASSWORT, "Neues Passwort 2027").schliessen(speichern=False)
+    Datenbank.oeffnen(datei, WIEDERHERSTELLUNG, wechsel.code).schliessen(speichern=False)
+    for art, wert in ((PASSWORT, PW), (WIEDERHERSTELLUNG, alter_code)):
+        with pytest.raises(EntschluesselungsFehler):
+            Datenbank.oeffnen(datei, art, wert)
+    assert wechsel.code != alter_code and wechsel.schluesseldatei_verfallen
+    assert any("fehlt" in x and "nicht erreichbar" in x for x in wechsel.nicht_umgestellt)
+    # Sicherungen im Ordner und auf dem Stick: umgestellt
+    from notenverwaltung.speicher.datenbank import sicherungsordner
+
+    kopien = list(sicherungsordner(datei).glob("*.nvdb")) + list(stick.glob("*.nvdb"))
+    assert len(kopien) >= 2
+    for k in kopien:
+        with pytest.raises(EntschluesselungsFehler):
+            Tresor.oeffne(k.read_bytes(), PASSWORT, PW)
+        Tresor.oeffne(k.read_bytes(), PASSWORT, "Neues Passwort 2027")
+
+
+def test_o1_speichern_scheitert_alles_bleibt_beim_alten(db, monkeypatch):
+    alt = db.tresor.hauptschluessel
+
+    def kaputt(*a, **k):
+        raise OSError("Platte voll")
+
+    monkeypatch.setattr("notenverwaltung.speicher.datenbank._schreibe_atomar", kaputt)
+    with pytest.raises(OSError):
+        db.aendere_passwort("Neues Passwort 2027")
+    assert db.tresor.hauptschluessel == alt and db.pruefe_passwort(PW)
+    assert db.tresor.pruefe_zugang(WIEDERHERSTELLUNG, db.code)
+
+
+def test_o1_oberflaeche_zeigt_neues_notfallblatt(app, db, monkeypatch, tmp_path):
+    from notenverwaltung.ui import hauptfenster as hf
+    from notenverwaltung.ui.sicherheit import PasswortAendernDialog
+
+    gezeigt = []
+    monkeypatch.setattr(hf.NotfallDialog, "exec", lambda self: gezeigt.append(self.anzeige) or 1)
+    monkeypatch.setattr(hf, "info", lambda parent, titel, text: gezeigt.append(text))
+
+    def exec_(self):
+        self.alt.setText(PW)
+        self.pw1.setText("Neues Passwort 2027 !")
+        self.pw2.setText("Neues Passwort 2027 !")
+        self._aendern()
+        return 1
+
+    monkeypatch.setattr(PasswortAendernDialog, "exec", exec_)
+    f = hf.Hauptfenster()
+    f.setze_datenbank(db)
+    f.passwort_aendern()
+    assert len(gezeigt) == 2 and "neuen Schlüssel" in gezeigt[1]
+    assert db.pruefe_passwort("Neues Passwort 2027 !")
+    f.db = None

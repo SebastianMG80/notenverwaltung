@@ -157,7 +157,7 @@ Nicht möglich im kostenlosen Tarif bei privatem Repository: Schutzregeln für `
 
 ### Mittel
 
-**O1 – Passwortwechsel tauscht den Hauptschlüssel nicht**
+**O1 – Passwortwechsel tauscht den Hauptschlüssel nicht** – *erledigt in 1.2.0 (16.11.2026): Jeder Passwortwechsel erzeugt einen neuen Hauptschlüssel, neues Notfallblatt, Sicherungen samt zweitem Sicherungsort werden umgestellt.*
 - Ein neues Passwort verpackt nur denselben Hauptschlüssel neu. Wer das alte Passwort kannte *und* eine alte
   Kopie der Datei hat (Cloud-Verlauf, USB-Stick), kann damit auch alle späteren Fassungen entschlüsseln.
 - Dazu passt: Kopien am zweiten Sicherungsort (USB-Stick) behalten das alte Passwort, weil das Programm sie

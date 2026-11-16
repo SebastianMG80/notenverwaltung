@@ -206,6 +206,9 @@ class StartDialog(QDialog):
             return
         dialog = WiederherstellenDialog(pfad, self)
         if dialog.exec() and dialog.datenbank is not None:
+            from notenverwaltung.ui.hauptfenster import Hauptfenster
+
+            Hauptfenster.nach_passwortwechsel(dialog.datenbank.name, dialog.wechsel, self)
             self.datenbank = dialog.datenbank
             merke_geoeffnet(str(pfad))
             self.accept()
@@ -222,6 +225,7 @@ class WiederherstellenDialog(QDialog):
         super().__init__(parent)
         self.pfad = Path(pfad)
         self.datenbank: Datenbank | None = None
+        self.wechsel = None                    # Passwortwechsel nach dem Entsperren (neuer Code!)
         self._schluesseldatei: bytes | None = None
         self.setWindowTitle("Passwort vergessen")
         self.setMinimumWidth(560)
@@ -337,7 +341,9 @@ class WiederherstellenDialog(QDialog):
         if db is None:
             return
         try:
-            db.aendere_passwort(self.pw1.text())
+            from notenverwaltung.einstellungen import zweiter_ort
+
+            self.wechsel = db.aendere_passwort(self.pw1.text(), [zweiter_ort()] if zweiter_ort() else [])
         except (OSError, ValueError) as e:
             fehler(self, "Neues Passwort", f"Das neue Passwort konnte nicht gespeichert werden:\n{e}")
             db.schliessen(speichern=False)

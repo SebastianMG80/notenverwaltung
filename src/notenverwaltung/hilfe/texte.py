@@ -75,8 +75,11 @@ Eine umgestellte Datei lässt sich mit älteren Programmversionen nicht mehr öf
 <h2>Sicherheit, Sicherungen und Notfall</h2>
 <p>Im Menü <b>Datei → Sicherheit</b>:</p>
 <ul>
-<li><b>Passwort ändern …</b> – Der Wiederherstellungscode bleibt gültig. Auch alle Sicherungen werden auf das
-neue Passwort umgestellt.</li>
+<li><b>Passwort ändern …</b> – Die Datenbank bekommt dabei einen neuen inneren Schlüssel. So lässt sich eine
+spätere Fassung auch dann nicht öffnen, wenn jemand das alte Passwort und eine alte Kopie der Datei hat. Danach
+erscheint sofort ein <b>neues Notfallblatt</b> (der alte Code gilt nicht mehr), eine Schlüsseldatei muss neu
+angelegt werden. Alle Sicherungen – auch auf dem zweiten Sicherungsort, wenn er erreichbar ist – werden
+umgestellt. Dasselbe gilt für „Passwort vergessen?“ im Startdialog.</li>
 <li><b>Neues Notfallblatt …</b> – erzeugt einen neuen Wiederherstellungscode; der alte gilt dann nicht mehr.</li>
 <li><b>Schlüsseldatei anlegen …</b> – eine zusätzliche Datei (z. B. auf einem USB-Stick), mit der sich die
 Datenbank ohne Passwort öffnen lässt. Bewahre sie getrennt vom Rechner auf.</li>

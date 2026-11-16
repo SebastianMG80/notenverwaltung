@@ -129,6 +129,20 @@ class Tresor:
         self._setze_zugang(WIEDERHERSTELLUNG, code)
         return code
 
+    def erneuere(self, passwort: str) -> str:
+        """Neuer Hauptschlüssel (Passwortwechsel): Wer das alte Passwort und eine alte Kopie der Datei kennt,
+        kann damit spätere Fassungen nicht mehr öffnen. Passwort und Wiederherstellungscode werden neu gesetzt,
+        eine Schlüsseldatei verfällt (ihr Inhalt ist hier nicht bekannt). Gibt den neuen Code zurück."""
+        if not passwort:
+            raise ValueError("Das Passwort darf nicht leer sein.")
+        self.hauptschluessel = krypto.neuer_hauptschluessel()
+        self.zugaenge = {}
+        self.setze_passwort(passwort)
+        return self.neuer_wiederherstellungscode()
+
+    def kopie(self) -> "Tresor":
+        return Tresor(self.hauptschluessel, self.kdf, dict(self.zugaenge))
+
     def neue_schluesseldatei(self) -> bytes:
         """Erzeugt den Inhalt einer neuen Schlüsseldatei; eine bisherige wird ungültig."""
         inhalt = b"NVKEY1\n" + krypto.zufall(64)

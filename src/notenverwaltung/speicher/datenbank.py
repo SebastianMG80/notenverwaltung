@@ -172,6 +172,13 @@ def cloud_hinweis(pfad: Path) -> str | None:
     return None
 
 
+@dataclass(frozen=True)
+class Passwortwechsel:
+    code: str                          # neuer Wiederherstellungscode – sofort neues Notfallblatt!
+    schluesseldatei_verfallen: bool
+    nicht_umgestellt: list[str]        # Sicherungen, die sich nicht umstellen ließen (z. B. Stick fehlt)
+
+
 class Datenbank:
     def __init__(self, pfad: Path, tresor: Tresor, verbindung: sqlite3.Connection) -> None:
         self.pfad = Path(pfad)
@@ -313,9 +320,50 @@ class Datenbank:
             _schreibe_atomar(datei, self.tresor.verpacke(klartext))
 
     # ---- Zugänge ändern ----------------------------------------------------------------------
-    def aendere_passwort(self, neues_passwort: str) -> None:
-        self.tresor.setze_passwort(neues_passwort)
-        self._zugaenge_geaendert()
+    def aendere_passwort(self, neues_passwort: str, weitere_ordner: list[Path] | tuple = ()) -> "Passwortwechsel":
+        """Neues Passwort mit neuem Hauptschlüssel (Prüfbericht O1).
+
+        Danach gilt ein neuer Wiederherstellungscode (neues Notfallblatt!), eine Schlüsseldatei verfällt.
+        Alle Sicherungen – im Sicherungsordner und in `weitere_ordner` (zweiter Sicherungsort) – werden auf den
+        neuen Schlüssel umgestellt; alte Kopien öffnen sich also nicht mehr mit dem alten Passwort. Klappt das
+        Speichern nicht, bleibt alles beim Alten (alter Schlüssel, altes Passwort).
+        """
+        alt = self.tresor.kopie()
+        hatte_datei = alt.hat_schluesseldatei
+        code = self.tresor.erneuere(neues_passwort)
+        try:
+            self._tresor_geaendert = True
+            self.speichern()
+        except BaseException:
+            self.tresor = alt
+            raise
+        nicht = self._sicherungen_umschluesseln(alt, [Path(o) for o in weitere_ordner if o])
+        return Passwortwechsel(code, hatte_datei, nicht)
+
+    def _sicherungen_umschluesseln(self, alt: Tresor, weitere_ordner: list[Path]) -> list[str]:
+        """Sicherungen vom alten auf den neuen Hauptschlüssel umstellen. Gibt zurück, was nicht ging."""
+        dateien = list(self.sicherungen())
+        nicht: list[str] = []
+        for ordner in weitere_ordner:
+            if not ordner.is_dir():
+                nicht.append(f"{ordner} (nicht erreichbar)")
+                continue
+            dateien += [p for p in ordner.glob(f"{glob.escape(self.pfad.stem)}_????-??-??_??-??-??{ENDUNG}")]
+        for datei in dateien:
+            try:
+                daten = datei.read_bytes()
+            except OSError:
+                nicht.append(str(datei))
+                continue
+            try:
+                klartext = alt.entpacke_eigene(daten)
+            except Exception:  # schon umgestellt, fremd oder beschädigt – nicht anfassen
+                continue
+            try:
+                _schreibe_atomar(datei, self.tresor.verpacke(klartext))
+            except OSError:
+                nicht.append(str(datei))
+        return nicht
 
     def neuer_wiederherstellungscode(self) -> str:
         code = self.tresor.neuer_wiederherstellungscode()

@@ -12,9 +12,11 @@ from notenverwaltung.ui.neue_datenbank import passwort_bewertung
 
 
 class PasswortAendernDialog(QDialog):
-    def __init__(self, db: Datenbank, parent: QWidget | None = None) -> None:
+    def __init__(self, db: Datenbank, parent: QWidget | None = None, weitere_ordner: list | None = None) -> None:
         super().__init__(parent)
         self.db = db
+        self.weitere_ordner = weitere_ordner or []
+        self.ergebnis = None          # Passwortwechsel nach Erfolg
         self.setWindowTitle("Passwort ändern")
         self.setMinimumWidth(480)
         self.alt = Passwortfeld("Bisheriges Passwort")
@@ -27,8 +29,10 @@ class PasswortAendernDialog(QDialog):
         form.addRow("Neues Passwort:", self.pw1)
         form.addRow("", self.bewertung)
         form.addRow("Wiederholung:", self.pw2)
-        hinweis = QLabel("Auch die Sicherungen dieser Datenbank werden auf das neue Passwort umgestellt. "
-                         "Der Wiederherstellungscode bleibt gültig.", objectName="leise")
+        hinweis = QLabel("Die Datenbank bekommt dabei einen neuen inneren Schlüssel. Danach erscheint ein neues "
+                         "Notfallblatt – der bisherige Wiederherstellungscode wird ungültig, eine Schlüsseldatei "
+                         "muss neu angelegt werden. Alle Sicherungen (auch auf dem zweiten Sicherungsort) werden "
+                         "umgestellt.", objectName="leise")
         hinweis.setWordWrap(True)
         self.knoepfe = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.knoepfe.button(QDialogButtonBox.StandardButton.Ok).setText("Passwort ändern")
@@ -67,7 +71,7 @@ class PasswortAendernDialog(QDialog):
             return
         QGuiApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
-            self.db.aendere_passwort(self.pw1.text())
+            self.ergebnis = self.db.aendere_passwort(self.pw1.text(), self.weitere_ordner)
         except (OSError, ValueError) as e:
             QGuiApplication.restoreOverrideCursor()
             fehler(self, "Passwort ändern", f"Das neue Passwort konnte nicht gespeichert werden:\n{e}")
