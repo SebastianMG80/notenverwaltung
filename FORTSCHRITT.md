@@ -51,6 +51,7 @@ Abschnitt 6 des Berichts (u. a. Hauptschlüssel beim Passwortwechsel erneuern, N
 ## Nächster Schritt
 Runde 3 ist abgeschlossen (Etappen 19–26, Version 1.0.0), danach Sicherheitsprüfung → Version 1.1.0.
 16.11.2026: Absturz beim Schließen behoben → Version 1.1.1 (siehe Entscheidungstabelle „Absturz beim Beenden“).
+16.11.2026: Vorbereitung der Veröffentlichung → Version 1.2.0: O1 behoben (neuer Schlüssel beim Passwortwechsel), GPL-3.0 mit Lizenzen der mitgelieferten Software, Handbuch (Markdown + PDF, 41 Seiten, 37 Bilder), Qt-Knöpfe deutsch, Strg+Q auch unter Windows. Repo auf öffentlich stellt Sebastian selbst.
 Warten auf Sebastians Testrunde und seine Entscheidungen zu Abschnitt 6 des Prüfberichts.
 Später: freier Layout-Editor.
 
@@ -125,6 +126,8 @@ Bestätigt (15.11.2026, Runde 3): Schnellerfassung ++ = 1 … –– = 5 als Vor
 | Absturz beim Beenden | Ursache: PySide löscht beim Beenden von Python (`destroyQCoreApplication`) alle Objekte, die es Python zuordnet – auch Widgets mit Qt-Eltern (z. B. Druckdialog unter dem Reiter). War das Elternobjekt schon weg, doppelte Freigabe (SIGABRT/SIGSEGV, je nach Reihenfolge). Nachgestellt (4/6 Läufe), Core-Dump passt (gleiche Stelle `QtWidgets.abi3.so+0x256852`). Lösung: `app.abbauen()` löscht nach `app.exec()` alle Fenster selbst (deleteLater + DeferredDelete + gc), danach 0/10; Hauptfenster schließt beim Beenden offene Nebenfenster (Hilfe hielt das Programm unsichtbar am Laufen). Test in eigenem Prozess (`tests/test_beenden.py`) |
 | Passwortwechsel (O1) | Sebastian: immer neuer Hauptschlüssel. `Tresor.erneuere`: neues Passwort + neuer Wiederherstellungscode, Schlüsseldatei verfällt; Sicherungen (Ordner + zweiter Sicherungsort) mit altem Schlüssel entschlüsselt und neu verschlüsselt; Speicherfehler → alter Tresor bleibt; danach sofort neues Notfallblatt (auch bei „Passwort vergessen?“) |
 | Lizenz | Sebastian: GPL-3.0; umgesetzt als GPL-3.0-or-later (übliche Form), Copyright „SebastianMG80“; `lizenzen/` mit Texten der Python-Pakete, LGPL für Qt; `werkzeuge/lizenzen_sammeln.py` legt beim Bauen LICENSE, lizenzen/, Python-Lizenz und unter Linux die Ubuntu-Copyright-Dateien aller mitgelieferten Systembibliotheken (~124) ins Paket; README mit Hinweis „Issues ohne echte Schülerdaten“ |
+| Handbuch | Sebastian: PDF mit Bildern. `handbuch/HANDBUCH.md` (lesbar auf GitHub) → `werkzeuge/handbuch_pdf.py` setzt es mit Qts Textsatz (kein pandoc nötig) als A4-PDF; `werkzeuge/handbuch_bilder.py` erzeugt 37 Bilder mit Beispieldatenbank (erfundene Namen), hellem Design und nummerierten Markierungen; PDF wird committet und von `lizenzen_sammeln.py` ins Paket gelegt; CLAUDE.md: Handbuch bei jeder sichtbaren Änderung mitpflegen |
+| Übersetzung Qt | Standardknöpfe waren englisch („Cancel“); `qtbase_de.qm` wird beim Start geladen (liegt im PyInstaller-Paket) |
 | Jahreswechsel-Fehler | Klassengruppen „D 8.4“ bekamen keine Mitglieder (Klasse aus erstem Wort); jetzt aus den Mitgliedern abgeleitet (gefunden in Etappe 13) |
 | Windows-Build | GitHub Actions, PyInstaller onedir als Zip, Selbsttest `--selbsttest`, Tests unter Windows mit QT_QPA_PLATFORM=windows (offscreen kennt dort keine Schriften) |
 | Notenvorschlag | nächstgelegene Note mit Tendenz (Gleichstand → bessere), Herleitung als Tooltip; „Vorschläge übernehmen“ setzt ganze Noten (Zeugnis ohne Tendenz), genau ,5 → bessere |

@@ -2,4 +2,4 @@
 
 APP_NAME = "Notenverwaltung"
 ORG_NAME = "Notenverwaltung"
-__version__ = "1.1.1"
+__version__ = "1.2.0"

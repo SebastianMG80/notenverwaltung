@@ -16,6 +16,8 @@ notfallblatt*.pdf
 /ausgabe/
 *.pdf
 !docs/**/*.pdf
+# Ausnahme: das Handbuch (Beispieldaten mit erfundenen Namen)
+!handbuch/Handbuch.pdf
 
 # ---- Python / Build
 __pycache__/

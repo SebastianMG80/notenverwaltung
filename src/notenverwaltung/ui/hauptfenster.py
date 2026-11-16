@@ -298,7 +298,7 @@ class Hauptfenster(QMainWindow):
         self.m_sicherheit.addAction(self.a_sperren)
 
         datei.addSeparator()
-        datei.addAction(self._aktion("&Beenden", self.close, QKeySequence.StandardKey.Quit))
+        datei.addAction(self._aktion("&Beenden", self.close, QKeySequence("Ctrl+Q")))   # Windows hat kein Standardkürzel
 
         self.m_bearbeiten = self.menuBar().addMenu("&Bearbeiten")
         self.a_rueckgaengig = self._aktion("&Rückgängig", self.rueckgaengig, QKeySequence.StandardKey.Undo)

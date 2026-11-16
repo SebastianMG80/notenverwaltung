@@ -1,4 +1,6 @@
-# Notenverwaltung – Kurzanleitung (Stand 1.1.1)
+# Notenverwaltung – Kurzanleitung (Stand 1.2.0)
+
+Ausführlich mit Bildern: das **Handbuch** (`handbuch/Handbuch.pdf`, liegt jedem Release bei).
 
 ## Starten
 

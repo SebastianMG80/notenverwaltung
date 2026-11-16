@@ -3,7 +3,8 @@
 Offline-Notenverwaltung für Lehrer:innen: Klassenarbeiten korrigieren, Noten verwalten, Notenvorschläge, Ausdrucke.
 Läuft unter Linux (KDE) und Windows mit identischem Dateiformat. Das Programm sendet von sich aus nie Daten nach außen.
 
-- Bedienung: [ANLEITUNG.md](ANLEITUNG.md)
+- **Handbuch:** [handbuch/HANDBUCH.md](handbuch/HANDBUCH.md), als PDF [handbuch/Handbuch.pdf](handbuch/Handbuch.pdf) (liegt auch jedem Release bei)
+- Kurzanleitung: [ANLEITUNG.md](ANLEITUNG.md)
 - Anforderungen: [LASTENHEFT.md](LASTENHEFT.md)
 - Etappenplan: [PLAN.md](PLAN.md)
 - Stand: [FORTSCHRITT.md](FORTSCHRITT.md)
@@ -21,6 +22,13 @@ Starten:
 
 ```bash
 ./start.sh
+```
+
+Handbuch neu bebildern und setzen (nach Programmänderungen):
+
+```bash
+~/.venvs/notenverwaltung/bin/python werkzeuge/handbuch_bilder.py
+~/.venvs/notenverwaltung/bin/python werkzeuge/handbuch_pdf.py
 ```
 
 Tests:

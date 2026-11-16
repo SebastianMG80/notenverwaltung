@@ -9,3 +9,4 @@
 - Unterbrechungssicher arbeiten: nach jedem Teilschritt `FORTSCHRITT.md` aktualisieren. „weiter“ setzt dort fort.
 - Python-Umgebung: `~/.venvs/notenverwaltung`. Tests: `~/.venvs/notenverwaltung/bin/python -m pytest -q`. Start: `./start.sh`.
 - `Punkteliste.ods` ist die Vorlage für Punkteliste und Notenabschnitte (Layout und Notenschlüssel).
+- Handbuch: `handbuch/HANDBUCH.md` bei jeder sichtbaren Änderung mitpflegen; Bilder mit `werkzeuge/handbuch_bilder.py` (Beispieldaten, erfundene Namen), PDF mit `werkzeuge/handbuch_pdf.py` neu erzeugen und beides committen.

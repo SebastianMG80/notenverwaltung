@@ -41,3 +41,11 @@ def test_unbekanntes_design_faellt_auf_dunkel_zurueck(app):
 
     einstellungen().setValue("ansicht/design", "pink")
     assert design_name() == "dunkel"
+
+
+def test_qt_knoepfe_deutsch(app):
+    """Standardknöpfe von Qt sind übersetzt („Abbrechen“ statt „Cancel“)."""
+    from PySide6.QtWidgets import QDialogButtonBox
+
+    box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+    assert box.button(QDialogButtonBox.StandardButton.Cancel).text().replace("&", "") == "Abbrechen"

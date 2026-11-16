@@ -18,6 +18,15 @@ def erzeuge_anwendung(argv: list[str] | None = None) -> QApplication:
     app.setApplicationVersion(__version__)
     app.setDesktopFileName("notenverwaltung")
     wende_design_an(app, design_name())
+    if app.property("uebersetzung") is None:
+        # Deutsche Texte für Qt-eigene Knöpfe und Dialoge („Abbrechen“ statt „Cancel“, Datei- und Druckdialog)
+        from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
+
+        uebersetzer = QTranslator(app)
+        if uebersetzer.load(QLocale(QLocale.Language.German, QLocale.Country.Germany), "qtbase", "_",
+                            QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)):
+            app.installTranslator(uebersetzer)
+        app.setProperty("uebersetzung", True)
     from notenverwaltung.hilfe.fenster import installiere_f1
 
     installiere_f1(app)
